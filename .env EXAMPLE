@@ -1,0 +1,12 @@
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+
+# NextAuth Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here-change-in-production
+
+# App Configuration
+NEXT_PUBLIC_APP_NAME=IERM
+NEXT_PUBLIC_APP_VERSION=1.0.0
+
+
