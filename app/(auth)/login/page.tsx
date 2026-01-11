@@ -1,14 +1,86 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { School, LayoutDashboard } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { API_URL } from "@/lib/constants";
-import Image from "next/image";
+import apiClient from "@/lib/api/client";
+import { useAuthStore } from "@/store/auth-store";
+import { UserRole } from "@/types";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { setUser } = useAuthStore();
   const [campus, setCampus] = useState("");
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAuth = async () => {
+      try {
+        const response = await apiClient.get("/users/me");
+        const data = (response.data as { data?: any })?.data;
+
+        if (cancelled) return;
+
+        if (data) {
+          const normalizeRole = (roleValue?: string | null): UserRole => {
+            const value = (roleValue || "").toLowerCase();
+            if (value === "admin") return "admin";
+            if (value === "student") return "student";
+            return "staff";
+          };
+
+          const role = normalizeRole(data.role);
+          const user = {
+            id: data.id || "",
+            email: data.email || "",
+            name: data.fullName || data.name || data.email || "User",
+            role,
+            avatar: data.avatarUrl || data.avatar || undefined,
+            createdAt: data.createdAt || "",
+            updatedAt: data.updatedAt || "",
+          };
+
+          setUser(user);
+
+          // If already authenticated and is admin, redirect to dashboard
+          if (role === "admin") {
+            router.replace("/dashboard");
+            return;
+          }
+        }
+      } catch (error) {
+        // Not authenticated, stay on login page
+        console.log("Not authenticated, showing login page");
+      } finally {
+        if (!cancelled) {
+          setIsChecking(false);
+        }
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, setUser]);
+
+  // Show loading while checking authentication
+  if (isChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 text-sm text-gray-600 shadow-sm">
+          Checking authentication...
+        </div>
+      </div>
+    );
+  }
 
   const handleGoogleLogin = () => {
     // Redirect to Backend Google OAuth Endpoint
