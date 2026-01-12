@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
+  // Use backend-set access token cookie name
+  const token = request.cookies.get("access_token")?.value;
   const { pathname } = request.nextUrl;
 
   // Public routes that don't require authentication
@@ -16,7 +17,7 @@ export function middleware(request: NextRequest) {
 
   // If accessing login/register with token, redirect to dashboard
   if (isPublicRoute && token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/admin-dashboard", request.url));
   }
 
   return NextResponse.next();

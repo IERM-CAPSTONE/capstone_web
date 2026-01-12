@@ -25,39 +25,37 @@ export function Header() {
   };
 
   return (
-    <header className="border-b bg-white dark:bg-gray-900">
+    <header className="border-b bg-primary text-white">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleSidebar}
-            className="lg:hidden"
+            className="lg:hidden text-white"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5 text-white" />
           </Button>
-          <h2 className="text-lg font-semibold">IERM System</h2>
+          <h2 className="text-lg font-semibold text-white">IERM System</h2>
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm">
-            <Bell className="h-5 w-5" />
+          <Button variant="ghost" size="sm" className="text-white">
+            <Bell className="h-5 w-5 text-white" />
           </Button>
-          
+
           <div className="flex items-center gap-2">
-            <div className="text-right">
+            <div className="text-right text-white">
               <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {user?.role}
-              </p>
+              <p className="text-xs text-white/80">{user?.role}</p>
             </div>
-            <Button variant="ghost" size="sm">
-              <User className="h-5 w-5" />
+            <Button variant="ghost" size="sm" className="text-white">
+              <User className="h-5 w-5 text-white" />
             </Button>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-5 w-5" />
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white">
+            <LogOut className="h-5 w-5 text-white" />
           </Button>
         </div>
       </div>

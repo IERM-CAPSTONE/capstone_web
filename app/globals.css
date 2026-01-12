@@ -3,15 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #f8fafc;
   --foreground: #171717;
   --radius: 0.5rem;
 }
 
+/* Keep light theme even if system prefers dark */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f8fafc;
+    --foreground: #171717;
   }
 }
 

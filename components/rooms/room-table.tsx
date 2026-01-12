@@ -62,7 +62,7 @@ export function RoomTable({ rooms, onEdit, onDelete, isLoading }: RoomTableProps
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-800">
+          <tr className="border-b border-gray-200">
             <th className="text-left p-4 font-semibold text-sm">Tên phòng</th>
             <th className="text-left p-4 font-semibold text-sm">Vị trí</th>
             <th className="text-left p-4 font-semibold text-sm">Sức chứa</th>
@@ -75,12 +75,12 @@ export function RoomTable({ rooms, onEdit, onDelete, isLoading }: RoomTableProps
           {rooms.map((room) => (
             <tr
               key={room.id}
-              className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
             >
               <td className="p-4">
                 <div className="font-medium">{room.name}</div>
               </td>
-              <td className="p-4 text-gray-600 dark:text-gray-400">
+              <td className="p-4 text-gray-600">
                 {room.location}
               </td>
               <td className="p-4">{room.capacity} chỗ</td>

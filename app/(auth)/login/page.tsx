@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { School, LayoutDashboard } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { API_URL } from "@/lib/constants";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [campus, setCampus] = useState("");
@@ -96,7 +95,7 @@ export default function LoginPage() {
                   Please use your FPT University email (<span className="font-mono text-[#f97316]">@fpt.edu.vn</span>)
                 </p>
                 <p>
-                  Only authorized proctors can access this system
+                  Only authorized users can access this system
                 </p>
               </div>
             </div>
