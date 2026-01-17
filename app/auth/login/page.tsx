@@ -48,11 +48,17 @@ export default function LoginPage() {
 
           setUser(user);
 
-          // If already authenticated and is admin, redirect to dashboard
+          // If already authenticated, redirect based on role
           if (role === "admin") {
-            router.replace("/dashboard");
+            router.replace("/dashboard/admin");
+            return;
+          } else if (role === "exam_officer") {
+            router.replace("/dashboard/exam-officer");
             return;
           }
+          // For other roles, redirect to generic dashboard
+          router.replace("/dashboard");
+          return;
         }
       } catch (error) {
         // Not authenticated, stay on login page

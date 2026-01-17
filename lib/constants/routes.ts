@@ -15,12 +15,14 @@
 export const ROUTES = {
   // Public routes
   HOME: "/",
-  LOGIN: "/login",
+  LOGIN: "/auth/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
 
   // Dashboard
   DASHBOARD: "/dashboard",
+  DASHBOARD_ADMIN: "/dashboard/admin",
+  DASHBOARD_EXAM_OFFICER: "/dashboard/exam-officer",
 
   // Rooms routes (Ví dụ mẫu)
   ROOMS: "/rooms",
@@ -28,8 +30,13 @@ export const ROUTES = {
   ROOMS_DETAIL: (id: string) => `/rooms/${id}`,
   ROOMS_EDIT: (id: string) => `/rooms/${id}/edit`,
 
+  // Exam Schedules
+  EXAMS_SCHEDULE: "/dashboard/exam-officer/exam-schedule",
+  EXAMS_SCHEDULE_CREATE: "/dashboard/exam-officer/exam-schedule/create",
+  EXAMS_SCHEDULE_DETAIL: (id: string) => `/dashboard/exam-officer/exam-schedule/${id}`,
+  EXAMS_SCHEDULE_EDIT: (id: string) => `/dashboard/exam-officer/exam-schedule/${id}/update`,
+
   // Các routes khác sẽ được thêm sau khi cần
-  EXAMS: "/exams",
   STUDENTS: "/students",
   MONITORING: "/monitoring",
   REPORTS: "/reports",

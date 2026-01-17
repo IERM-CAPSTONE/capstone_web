@@ -73,8 +73,8 @@ export class HttpClient {
   private handleLogout() {
     if (typeof window !== "undefined") {
       // Avoid redirect loops if already on login page
-      if (!window.location.pathname.includes('/login')) {
-         window.location.href = "/login";
+      if (!window.location.pathname.includes('/auth/login')) {
+         window.location.href = "/auth/login";
       }
     }
   }

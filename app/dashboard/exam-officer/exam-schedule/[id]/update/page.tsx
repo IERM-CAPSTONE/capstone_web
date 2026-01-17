@@ -29,8 +29,6 @@ export default function UpdateExamSchedulePage() {
 
     const [formData, setFormData] = useState({
         examCode: "",
-        semester: "",
-        examType: "",
         openCode: "",
         note: "",
     });
@@ -40,11 +38,8 @@ export default function UpdateExamSchedulePage() {
 
     useEffect(() => {
         if (schedule) {
-            console.log("Schedule data:", schedule);
             setFormData({
                 examCode: schedule.examCode || "",
-                semester: schedule.semester || "",
-                examType: schedule.examType || "",
                 openCode: schedule.openCode || "",
                 note: schedule.note || "",
             });
@@ -77,11 +72,9 @@ export default function UpdateExamSchedulePage() {
             await updateMutation.mutateAsync({
                 id: scheduleId,
                 data: {
-                    examCode: formData.examCode,
-                    semester: formData.semester || undefined,
-                    examType: formData.examType || undefined,
-                    openCode: formData.openCode || undefined,
-                    note: formData.note || undefined,
+                    examCode: formData.examCode.trim() || undefined,
+                    openCode: formData.openCode.trim() || undefined,
+                    note: formData.note.trim() || undefined,
                 },
             });
             router.push(ROUTES.EXAMS_SCHEDULE);
@@ -238,11 +231,9 @@ export default function UpdateExamSchedulePage() {
                                     </label>
                                     <input
                                         type="text"
-                                        name="semester"
-                                        placeholder="e.g. Spring 2026"
-                                        value={formData.semester}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        value={schedule.semester || ""}
+                                        disabled
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-not-allowed"
                                     />
                                 </div>
 
@@ -253,11 +244,9 @@ export default function UpdateExamSchedulePage() {
                                     </label>
                                     <input
                                         type="text"
-                                        name="examType"
-                                        placeholder="e.g. Final, Midterm"
-                                        value={formData.examType}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        value={schedule.examType || ""}
+                                        disabled
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-not-allowed"
                                     />
                                 </div>
 
@@ -405,8 +394,8 @@ export default function UpdateExamSchedulePage() {
                             <div className="flex-1">
                                 <h3 className="font-bold text-slate-900 mb-3">Update Guidelines</h3>
                                 <ul className="space-y-2 text-sm text-slate-700">
-                                    <li>• You can edit exam code, open code, semester, exam type, and notes</li>
-                                    <li>• Exam details (date, time, duration) are read-only and can only be changed in the detail page</li>
+                                    <li>• You can edit exam code, open code, and notes only</li>
+                                    <li>• Exam details (date, time, duration, semester, exam type) are read-only and can only be changed in the detail page</li>
                                     <li>• Subject and linked information cannot be modified here</li>
                                     <li>• All changes are effective immediately</li>
                                 </ul>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser, useToggleUserStatus, useUserActivities } from "@/hooks/use-users";
+import { useUser, useToggleUserStatus } from "@/hooks/use-users";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,72 +15,19 @@ import {
     Edit,
     ChevronRight,
     FileText,
-    History,
-    CheckCircle2,
     ShieldAlert,
-    UserPlus,
-    Activity
 } from "lucide-react";
 import { format as dateFnsFormat, parseISO } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils/cn";
-import { useState, useEffect } from "react";
-import { useSocket } from "@/lib/socket/socket-provider";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function AccountDetailPage() {
     const { id } = useParams() as { id: string };
     const router = useRouter();
-    const queryClient = useQueryClient();
-    const { socket } = useSocket();
     const { data: user, isLoading, error } = useUser(id);
     const toggleStatus = useToggleUserStatus();
     const [isLocking, setIsLocking] = useState(false);
-
-    const { data: initialActivities } = useUserActivities(id as string);
-    const [activities, setActivities] = useState<any[]>([]);
-
-    useEffect(() => {
-        if (Array.isArray(initialActivities)) {
-            setActivities(initialActivities.map(data => ({
-                id: data.id,
-                title: data.type.replace(/_/g, " ").replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()),
-                performer: data.performer,
-                timestamp: dateFnsFormat(parseISO(data.timestamp), "MMM dd, yyyy 'at' hh:mm a", { locale: enUS }),
-                type: data.type
-            })));
-        }
-    }, [initialActivities]);
-
-    useEffect(() => {
-        if (!socket || !id) return;
-
-        socket.on("ACCOUNT_ACTIVITY", (data: any) => {
-            if (data.userId === id) {
-                // Invalidate query to get fresh user data (like isActive status)
-                queryClient.invalidateQueries({ queryKey: ["user", id] });
-                queryClient.invalidateQueries({ queryKey: ["users", id, "activities"] });
-
-                // Add to timeline
-                const newActivity = {
-                    id: data.id || Math.random().toString(36).substr(2, 9),
-                    title: data.type.replace(/_/g, " ").replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()),
-                    performer: data.performer,
-                    timestamp: dateFnsFormat(parseISO(data.timestamp), "MMM dd, yyyy 'at' hh:mm a", { locale: enUS }),
-                    type: data.type
-                };
-
-                setActivities(prev => {
-                    if (prev.find(a => a.id === newActivity.id)) return prev;
-                    return [newActivity, ...prev];
-                });
-            }
-        });
-
-        return () => {
-            socket.off("ACCOUNT_ACTIVITY");
-        };
-    }, [socket, id, queryClient]);
 
     if (isLoading) {
         return (
@@ -160,6 +107,7 @@ export default function AccountDetailPage() {
                 <CardContent className="p-8 flex items-center gap-6 relative z-10">
                     <div className="h-24 w-24 rounded-2xl bg-white flex items-center justify-center p-1 shadow-inner overflow-hidden">
                         {user.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover rounded-xl" />
                         ) : (
                             <UserIcon className="h-12 w-12 text-gray-300" />
@@ -247,36 +195,6 @@ export default function AccountDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
-
-                    <Card className="border border-gray-200 shadow-sm overflow-hidden">
-                        <CardContent className="p-6">
-                            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <History className="h-5 w-5 text-gray-500" /> Account Activity
-                            </h3>
-                            <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-gray-200 before:via-gray-100 before:to-transparent">
-                                {activities.map((item) => (
-                                    <TimelineItem
-                                        key={item.id}
-                                        icon={
-                                            item.type.includes("CREATED") ? <CheckCircle2 className="h-5 w-5 text-green-500" /> :
-                                                item.type.includes("LOCKED") ? <Lock className="h-5 w-5 text-red-500" /> :
-                                                    item.type.includes("UNLOCKED") ? <Unlock className="h-5 w-5 text-blue-500" /> :
-                                                        <Activity className="h-5 w-5 text-orange-500" />
-                                        }
-                                        iconBg={
-                                            item.type.includes("CREATED") ? "bg-green-50" :
-                                                item.type.includes("LOCKED") ? "bg-red-50" :
-                                                    item.type.includes("UNLOCKED") ? "bg-blue-50" :
-                                                        "bg-orange-50"
-                                        }
-                                        title={item.title}
-                                        performer={item.performer}
-                                        timestamp={item.timestamp}
-                                    />
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
                 </div>
 
                 <div className="col-span-12 lg:col-span-4 space-y-6">
@@ -341,32 +259,6 @@ function InfoItem({ icon, label, value }: { icon: React.ReactNode, label: string
             </label>
             <div className="h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center text-sm font-medium text-gray-700">
                 {value}
-            </div>
-        </div>
-    );
-}
-
-function TimelineItem({ icon, iconBg, title, performer, timestamp }: {
-    icon: React.ReactNode,
-    iconBg: string,
-    title: string,
-    performer: string,
-    timestamp: string
-}) {
-    return (
-        <div className="relative flex items-center gap-4 pl-0">
-            <div className={cn("relative z-10 p-2 rounded-xl shadow-sm border border-white", iconBg)}>
-                {icon}
-            </div>
-            <div className="flex-1 flex justify-between items-center bg-transparent">
-                <div>
-                    <h4 className="text-sm font-bold text-gray-900">{title}</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">Performed by: <span className="font-medium text-gray-700">{performer}</span></p>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-400 bg-gray-50/50 px-2.5 py-1 rounded-full border border-gray-100">
-                    <Clock className="h-3 w-3" />
-                    <span className="text-[10px] font-medium tracking-tight whitespace-nowrap">{timestamp}</span>
-                </div>
             </div>
         </div>
     );

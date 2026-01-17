@@ -9,13 +9,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/login", "/register", "/forgot-password", "/auth/callback"];
+  const publicRoutes = ["/auth/login", "/register", "/forgot-password", "/auth/callback"];
   const isPublicRoute =
     publicRoutes.includes(pathname) || publicRoutes.some((route) => pathname.startsWith(route));
 
   // If accessing a protected route without token, redirect to login
   if (!isPublicRoute && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   // Allow login page to handle its own redirect logic

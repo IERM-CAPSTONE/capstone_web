@@ -32,11 +32,11 @@ export function Header() {
     try {
       await authApi.logout();
       logoutStore();
-      router.push("/login");
+      router.push("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
       logoutStore();
-      router.push("/login");
+      router.push("/auth/login");
     }
   };
 

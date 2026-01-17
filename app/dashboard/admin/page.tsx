@@ -1,89 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Activity,
   Building2,
   CheckCircle2,
   Cpu,
-  Lock,
   Plus,
   QrCode,
   ShieldCheck,
-  Unlock,
   UserCheck,
   UserPlus,
-  Users,
-  AlertCircle,
-  X,
-  FileCheck,
-  Info
+  Users
 } from "lucide-react";
-import { useSocket } from "@/lib/socket/socket-provider";
-import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils/cn";
-import { useAllActivities } from "@/hooks/use-users";
 
 export default function DashboardPage() {
-  const { socket } = useSocket();
-  const { data: initialActivities } = useAllActivities();
-  const [activities, setActivities] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (Array.isArray(initialActivities)) {
-      setActivities(initialActivities.map(data => ({
-        id: data.id,
-        title: data.type.replace(/_/g, " ").replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()),
-        description: data.details,
-        time: data.timestamp,
-        icon: data.type.includes("CREATED") ? UserPlus : data.type.includes("LOCKED") ? Lock : data.type.includes("UNLOCKED") ? Unlock : Activity,
-        tone: data.type.includes("CREATED") || data.type.includes("UNLOCKED") ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600",
-      })));
-    }
-  }, [initialActivities]);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on("ACCOUNT_ACTIVITY", (data: any) => {
-      console.log("Activity received on dashboard:", data);
-
-      const newActivity = {
-        id: data.id || Math.random().toString(36).substr(2, 9),
-        title: data.type.replace(/_/g, " ").replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()),
-        description: `${data.userName} (${data.userCode || 'N/A'}) was ${data.type.split('_')[1].toLowerCase()} by ${data.performer}`,
-        time: data.timestamp,
-        icon: data.type.includes("CREATED") ? UserPlus : data.type.includes("LOCKED") ? Lock : data.type.includes("UNLOCKED") ? Unlock : Activity,
-        tone: data.type.includes("CREATED") || data.type.includes("UNLOCKED") ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600",
-      };
-
-      setActivities(prev => {
-        // Prevent duplicates if possible (though unlikely in real-time)
-        if (prev.find(a => a.id === data.id)) return prev;
-        return [newActivity, ...prev].slice(0, 10);
-      });
-    });
-
-    socket.on("IMPORT_COMPLETED", (data: any) => {
-      const newActivity = {
-        id: Math.random().toString(36).substr(2, 9),
-        title: "Import Completed",
-        description: `File ${data.fileName}: ${data.success} success, ${data.errors} errors`,
-        time: data.timestamp,
-        icon: FileCheck,
-        tone: "bg-blue-50 text-blue-600",
-      };
-
-      setActivities(prev => [newActivity, ...prev].slice(0, 10));
-    });
-
-    return () => {
-      socket.off("ACCOUNT_ACTIVITY");
-      socket.off("IMPORT_COMPLETED");
-    };
-  }, [socket]);
-
   const stats = [
     {
       title: "Total Accounts",
@@ -147,7 +77,7 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-500">System overview and configuration</p>
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
-          <Activity className="h-5 w-5" />
+          <Users className="h-5 w-5" />
         </div>
       </div>
 
@@ -208,50 +138,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-gray-600" />
-              <CardTitle className="text-sm font-semibold text-gray-700">
-                Recent Activity
-              </CardTitle>
-            </div>
-            <button className="text-xs font-medium text-orange-600">
-              View All Activity
-            </button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {activities.map((item) => {
-              const Icon = item.icon as any;
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-start justify-between gap-3 border-b pb-4 last:border-b-0 last:pb-0"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.tone}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
-                  </span>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">

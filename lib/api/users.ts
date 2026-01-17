@@ -14,15 +14,6 @@ export interface User {
   updatedAt: string;
 }
 
-export interface UserActivity {
-  id: string;
-  userId: string;
-  type: string;
-  details: string | null;
-  performer: string;
-  timestamp: string;
-}
-
 export interface PaginatedUserResponse {
   data: User[];
   total: number;
@@ -158,20 +149,8 @@ export const usersApi = {
 
   // Toggle user account status
   toggleStatus: async (id: string, isActive: boolean): Promise<User> => {
-    const response = await apiClient.patch<ApiResponse<User>>(`/users/${id}/status`, { isActive });
+    const response = await apiClient.put<ApiResponse<User>>(`/users/${id}`, { isActive });
     return response.data.success ? response.data.data : (response.data as any);
-  },
-
-  // Get user activities
-  getActivities: async (id: string): Promise<UserActivity[]> => {
-    const response = await apiClient.get<ApiResponse<UserActivity[]>>(`/users/${id}/activities`);
-    return response.data.success ? response.data.data : [];
-  },
-
-  // Get all activities (cross-user)
-  getAllActivities: async (): Promise<UserActivity[]> => {
-    const response = await apiClient.get<ApiResponse<UserActivity[]>>("/users/activities/all");
-    return response.data.success ? response.data.data : [];
   },
 
   // Import students from Excel

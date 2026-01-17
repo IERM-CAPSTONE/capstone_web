@@ -1,75 +1,97 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import apiClient from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth-store";
-import { UserRole } from "@/types";
+import { UserRole, User } from "@/types";
+import { ROUTES } from "@/lib/constants/routes";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const { setUser, logout } = useAuthStore();
+  const searchParams = useSearchParams();
+  const { user, setUser } = useAuthStore();
 
   useEffect(() => {
-    let cancelled = false;
-
     const normalizeRole = (roleValue?: string | null): UserRole => {
       const value = (roleValue || "").toLowerCase();
       if (value === "admin") return "admin";
       if (value === "student") return "student";
+      if (value === "exam_officer") return "exam_officer";
+      if (value === "proctor") return "proctor";
       return "staff";
     };
 
     const handleCallback = async () => {
       try {
-        const response = await apiClient.get("/users/me");
-        const data = (response.data as { data?: any })?.data;
+        // First, try to get user data from URL query params (if backend redirects with data)
+        const userDataFromParams = searchParams.get("user");
+        let userData: any = null;
 
-        if (!data) {
-          throw new Error("Missing user data");
+        if (userDataFromParams) {
+          try {
+            userData = JSON.parse(decodeURIComponent(userDataFromParams));
+          } catch (e) {
+            console.log("Could not parse user data from params");
+          }
         }
 
-        const role = normalizeRole(data.role);
-        const user = {
-          id: data.id || "",
-          email: data.email || "",
-          name: data.fullName || data.name || data.email || "User",
-          role,
-          avatar: data.avatarUrl || data.avatar || undefined,
-          createdAt: data.createdAt || "",
-          updatedAt: data.updatedAt || "",
-        };
-
-        if (cancelled) return;
-
-        // Set user in store (token is already set in cookies by backend)
-        setUser(user);
-
-        // If role is admin, redirect to dashboard immediately
-        if (role === "admin") {
-          router.replace("/dashboard");
+        // If user is already in store, use it
+        if (user && !userData) {
+          const role = normalizeRole(user.role) as UserRole;
+          
+          if (role === "exam_officer") {
+            router.replace(ROUTES.DASHBOARD_EXAM_OFFICER);
+          } else if (role === "admin") {
+            router.replace(ROUTES.DASHBOARD_ADMIN);
+          } else {
+            router.replace(ROUTES.LOGIN);
+          }
           return;
         }
 
-        // If not admin, logout and redirect to login
-        await apiClient.post("/auth/logout");
-        if (cancelled) return;
-        logout();
-        router.replace("/login");
+        // If no user data from params, fetch from API
+        if (!userData) {
+          const response = await apiClient.get("/users/me");
+          userData = response.data?.data || response.data;
+        }
+
+        if (!userData || !userData.email) {
+          throw new Error("Missing user data");
+        }
+
+        const userObj: User = {
+          id: userData.id || "",
+          email: userData.email || "",
+          name: userData.fullName || userData.name || userData.email || "User",
+          role: normalizeRole(userData.role) as UserRole,
+          avatar: userData.avatarUrl || userData.avatar || undefined,
+          createdAt: userData.createdAt || "",
+          updatedAt: userData.updatedAt || "",
+        };
+
+        setUser(userObj);
+
+        // Route based on role
+        const role = normalizeRole(userData.role) as UserRole;
+        
+        if (role === "exam_officer") {
+          router.replace(ROUTES.DASHBOARD_EXAM_OFFICER);
+        } else if (role === "admin") {
+          router.replace(ROUTES.DASHBOARD_ADMIN);
+        } else {
+          router.replace(ROUTES.LOGIN);
+        }
       } catch (error) {
         console.error("OAuth callback error:", error);
-        if (cancelled) return;
-        logout();
-        router.replace("/login");
+        router.replace(ROUTES.LOGIN);
       }
     };
 
-    handleCallback();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [logout, router, setUser]);
+    // Give backend a moment to set cookies
+    const timeoutId = setTimeout(handleCallback, 300);
+    return () => clearTimeout(timeoutId);
+  }, [user, router, setUser, searchParams]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">

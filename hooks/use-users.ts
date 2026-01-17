@@ -77,21 +77,6 @@ export function useToggleUserStatus() {
   });
 }
 
-export function useUserActivities(userId: string) {
-  return useQuery({
-    queryKey: ["users", userId, "activities"],
-    queryFn: () => usersApi.getActivities(userId),
-    enabled: !!userId,
-  });
-}
-
-export function useAllActivities() {
-  return useQuery({
-    queryKey: ["users", "activities", "all"],
-    queryFn: () => usersApi.getAllActivities(),
-  });
-}
-
 export function useImportStudents() {
   const queryClient = useQueryClient();
   return useMutation({

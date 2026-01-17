@@ -4,26 +4,43 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/store/ui-store";
+import { useAuthStore } from "@/store/auth-store";
 import {
   LayoutDashboard,
   Building2,
   Users,
   Menu,
   X,
+  Calendar,
+  AlertCircle,
+  FileText,
+  Settings,
 } from "lucide-react";
 import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
 
-const menuItems = [
+const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD },
   { icon: Users, label: "Account Management", href: "/dashboard/accounts" },
   { icon: Building2, label: "Exam Room Management", href: ROUTES.ROOMS },
   { icon: Users, label: "Device Management", href: "/dashboard/devices" },
 ];
 
+const examOfficerMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_EXAM_OFFICER },
+  { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
+  { icon: Building2, label: "Exam Rooms", href: "/dashboard/rooms" },
+  { icon: AlertCircle, label: "Monitoring", href: "/dashboard/monitoring" },
+  { icon: FileText, label: "Reports", href: "/dashboard/reports" },
+  { icon: Users, label: "Students", href: "/dashboard/students" },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { user } = useAuthStore();
+
+  const menuItems = user?.role === "exam_officer" ? examOfficerMenuItems : adminMenuItems;
 
   return (
     <>
