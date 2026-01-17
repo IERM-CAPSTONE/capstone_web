@@ -23,70 +23,80 @@ export default function DashboardLayout({
 
   useEffect(() => {
     let cancelled = false;
+    const allowedRoles = ["admin", "exam_officer", "staff"];
 
     const checkAuth = async () => {
-      // If user is already loaded and is admin, allow access
-      if (user && user.role === "admin") {
+      // If user is already loaded and has access, allow access
+      if (user && allowedRoles.includes(user.role)) {
         if (isLoading) {
           setIsLoading(false);
         }
         return;
       }
 
-      // If user is loaded but not admin, redirect to login
-      if (user && user.role !== "admin") {
+      // If user is loaded but doesn't have access, redirect to login
+      if (user && !allowedRoles.includes(user.role)) {
         await apiClient.post("/auth/logout");
         logout();
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
-      // If no user but might have token in cookies, try to fetch user
-      try {
-        const response = await apiClient.get("/users/me");
-        const data = (response.data as { data?: any })?.data;
+      // If no user but might have token in cookies, try to fetch user from API
+      if (!user) {
+        try {
+          const response = await apiClient.get("/users/me");
+          const data = (response.data as { data?: any })?.data || response.data;
 
-        if (cancelled) return;
+          if (cancelled) return;
 
-        if (!data) {
-          router.replace("/login");
-          return;
-        }
+          if (data && data.email) {
+            const normalizeRole = (roleValue?: string | null): UserRole => {
+              const value = (roleValue || "").toLowerCase();
+              if (value === "admin") return "admin";
+              if (value === "exam_officer") return "exam_officer";
+              if (value === "student") return "student";
+              return "staff";
+            };
 
-        const normalizeRole = (roleValue?: string | null): UserRole => {
-          const value = (roleValue || "").toLowerCase();
-          if (value === "admin") return "admin";
-          if (value === "student") return "student";
-          return "staff";
-        };
+            const userObj = {
+              id: data.id || "",
+              email: data.email || "",
+              name: data.fullName || data.name || data.email || "User",
+              role: normalizeRole(data.role),
+              avatar: data.avatarUrl || data.avatar || undefined,
+              createdAt: data.createdAt || "",
+              updatedAt: data.updatedAt || "",
+            };
 
-        const role = normalizeRole(data.role);
-        const userData = {
-          id: data.id || "",
-          email: data.email || "",
-          name: data.fullName || data.name || data.email || "User",
-          role,
-          avatar: data.avatarUrl || data.avatar || undefined,
-          createdAt: data.createdAt || "",
-          updatedAt: data.updatedAt || "",
-        };
+            setUser(userObj);
 
-        setUser(userData);
-
-        // Only admin can access dashboard
-        if (role !== "admin") {
-          await apiClient.post("/auth/logout");
+            // Check if user has access
+            if (allowedRoles.includes(userObj.role)) {
+              if (isLoading) {
+                setIsLoading(false);
+              }
+              return;
+            } else {
+              // User doesn't have access
+              await apiClient.post("/auth/logout");
+              logout();
+              router.replace("/auth/login");
+              return;
+            }
+          } else {
+            // No valid user data, redirect to login
+            logout();
+            router.replace("/auth/login");
+            return;
+          }
+        } catch (error) {
+          // Failed to fetch user, redirect to login
+          if (cancelled) return;
           logout();
-          router.replace("/login");
+          router.replace("/auth/login");
           return;
         }
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-        if (cancelled) return;
-        logout();
-        router.replace("/login");
       }
     };
 
@@ -98,7 +108,8 @@ export default function DashboardLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, router, setUser, logout]);
 
-  if (isLoading || !isAuthenticated || (user && user.role !== "admin")) {
+  const allowedRoles = ["admin", "exam_officer", "staff"];
+  if (isLoading || !isAuthenticated || (user && !allowedRoles.includes(user.role))) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 text-sm text-gray-600 shadow-sm">
