@@ -40,12 +40,12 @@ export function useCreateExamSchedule() {
       examSchedulesApi.create(data),
     onSuccess: () => {
       // Force refetch all exam schedules queries
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: EXAM_SCHEDULES_QUERY_KEY,
         refetchType: 'active'
       });
-      queryClient.refetchQueries({ 
-        queryKey: EXAM_SCHEDULES_QUERY_KEY 
+      queryClient.refetchQueries({
+        queryKey: EXAM_SCHEDULES_QUERY_KEY
       });
     },
   });
@@ -64,12 +64,12 @@ export function useUpdateExamSchedule() {
     }) => examSchedulesApi.update(id, data),
     onSuccess: () => {
       // Force refetch all exam schedules queries
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: EXAM_SCHEDULES_QUERY_KEY,
         refetchType: 'active'
       });
-      queryClient.refetchQueries({ 
-        queryKey: EXAM_SCHEDULES_QUERY_KEY 
+      queryClient.refetchQueries({
+        queryKey: EXAM_SCHEDULES_QUERY_KEY
       });
     },
   });
@@ -102,6 +102,39 @@ export function useImportExamSchedules() {
 
   return useMutation({
     mutationFn: (file: File) => examSchedulesApi.import(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
+
+export function useImportWithStudents() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { importType: string; schedules: any[]; students: any[] }) =>
+      examSchedulesApi.importWithStudents(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
+
+export function useImportProctors() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { importType: string; proctors: any[] }) =>
+      examSchedulesApi.importProctors(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
+
+export function useImportCodes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { importType: string; codes: any[] }) =>
+      examSchedulesApi.importCodes(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
     },

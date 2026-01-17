@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useExamSchedules, useArchiveExamSchedule, useImportExamSchedules } from "@/hooks/use-exam-schedules";
+import { useExamSchedules, useArchiveExamSchedule } from "@/hooks/use-exam-schedules";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,34 +24,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  X,
   Archive,
   Upload,
-  CheckCircle,
-  Edit2,
-  Trash2
+  Users,
+  Code
 } from "lucide-react";
 import { format } from "date-fns";
 import { ROUTES } from "@/lib/constants/routes";
-
-// Parse date strings as local time (avoid timezone conversion)
-const parseLocalDate = (dateStr: string | null): Date | null => {
-  if (!dateStr) return null;
-  // If it's an ISO string with timezone, extract local components
-  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-  if (isoMatch) {
-    // Create date using local time components (no timezone conversion)
-    return new Date(
-      parseInt(isoMatch[1]),
-      parseInt(isoMatch[2]) - 1,
-      parseInt(isoMatch[3]),
-      parseInt(isoMatch[4]),
-      parseInt(isoMatch[5]),
-      parseInt(isoMatch[6])
-    );
-  }
-  return new Date(dateStr);
-};
+import { parseLocalDate } from "./utils";
+import ImportDialog from "./components/ImportDialog";
 
 export default function ExamsPage() {
   const router = useRouter();
@@ -63,17 +44,7 @@ export default function ExamsPage() {
     proctorId: "",
   });
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importError, setImportError] = useState("");
-  const [importSuccess, setImportSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<"schedules" | "students">("schedules");
-  const [schedulePreview, setSchedulePreview] = useState<any[]>([]);
-  const [studentPreview, setStudentPreview] = useState<any[]>([]);
-  const [previewLoaded, setPreviewLoaded] = useState(false);
-  const [editingRow, setEditingRow] = useState<any>(null);
-  const [editingType, setEditingType] = useState<"schedules" | "students" | null>(null);
   const [importType, setImportType] = useState<"schedule" | "proctor" | "examcode" | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useExamSchedules({
     page,
@@ -81,7 +52,6 @@ export default function ExamsPage() {
     ...searchParams,
   });
   const archiveMutation = useArchiveExamSchedule();
-  const importMutation = useImportExamSchedules();
 
   const schedules = data?.data || [];
   const totalPages = data?.totalPages || 1;
@@ -140,206 +110,6 @@ export default function ExamsPage() {
     setPage(1);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
-        setImportError("Please select a valid CSV or Excel file");
-        return;
-      }
-      setSelectedFile(file);
-      setImportError("");
-      parseFile(file);
-    }
-  };
-
-  const parseFile = async (file: File) => {
-    try {
-      let headers: string[] = [];
-      let data: any[] = [];
-
-      if (file.name.endsWith('.csv')) {
-        // Parse CSV file
-        const text = await file.text();
-        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-
-        if (lines.length < 2) {
-          setImportError("File appears to be empty");
-          return;
-        }
-
-        headers = lines[0].split(',').map(h => h.trim());
-        data = lines.slice(1).map((line, idx) => {
-          const values = line.split(',').map(v => v.trim());
-          const row: any = { stt: idx + 1 };
-          headers.forEach((header, i) => {
-            row[header] = values[i] || "";
-          });
-          return row;
-        });
-      } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        // Parse Excel file
-        const XLSX = await import('xlsx');
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-        if (jsonData.length < 2) {
-          setImportError("File appears to be empty");
-          return;
-        }
-
-        headers = (jsonData[0] as any[]).map(h => String(h || "").trim());
-        data = (jsonData.slice(1) as any[][]).map((row, idx) => {
-          const rowData: any = { stt: idx + 1 };
-          headers.forEach((header, i) => {
-            rowData[header] = String(row[i] || "").trim();
-          });
-          return rowData;
-        }).filter(row => Object.keys(row).length > 1); // Filter empty rows
-      } else {
-        setImportError("Unsupported file format. Please use CSV or Excel files.");
-        return;
-      }
-
-      // Check if it's the new single-sheet format (with "Ca thi", "Mã SV", "Họ tên")
-      const hasNewFormat = headers.includes("Ca thi") || headers.includes("Mã SV");
-
-      if (hasNewFormat) {
-        // Extract unique exam schedules from "Ca thi" column
-        const examScheduleMap = new Map();
-        data.forEach(row => {
-          const caThi = row["Ca thi"];
-          const monThi = row["Môn thi"];
-          if (caThi && !examScheduleMap.has(caThi)) {
-            // Parse ca thi format: "26/12/2025 10h40-12h15 ALPHA 704"
-            const match = caThi.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d+h\d+)-(\d+h\d+)\s+(.+)$/);
-            if (match) {
-              const [, date, startTime, endTime, room] = match;
-              examScheduleMap.set(caThi, {
-                stt: examScheduleMap.size + 1,
-                examCode: `${monThi}_${date.replace(/\//g, '')}_${room.replace(/\s+/g, '_')}`,
-                subjectCode: monThi,
-                examDate: date,
-                startTime: startTime,
-                endTime: endTime,
-                room: room,
-                "Ca thi": caThi,
-              });
-            }
-          }
-        });
-
-        // Extract student information
-        const students = data.map((row, idx) => ({
-          stt: idx + 1,
-          StudentCode: row["Mã SV"] || "",
-          Name: row["Họ tên"] || "",
-          Email: row["Email"] || row["MemberCode"] + "@fpt.edu.vn" || "",
-          MemberCode: row["MemberCode"] || "",
-          CCCD: row["CCCD"] || "",
-          "Ca thi": row["Ca thi"] || "",
-          "Môn thi": row["Môn thi"] || "",
-          "Phần thi": extractExamPart(row["Nộp bài phần thi"] || row["Phần thi"] || row["ExamPart"] || ""),
-        }));
-
-        setSchedulePreview(Array.from(examScheduleMap.values()));
-        setStudentPreview(students);
-      } else {
-        // Old format - separate schedules and students by column names
-        const schedules = data.filter(row => row.examCode || row.subjectCode);
-        const students = data.filter(row => row.StudentCode || row.Name || row.Email);
-
-        setSchedulePreview(schedules);
-        setStudentPreview(students);
-      }
-
-      setPreviewLoaded(true);
-      setActiveTab("schedules");
-      setImportError("");
-    } catch (err: any) {
-      setImportError("Failed to parse file: " + err.message);
-      setPreviewLoaded(false);
-    }
-  };
-
-  const handleDeleteRow = (type: "schedules" | "students", index: number) => {
-    if (type === "schedules") {
-      setSchedulePreview(prev => prev.filter((_, i) => i !== index));
-    } else {
-      setStudentPreview(prev => prev.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleEditRow = (type: "schedules" | "students", row: any) => {
-    setEditingRow({ ...row });
-    setEditingType(type);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingRow || !editingType) return;
-
-    if (editingType === "schedules") {
-      setSchedulePreview(prev =>
-        prev.map(row => row.stt === editingRow.stt ? editingRow : row)
-      );
-    } else {
-      setStudentPreview(prev =>
-        prev.map(row => row.stt === editingRow.stt ? editingRow : row)
-      );
-    }
-    setEditingRow(null);
-    setEditingType(null);
-  };
-
-  const handleImport = async () => {
-    if (!selectedFile) {
-      setImportError("Please select a file first");
-      return;
-    }
-
-    try {
-      await importMutation.mutateAsync(selectedFile);
-      setImportSuccess(true);
-      setImportError("");
-      setTimeout(() => {
-        setShowImportDialog(false);
-        setSelectedFile(null);
-        setImportSuccess(false);
-        setPreviewLoaded(false);
-        setSchedulePreview([]);
-        setStudentPreview([]);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      }, 2000);
-    } catch (err: any) {
-      setImportError(err?.response?.data?.message || err?.message || "Failed to import exam schedules");
-      setImportSuccess(false);
-    }
-  };
-
-  const handleCloseImportDialog = () => {
-    setShowImportDialog(false);
-    setSelectedFile(null);
-    setImportError("");
-    setImportSuccess(false);
-    setPreviewLoaded(false);
-    setSchedulePreview([]);
-    setStudentPreview([]);
-    setEditingRow(null);
-    setEditingType(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  // Helper function to extract all exam parts from format like "(S:...)(L:...)(R:...)" -> "S, L, R"
-  const extractExamPart = (value: string): string => {
-    if (!value) return "";
-    const matches = value.match(/\(([A-Z]+):/g);
-    if (!matches) return "";
-    const parts = matches.map(m => m.replace(/[\(\:]/g, ''));
-    return parts.join(', ');
-  };
-
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto p-6 bg-slate-50/50 min-h-screen">
       {/* Breadcrumbs */}
@@ -379,7 +149,7 @@ export default function ExamsPage() {
               setShowImportDialog(true);
             }}
           >
-            <Import className="h-4 w-4" />
+            <Users className="h-4 w-4" />
             Import Proctors
           </Button>
 
@@ -392,15 +162,11 @@ export default function ExamsPage() {
               setShowImportDialog(true);
             }}
           >
-            <Import className="h-4 w-4" />
+            <Code className="h-4 w-4" />
             Import Exam Codes
           </Button>
 
-          {/* Export Button */}
-          <Button variant="outline" className="gap-2 bg-white hover:bg-slate-50 transition-all">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+
         </div>
       </div>
 
@@ -545,7 +311,9 @@ export default function ExamsPage() {
                               <FileText className="h-4 w-4 text-purple-500" />
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-700">{schedule.examCode || `${schedule.subjectCode || "SCH"}-${schedule.id.slice(-6)}`}</span>
+                              <span className={`font-bold ${schedule.examCode ? "text-slate-700" : "text-slate-400 italic font-normal"}`}>
+                                {schedule.examCode || "Empty"}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -795,349 +563,11 @@ export default function ExamsPage() {
         </CardContent>
       </Card>
 
-      {/* Import Dialog */}
-      {showImportDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-7xl border-none shadow-xl max-h-[90vh] overflow-y-auto">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-50 rounded-lg">
-                    <Import className="h-5 w-5 text-orange-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                      {importType === "schedule" && "Import Exam Schedule"}
-                      {importType === "proctor" && "Import Giám Thị"}
-                      {importType === "examcode" && "Import Exam Code & Open Code"}
-                    </h3>
-                    <p className="text-sm text-slate-500">
-                      {importType === "schedule" && "Upload exam schedule file (Ca thi + Students)"}
-                      {importType === "proctor" && "Upload proctor assignment file"}
-                      {importType === "examcode" && "Upload exam code and open code file"}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCloseImportDialog}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {importSuccess ? (
-                <div className="py-12 text-center">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-3 bg-green-50 rounded-full">
-                      <CheckCircle className="h-12 w-12 text-green-500" />
-                    </div>
-                  </div>
-                  <h4 className="text-lg font-semibold text-slate-900 mb-2">Import Successful!</h4>
-                  <p className="text-sm text-slate-600">Data has been imported successfully.</p>
-                </div>
-              ) : (
-                <>
-                  {/* File Upload Area - Show when no preview */}
-                  {!previewLoaded ? (
-                    <div className="space-y-4">
-                      <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center hover:border-orange-500 transition-colors cursor-pointer bg-slate-50/50"
-                      >
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".csv,.xlsx,.xls"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="p-3 bg-white rounded-lg shadow-sm">
-                            <Upload className="h-8 w-8 text-slate-400" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-700">
-                              Click to upload or drag and drop
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">
-                              CSV or Excel files only (Max 10MB)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {selectedFile && (
-                        <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-orange-500" />
-                            <div>
-                              <p className="text-sm font-medium text-slate-900">{selectedFile.name}</p>
-                              <p className="text-xs text-slate-500">
-                                {(selectedFile.size / 1024).toFixed(2)} KB
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setSelectedFile(null);
-                              if (fileInputRef.current) fileInputRef.current.value = "";
-                            }}
-                            className="text-slate-400 hover:text-slate-600"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-
-                      {importError && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                          <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-red-600">{importError}</p>
-                        </div>
-                      )}
-
-                      {/* File Format Info */}
-                      <Card className="bg-blue-50/50 border-blue-100 border shadow-none">
-                        <CardContent className="p-4">
-                          <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            File Format Requirements
-                          </h4>
-                          {importType === "schedule" && (
-                            <ul className="text-xs text-blue-700 space-y-1">
-                              <li>• Columns: Ca thi, Mã SV, MemberCode, Họ tên, CCCD, STT, Môn thi</li>
-                              <li>• Ca thi format: DD/MM/YYYY HHhMM-HHhMM ROOM (e.g., 26/12/2025 10h40-12h15 ALPHA 704)</li>
-                              <li>• First row should contain column headers</li>
-                            </ul>
-                          )}
-                          {importType === "proctor" && (
-                            <ul className="text-xs text-blue-700 space-y-1">
-                              <li>• Required columns: Ca thi, Giám thị, Email giám thị, Loại giám thị</li>
-                              <li>• Loại giám thị: Proctor, Hall Invigilator</li>
-                              <li>• First row should contain column headers</li>
-                            </ul>
-                          )}
-                          {importType === "examcode" && (
-                            <ul className="text-xs text-blue-700 space-y-1">
-                              <li>• Required columns: Ca thi, Exam Code, Open Code</li>
-                              <li>• Each exam session can have multiple codes</li>
-                              <li>• First row should contain column headers</li>
-                            </ul>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Tabs */}
-                      <div className="flex gap-4 border-b border-slate-200 mb-4">
-                        <button
-                          onClick={() => setActiveTab("schedules")}
-                          className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === "schedules"
-                            ? "text-orange-600 border-b-2 border-orange-600"
-                            : "text-slate-600 hover:text-slate-900"
-                            }`}
-                        >
-                          Exam Schedules ({schedulePreview.length})
-                        </button>
-                        <button
-                          onClick={() => setActiveTab("students")}
-                          className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === "students"
-                            ? "text-orange-600 border-b-2 border-orange-600"
-                            : "text-slate-600 hover:text-slate-900"
-                            }`}
-                        >
-                          Students ({studentPreview.length})
-                        </button>
-                      </div>
-
-                      {importError && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 mb-4">
-                          <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-red-600">{importError}</p>
-                        </div>
-                      )}
-
-                      {/* Preview Table */}
-                      <div className="overflow-x-auto border border-slate-200 rounded-lg mb-4 max-h-[400px] overflow-y-auto">
-                        <table className="w-full text-sm">
-                          <thead className="bg-slate-50 sticky top-0">
-                            <tr className="border-b border-slate-200">
-                              <th className="px-4 py-2 text-left font-semibold text-slate-700">STT</th>
-                              {activeTab === "schedules"
-                                ? (schedulePreview[0]
-                                  ? Object.keys(schedulePreview[0])
-                                    .filter(k => k !== "stt")
-                                    .map(key => (
-                                      <th key={key} className="px-4 py-2 text-left font-semibold text-slate-700">
-                                        {key}
-                                      </th>
-                                    ))
-                                  : null)
-                                : (studentPreview[0]
-                                  ? Object.keys(studentPreview[0])
-                                    .filter(k => k !== "stt")
-                                    .map(key => (
-                                      <th key={key} className="px-4 py-2 text-left font-semibold text-slate-700">
-                                        {key}
-                                      </th>
-                                    ))
-                                  : null)}
-                              <th className="px-4 py-2 text-center font-semibold text-slate-700">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(activeTab === "schedules" ? schedulePreview : studentPreview).length === 0 ? (
-                              <tr>
-                                <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
-                                  No data to preview
-                                </td>
-                              </tr>
-                            ) : (
-                              (activeTab === "schedules" ? schedulePreview : studentPreview).map((row, idx) => (
-                                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                                  <td className="px-4 py-2 font-medium text-slate-700">{row.stt}</td>
-                                  {Object.entries(row)
-                                    .filter(([k]) => k !== "stt")
-                                    .map(([key, value]) => (
-                                      <td key={key} className="px-4 py-2 text-slate-600">
-                                        {String(value).substring(0, 30)}
-                                      </td>
-                                    ))}
-                                  <td className="px-4 py-2 text-center">
-                                    <div className="flex items-center justify-center gap-2">
-                                      <button
-                                        onClick={() => handleEditRow(activeTab, row)}
-                                        className="p-1 hover:bg-blue-100 rounded text-blue-600 transition-colors"
-                                        title="Edit"
-                                      >
-                                        <Edit2 className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteRow(activeTab, idx)}
-                                        className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
-                                        title="Delete"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Change File Button */}
-                      <div className="mb-4">
-                        <button
-                          onClick={() => {
-                            fileInputRef.current?.click();
-                          }}
-                          className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                        >
-                          ← Change file
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
-                    <Button
-                      variant="outline"
-                      onClick={handleCloseImportDialog}
-                      disabled={importMutation.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
-                      onClick={handleImport}
-                      disabled={(!selectedFile || importMutation.isPending || !previewLoaded) && !importSuccess}
-                    >
-                      {importMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Importing...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4" />
-                          Import
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editingRow && editingType && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg border-none shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-900">Edit Row</h3>
-                <button
-                  onClick={() => {
-                    setEditingRow(null);
-                    setEditingType(null);
-                  }}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                {Object.entries(editingRow)
-                  .filter(([k]) => k !== "stt")
-                  .map(([key, value]) => (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        {key}
-                      </label>
-                      <input
-                        type="text"
-                        value={String(value)}
-                        onChange={(e) =>
-                          setEditingRow({ ...editingRow, [key]: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                      />
-                    </div>
-                  ))}
-              </div>
-
-              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditingRow(null);
-                    setEditingType(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                  onClick={handleSaveEdit}
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <ImportDialog
+        isOpen={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        importType={importType}
+      />
     </div>
   );
 }
-

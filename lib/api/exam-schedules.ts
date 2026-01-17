@@ -120,11 +120,30 @@ export const examSchedulesApi = {
 
   // Import exam schedules
   import: async (file: File): Promise<any> => {
+    // Legacy support or if we still use this endpoint for some reason
     const formData = new FormData();
     formData.append("file", file);
     const response = await apiClient.post("/exam-sessions/import", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    return response.data;
+  },
+
+  // Import Schedule + Students (JSON)
+  importWithStudents: async (payload: { importType: string; schedules: any[]; students: any[] }): Promise<any> => {
+    const response = await apiClient.post("/exam-sessions/import-with-students", payload);
+    return response.data;
+  },
+
+  // Import Proctors (JSON)
+  importProctors: async (payload: { importType: string; proctors: any[] }): Promise<any> => {
+    const response = await apiClient.post("/exam-sessions/import-proctors", payload);
+    return response.data;
+  },
+
+  // Import Exam Codes (JSON)
+  importCodes: async (payload: { importType: string; codes: any[] }): Promise<any> => {
+    const response = await apiClient.post("/exam-sessions/import-codes", payload);
     return response.data;
   },
 };
