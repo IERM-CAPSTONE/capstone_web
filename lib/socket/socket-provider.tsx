@@ -21,7 +21,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Extract base URL from API_URL (e.g., http://localhost:3001 from http://localhost:3001/api)
+        /* Socket temporarily disabled
         const baseUrl = API_URL.replace("/api", "");
 
         const socketInstance = io(`${baseUrl}/notifications`, {
@@ -44,6 +44,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         return () => {
             socketInstance.disconnect();
         };
+        */
     }, []);
 
     return (

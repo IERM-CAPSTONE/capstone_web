@@ -6,6 +6,7 @@ import {
   CreateExamScheduleData,
   UpdateExamScheduleData,
   PaginatedExamScheduleResponse,
+  ImportScheduleData,
 } from "@/lib/api/exam-schedules";
 
 const EXAM_SCHEDULES_QUERY_KEY = ["exam-schedules"];
@@ -39,7 +40,6 @@ export function useCreateExamSchedule() {
     mutationFn: (data: CreateExamScheduleData) =>
       examSchedulesApi.create(data),
     onSuccess: () => {
-      // Force refetch all exam schedules queries
       queryClient.invalidateQueries({
         queryKey: EXAM_SCHEDULES_QUERY_KEY,
         refetchType: 'active'
@@ -63,7 +63,6 @@ export function useUpdateExamSchedule() {
       data: UpdateExamScheduleData;
     }) => examSchedulesApi.update(id, data),
     onSuccess: () => {
-      // Force refetch all exam schedules queries
       queryClient.invalidateQueries({
         queryKey: EXAM_SCHEDULES_QUERY_KEY,
         refetchType: 'active'
@@ -108,10 +107,23 @@ export function useImportExamSchedules() {
   });
 }
 
+// Hook for the new import-schedule API with parsed data (typed version)
+export function useImportScheduleWithData() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ImportScheduleData) => examSchedulesApi.importSchedule(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
+
+// Alias for useImportScheduleWithData (backward compatibility)
 export function useImportWithStudents() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { importType: string; schedules: any[]; students: any[] }) =>
+    mutationFn: (data: ImportScheduleData) =>
       examSchedulesApi.importWithStudents(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
@@ -122,7 +134,7 @@ export function useImportWithStudents() {
 export function useImportProctors() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { importType: string; proctors: any[] }) =>
+    mutationFn: (data: { importType: string; proctors: any[]; batchId?: string; totalItems?: number }) =>
       examSchedulesApi.importProctors(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });

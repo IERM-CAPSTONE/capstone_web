@@ -1,0 +1,126 @@
+{
+    "Common": {
+        "welcome": "Chào mừng quay trở lại",
+        "loading": "Đang tải...",
+        "logout": "Đăng xuất",
+        "error": "Đã xảy ra lỗi",
+        "signingIn": "Đang đăng nhập...",
+        "loadingDashboard": "Đang tải bảng điều khiển...",
+        "home": "Trang chủ",
+        "viewAll": "Xem tất cả",
+        "page": "Trang",
+        "previous": "Trước",
+        "next": "Tiếp",
+        "logoutSuccess": "Đăng xuất thành công"
+    },
+    "Login": {
+        "title": "Chào mừng bạn",
+        "subtitle": "Chọn cơ sở và đăng nhập bằng Google",
+        "selectCampus": "Chọn cơ sở",
+        "chooseCampus": "Chọn cơ sở của bạn",
+        "loginButton": "Đăng nhập với Google",
+        "emailNote": "Vui lòng sử dụng email đại học FPT (@fpt.edu.vn)",
+        "proctorNote": "Chỉ những giám thị được ủy quyền mới có thể truy cập hệ thống này"
+    },
+    "Dashboard": {
+        "title": "Bảng điều khiển",
+        "rooms": "Phòng thi",
+        "exams": "Kỳ thi",
+        "students": "Sinh viên",
+        "adminPortal": "Cổng Admin",
+        "overview": "Tổng quan hệ thống và cấu hình",
+        "examOfficerPortal": "Cổng Khảo thí",
+        "examOverview": "Tổng quan các kỳ thi và giám sát",
+        "quickActions": "Thao tác nhanh",
+        "stats": {
+            "totalAccounts": "Tổng tài khoản",
+            "activeAccounts": "Tài khoản hoạt động",
+            "examRooms": "Phòng thi",
+            "registeredDevices": "Thiết bị đã đăng ký",
+            "examsToday": "Kỳ thi hôm nay",
+            "totalStudents": "Tổng sinh viên",
+            "activeProctors": "Giám thị đang trực"
+        },
+        "alerts": {
+            "title": "Cảnh báo Ticket",
+            "viewAll": "Xem tất cả cảnh báo",
+            "high": "Cao",
+            "medium": "Trung bình",
+            "low": "Thấp"
+        },
+        "systemStatus": {
+            "title": "Trạng thái hệ thống",
+            "operational": "Tất cả hệ thống hoạt động bình thường",
+            "smooth": "Mọi thứ đang vận hành tốt",
+            "onlineDevices": "Thiết bị trực tuyến",
+            "offlineDevices": "Thiết bị ngoại tuyến",
+            "uptime": "Thời gian hoạt động Server",
+            "maintenance": "Bảo trì lần cuối",
+            "version": "Phiên bản hệ thống"
+        },
+        "examOfficer": {
+            "actions": {
+                "viewRooms": "Xem phòng thi",
+                "viewSchedules": "Xem lịch thi",
+                "viewEvents": "Xem sự kiện",
+                "createSchedule": "Tạo lịch thi"
+            },
+            "scheduleOverview": "Tổng quan lịch thi",
+            "noSchedules": "Không có lịch thi",
+            "ongoing": "Đang diễn ra",
+            "completed": "Đã hoàn thành",
+            "upcoming": "Sắp diễn ra",
+            "invigilatorApp": "Đơn đăng ký giám thị",
+            "reports": "Báo cáo & Phân tích",
+            "thisWeek": "Tuần này",
+            "proctor": "Giám thị",
+            "applicant": "Người đăng ký",
+            "examRoom": "Phòng thi",
+            "date": "Ngày",
+            "status": "Trạng thái",
+            "actionCol": "Thao tác",
+            "pending": "Chờ duyệt",
+            "approved": "Đã duyệt",
+            "rejected": "Từ chối",
+            "examReports": "Báo cáo kỳ thi",
+            "viewStatistics": "Xem thống kê chi tiết",
+            "performanceAnalytics": "Phân tích hiệu suất",
+            "studentMetrics": "Số liệu sinh viên & giám thị",
+            "examData": "Dữ liệu kỳ thi",
+            "downloadSchedule": "Tải xuống lịch thi",
+            "monthlySummary": "Tổng kết tháng",
+            "examsCompleted": "{count} kỳ thi hoàn thành trong tháng này"
+        }
+    },
+    "Rooms": {
+        "detailTitle": "Chi tiết phòng thi",
+        "listTitle": "Quản lý phòng thi",
+        "createRoom": "Tạo phòng mới",
+        "roomCount": "phòng",
+        "searchPlaceholder": "Tìm kiếm theo tên hoặc vị trí...",
+        "basicInfo": "Thông tin cơ bản",
+        "additionalInfo": "Thông tin bổ sung",
+        "name": "Tên phòng",
+        "location": "Vị trí",
+        "capacity": "Sức chứa",
+        "seats": "chỗ",
+        "status": "Trạng thái",
+        "equipment": "Thiết bị",
+        "createdAt": "Ngày tạo",
+        "updatedAt": "Cập nhật lần cuối",
+        "notFound": "Không tìm thấy phòng thi",
+        "deleteConfirm": "Bạn có chắc chắn muốn xóa phòng thi này?",
+        "statusAvailable": "Sẵn sàng",
+        "statusOccupied": "Đang sử dụng",
+        "statusMaintenance": "Bảo trì",
+        "actions": {
+            "back": "Quay lại",
+            "edit": "Chỉnh sửa",
+            "delete": "Xóa"
+        }
+    },
+    "Metadata": {
+        "title": "IERM - Hệ thống quản lý phòng thi thông minh",
+        "description": "Hệ thống quản lý phòng thi thông minh dành cho Đại học FPT - An toàn, hiệu quả và tin cậy."
+    }
+}

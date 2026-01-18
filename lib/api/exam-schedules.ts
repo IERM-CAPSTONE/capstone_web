@@ -4,7 +4,6 @@ export interface ExamSchedule {
   id: string;
   examCode?: string | null;
   semester?: string | null;
-  examType?: string | null;
   openCode?: string | null;
   note?: string | null;
   examRoomId: string | null;
@@ -16,6 +15,7 @@ export interface ExamSchedule {
   examOpenTime: string | null;
   examCloseTime: string | null;
   status?: string | null;
+  examType?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -118,9 +118,8 @@ export const examSchedulesApi = {
     return response.data.data;
   },
 
-  // Import exam schedules
+  // Import exam schedules (legacy - file upload)
   import: async (file: File): Promise<any> => {
-    // Legacy support or if we still use this endpoint for some reason
     const formData = new FormData();
     formData.append("file", file);
     const response = await apiClient.post("/exam-sessions/import", formData, {
@@ -129,9 +128,18 @@ export const examSchedulesApi = {
     return response.data;
   },
 
-  // Import Schedule + Students (JSON)
+  // Import Schedule + Students (JSON) - calls /exam-sessions/import-schedule
+  importSchedule: async (data: ImportScheduleData): Promise<ImportScheduleResponse> => {
+    const response = await apiClient.post<ImportScheduleResponse>(
+      "/exam-sessions/import-schedule",
+      data
+    );
+    return response.data;
+  },
+
+  // Alias for importSchedule (backward compatibility)
   importWithStudents: async (payload: { importType: string; schedules: any[]; students: any[] }): Promise<any> => {
-    const response = await apiClient.post("/exam-sessions/import-with-students", payload);
+    const response = await apiClient.post("/exam-sessions/import-schedule", payload);
     return response.data;
   },
 
@@ -147,3 +155,44 @@ export const examSchedulesApi = {
     return response.data;
   },
 };
+
+// Interfaces for import-schedule API
+export interface ScheduleItem {
+  examCode?: string | null;
+  openCode?: string | null;
+  subjectCode: string;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+  examSession: string;
+}
+
+export interface StudentItem {
+  stt?: number | null;
+  studentCode: string;
+  name: string;
+  email: string;
+  memberCode: string;
+  cccd: string;
+  subjectCode: string;
+  examSession: string;
+  examPart: string;
+}
+
+export interface ImportScheduleData {
+  importType: 'schedule';
+  schedules: ScheduleItem[];
+  students: StudentItem[];
+  batchId?: string;
+  totalItems?: number;
+}
+
+export interface ImportScheduleResponse {
+  success: boolean;
+  message: string;
+  data: {
+    schedulesReceived: number;
+    studentsReceived: number;
+  };
+}

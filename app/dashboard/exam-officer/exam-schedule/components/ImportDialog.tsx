@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useImportWithStudents, useImportProctors, useImportCodes } from "@/hooks/use-exam-schedules";
 import { readFileContent, processImportData } from "../utils";
+import { useSocket } from "@/hooks/use-socket";
+import { toast } from "sonner";
 
 interface ImportDialogProps {
     isOpen: boolean;
@@ -42,6 +44,12 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
     const [previewLoaded, setPreviewLoaded] = useState(false);
     const [editingRow, setEditingRow] = useState<any>(null);
     const [editingType, setEditingType] = useState<"schedules" | "students" | "proctors" | "codes" | null>(null);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [isWaitingForWorker, setIsWaitingForWorker] = useState(false);
+    const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
+    const [workerProgress, setWorkerProgress] = useState<{ success: number; errors: number; failedItems: any[] }>({ success: 0, errors: 0, failedItems: [] });
+    const [failureTab, setFailureTab] = useState<"schedule" | "student">("schedule");
+    const [errorPage, setErrorPage] = useState(1);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Helper to determine active preview type based on loaded data
@@ -51,7 +59,46 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
     const proctorMutation = useImportProctors();
     const codesMutation = useImportCodes();
 
-    const isPending = scheduleMutation.isPending || proctorMutation.isPending || codesMutation.isPending;
+    const isPending = scheduleMutation.isPending || proctorMutation.isPending || codesMutation.isPending || isWaitingForWorker;
+
+    const { on } = useSocket();
+
+    useEffect(() => {
+        const handleImportCompleted = (data: any) => {
+            console.log("Import completed event received:", data);
+
+            // Only process if it matches our current batch session
+            if (currentBatchId && data.batchId === currentBatchId) {
+                setWorkerProgress(prev => {
+                    const newSuccess = prev.success + data.successCount;
+                    const newErrors = prev.errors + data.errorCount;
+                    const newFailed = [...prev.failedItems, ...(data.failedItems || [])];
+                    const totalProcessed = newSuccess + newErrors;
+
+                    // Calculate total expected items
+                    const totalExpected = previewType === "schedule"
+                        ? (schedulePreview.length + studentPreview.length)
+                        : (previewType === "proctor" ? proctorPreview.length : codePreview.length);
+
+                    if (totalProcessed >= totalExpected) {
+                        setIsWaitingForWorker(false);
+                        setImportSuccess(true);
+                        toast.success(`Import fully completed: ${newSuccess} success, ${newErrors} errors`);
+                        setCurrentBatchId(null);
+                    }
+
+                    return {
+                        success: newSuccess,
+                        errors: newErrors,
+                        failedItems: newFailed
+                    };
+                });
+            }
+        };
+
+        const cleanup = on("IMPORT_COMPLETED", handleImportCompleted);
+        return cleanup;
+    }, [previewType, on, currentBatchId, schedulePreview.length, studentPreview.length, proctorPreview.length, codePreview.length]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -130,33 +177,33 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
         }
     };
 
-    const handleEditRow = (type: "schedules" | "students" | "proctors" | "codes", row: any) => {
+    const handleEditRow = (type: "schedules" | "students" | "proctors" | "codes", row: any, index: number) => {
         setEditingRow({ ...row });
         setEditingType(type);
+        setEditingIndex(index);
     };
 
     const handleSaveEdit = () => {
-        if (!editingRow || !editingType) return;
+        if (!editingRow || !editingType || editingIndex === null) return;
+
+        const updateArray = (prev: any[]) => {
+            const newArr = [...prev];
+            newArr[editingIndex] = editingRow;
+            return newArr;
+        };
 
         if (editingType === "schedules") {
-            setSchedulePreview(prev =>
-                prev.map(row => row.stt === editingRow.stt ? editingRow : row)
-            );
+            setSchedulePreview(updateArray);
         } else if (editingType === "students") {
-            setStudentPreview(prev =>
-                prev.map(row => row.stt === editingRow.stt ? editingRow : row)
-            );
+            setStudentPreview(updateArray);
         } else if (editingType === "proctors") {
-            setProctorPreview(prev =>
-                prev.map(row => row.stt === editingRow.stt ? editingRow : row)
-            );
+            setProctorPreview(updateArray);
         } else if (editingType === "codes") {
-            setCodePreview(prev =>
-                prev.map(row => row.stt === editingRow.stt ? editingRow : row)
-            );
+            setCodePreview(updateArray);
         }
         setEditingRow(null);
         setEditingType(null);
+        setEditingIndex(null);
     };
 
     const [importStatus, setImportStatus] = useState("");
@@ -177,58 +224,64 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
 
         try {
             if (previewType === "schedule") {
-                // Phase 1: Import Schedules (Chunk size: 50)
-                const scheduleChunks = chunkArray(schedulePreview, 50);
-                for (let i = 0; i < scheduleChunks.length; i++) {
-                    setImportStatus(`Importing schedules: batch ${i + 1}/${scheduleChunks.length}...`);
+                const STUDENT_CHUNK_SIZE = 100;
+                const studentChunks = chunkArray(studentPreview, STUDENT_CHUNK_SIZE);
+                const totalBatches = Math.max(1, studentChunks.length);
+                const batchId = crypto.randomUUID();
+
+                setCurrentBatchId(batchId);
+                setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
+
+                for (let i = 0; i < totalBatches; i++) {
+                    const isFirstBatch = i === 0;
+                    const currentSchedules = isFirstBatch ? schedulePreview : [];
+                    const currentStudents = (studentChunks[i] || []);
+
+                    setImportStatus(`Sending batch ${i + 1}/${totalBatches}...`);
+
                     await scheduleMutation.mutateAsync({
                         importType: "schedule",
-                        schedules: scheduleChunks[i],
-                        students: [] // Don't send students yet
+                        schedules: currentSchedules as any,
+                        students: currentStudents as any,
+                        batchId: batchId,
+                        totalItems: schedulePreview.length + studentPreview.length
                     });
                 }
-
-                // Phase 2: Import Students (Chunk size: 200)
-                if (studentPreview.length > 0) {
-                    const studentChunks = chunkArray(studentPreview, 200);
-                    for (let i = 0; i < studentChunks.length; i++) {
-                        setImportStatus(`Importing students: batch ${i + 1}/${studentChunks.length}...`);
-                        await scheduleMutation.mutateAsync({
-                            importType: "schedule",
-                            schedules: [], // Don't resend schedules
-                            students: studentChunks[i]
-                        });
-                    }
-                }
-
             } else if (previewType === "proctor") {
-                // Import Proctors (Chunk size: 100)
                 const proctorChunks = chunkArray(proctorPreview, 100);
+                const batchId = crypto.randomUUID();
+                setCurrentBatchId(batchId);
+                setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
+
                 for (let i = 0; i < proctorChunks.length; i++) {
-                    setImportStatus(`Importing proctors: batch ${i + 1}/${proctorChunks.length}...`);
+                    setImportStatus(`Sending proctors: batch ${i + 1}/${proctorChunks.length}...`);
                     await proctorMutation.mutateAsync({
-                        importType: "proctor",
-                        proctors: proctorChunks[i]
-                    });
+                        importType: "proctor" as any,
+                        proctors: proctorChunks[i],
+                        batchId: batchId,
+                        totalItems: proctorPreview.length
+                    } as any);
                 }
             } else if (previewType === "examcode") {
-                // Import Exam Codes (Chunk size: 100)
                 const codeChunks = chunkArray(codePreview, 100);
+                const batchId = crypto.randomUUID();
+                setCurrentBatchId(batchId);
+                setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
+
                 for (let i = 0; i < codeChunks.length; i++) {
-                    setImportStatus(`Importing exam codes: batch ${i + 1}/${codeChunks.length}...`);
+                    setImportStatus(`Sending exam codes: batch ${i + 1}/${codeChunks.length}...`);
                     await codesMutation.mutateAsync({
-                        importType: "examcode",
-                        codes: codeChunks[i]
-                    });
+                        importType: "examcode" as any,
+                        codes: codeChunks[i],
+                        batchId: batchId,
+                        totalItems: codePreview.length
+                    } as any);
                 }
             }
 
-            setImportStatus("Finalizing...");
-            setImportSuccess(true);
+            setImportStatus("Data sent to server. Processing in background...");
+            setIsWaitingForWorker(true);
             setImportError("");
-            setTimeout(() => {
-                handleClose();
-            }, 2000);
         } catch (err: any) {
             console.error(err);
             setImportError(err?.response?.data?.message || err?.message || "Failed to import.");
@@ -325,14 +378,121 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                     </div>
 
                     {importSuccess ? (
-                        <div className="py-12 text-center">
-                            <div className="flex justify-center mb-4">
-                                <div className="p-3 bg-green-50 rounded-full">
-                                    <CheckCircle className="h-12 w-12 text-green-500" />
+                        <div className={`${workerProgress.errors > 0 ? 'py-6' : 'py-12'} text-center overflow-hidden flex flex-col max-h-[70vh]`}>
+                            <div className="flex-shrink-0">
+                                <div className="flex justify-center mb-4">
+                                    <div className={`p-3 ${workerProgress.errors > 0 ? 'bg-orange-50' : 'bg-green-50'} rounded-full`}>
+                                        {workerProgress.errors > 0 ? (
+                                            <AlertCircle className="h-12 w-12 text-orange-500" />
+                                        ) : (
+                                            <CheckCircle className="h-12 w-12 text-green-500" />
+                                        )}
+                                    </div>
                                 </div>
+                                <h4 className="text-lg font-semibold text-slate-900 mb-2">
+                                    {workerProgress.errors > 0 ? 'Import Completed with Errors' : 'Import Successful!'}
+                                </h4>
+                                <p className="text-sm text-slate-600 mb-6">
+                                    Processed {workerProgress.success + workerProgress.errors} items:
+                                    <span className="text-green-600 font-medium ml-1">{workerProgress.success} success</span>,
+                                    <span className="text-red-600 font-medium ml-1">{workerProgress.errors} failures</span>.
+                                </p>
                             </div>
-                            <h4 className="text-lg font-semibold text-slate-900 mb-2">Import Successful!</h4>
-                            <p className="text-sm text-slate-600">Data has been imported successfully.</p>
+
+                            {workerProgress.failedItems.length > 0 && (
+                                <div className="text-left border rounded-lg overflow-hidden flex flex-col flex-1 min-h-0 bg-white shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-2 border-b flex items-center justify-between">
+                                        <div className="flex gap-4">
+                                            <button
+                                                onClick={() => { setFailureTab("schedule"); setErrorPage(1); }}
+                                                className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "schedule" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+                                            >
+                                                Schedule Errors ({workerProgress.failedItems.filter(f => f.type === 'schedule' || (!f.type && f.item?.examSession)).length})
+                                            </button>
+                                            <button
+                                                onClick={() => { setFailureTab("student"); setErrorPage(1); }}
+                                                className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "student" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+                                            >
+                                                Student Errors ({workerProgress.failedItems.filter(f => f.type === 'student' || f.type === 'student_in_failed_group' || (!f.type && f.item?.studentCode)).length})
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-slate-200">
+                                        {(() => {
+                                            const filteredErrors = workerProgress.failedItems.filter(f =>
+                                                failureTab === "schedule"
+                                                    ? (f.type === 'schedule' || (!f.type && f.item?.examSession))
+                                                    : (f.type === 'student' || f.type === 'student_in_failed_group' || (!f.type && f.item?.studentCode))
+                                            );
+
+                                            const ERR_PER_PAGE = 10;
+                                            const totalErrPages = Math.ceil(filteredErrors.length / ERR_PER_PAGE);
+                                            const paginatedErrors = filteredErrors.slice((errorPage - 1) * ERR_PER_PAGE, errorPage * ERR_PER_PAGE);
+
+                                            return (
+                                                <>
+                                                    <table className="w-full text-xs">
+                                                        <thead className="bg-slate-50 sticky top-0">
+                                                            <tr>
+                                                                <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">Row Data</th>
+                                                                <th className="px-4 py-2 text-left text-slate-500 font-medium">Error Message</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y">
+                                                            {paginatedErrors.length > 0 ? paginatedErrors.map((fail, idx) => (
+                                                                <tr key={idx} className="hover:bg-red-50/30">
+                                                                    <td className="px-4 py-2 font-mono text-slate-600 break-all">
+                                                                        {/* Check both 'data' and 'item' structures */}
+                                                                        {fail.data?.studentCode || fail.item?.studentCode || fail.item?.item?.studentCode ||
+                                                                            fail.data?.examSession || fail.item?.examSession || fail.item?.item?.examSession ||
+                                                                            fail.data?.room || fail.item?.room || 'Unknown'}
+                                                                    </td>
+                                                                    <td className="px-4 py-2 text-red-600 italic">
+                                                                        {fail.message || fail.error}
+                                                                    </td>
+                                                                </tr>
+                                                            )) : (
+                                                                <tr>
+                                                                    <td colSpan={2} className="px-4 py-8 text-center text-slate-400 italic">
+                                                                        No errors found in this category
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+
+                                                    {totalErrPages > 1 && (
+                                                        <div className="p-2 border-t bg-slate-50 flex items-center justify-center gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                disabled={errorPage === 1}
+                                                                onClick={() => setErrorPage(p => p - 1)}
+                                                                className="h-7 text-[10px]"
+                                                            >
+                                                                Prev
+                                                            </Button>
+                                                            <span className="text-[10px] text-slate-500">
+                                                                Page {errorPage} of {totalErrPages}
+                                                            </span>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                disabled={errorPage === totalErrPages}
+                                                                onClick={() => setErrorPage(p => p + 1)}
+                                                                className="h-7 text-[10px]"
+                                                            >
+                                                                Next
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -471,19 +631,25 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                     <div className="overflow-x-auto border border-slate-200 rounded-lg mb-4 max-h-[400px] overflow-y-auto">
                                         <table className="w-full text-sm">
                                             <thead className="bg-slate-50 sticky top-0">
-                                                <tr className="border-b border-slate-200">
-                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700">STT</th>
+                                                <tr className="bg-slate-50 border-b border-slate-200">
+                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">No.</th>
                                                     {(() => {
                                                         const sampleRow = currentData.length > 0 ? currentData[0] : null;
 
                                                         if (sampleRow) {
                                                             return Object.keys(sampleRow)
                                                                 .filter(k => k !== "stt" && k !== "examSession" && k !== "proctorType")
-                                                                .map(key => (
-                                                                    <th key={key} className="px-4 py-2 text-left font-semibold text-slate-700">
-                                                                        {key}
-                                                                    </th>
-                                                                ));
+                                                                .map(key => {
+                                                                    // Format header name (CamelCase to Space separated)
+                                                                    const headerName = key.replace(/([A-Z])/g, ' $1')
+                                                                        .replace(/^./, str => str.toUpperCase());
+
+                                                                    return (
+                                                                        <th key={key} className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">
+                                                                            {headerName}
+                                                                        </th>
+                                                                    );
+                                                                });
                                                         }
                                                         return null;
                                                     })()}
@@ -504,7 +670,9 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
 
                                                     return paginatedData.map((row, idx) => (
                                                         <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                                                            <td className="px-4 py-2 font-medium text-slate-700">{row.stt}</td>
+                                                            <td className="px-4 py-2 text-slate-500 font-medium">
+                                                                {(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                                                            </td>
                                                             {Object.entries(row)
                                                                 .filter(([k]) => k !== "stt" && k !== "examSession" && k !== "proctorType")
                                                                 .map(([key, value]) => (
@@ -518,7 +686,8 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                                         onClick={() => handleEditRow(
                                                                             previewType === "schedule" ? activeTab :
                                                                                 previewType === "proctor" ? "proctors" : "codes",
-                                                                            row
+                                                                            row,
+                                                                            (currentPage - 1) * ITEMS_PER_PAGE + idx
                                                                         )}
                                                                         className="p-1 hover:bg-blue-100 rounded text-blue-600 transition-colors"
                                                                         title="Edit"
@@ -636,64 +805,66 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
             </Card>
 
             {/* Edit Modal */}
-            {editingRow && editingType && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="w-full max-w-lg border-none shadow-xl">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-bold text-slate-900">Edit Row</h3>
-                                <button
-                                    onClick={() => {
-                                        setEditingRow(null);
-                                        setEditingType(null);
-                                    }}
-                                    className="text-slate-400 hover:text-slate-600"
-                                >
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </div>
+            {
+                editingRow && editingType && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <Card className="w-full max-w-lg border-none shadow-xl">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-lg font-bold text-slate-900">Edit Row</h3>
+                                    <button
+                                        onClick={() => {
+                                            setEditingRow(null);
+                                            setEditingType(null);
+                                        }}
+                                        className="text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
 
-                            <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                                {Object.entries(editingRow)
-                                    .filter(([k]) => k !== "stt" && k !== "examSession" && k !== "proctorType")
-                                    .map(([key, value]) => (
-                                        <div key={key}>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                                {key}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={String(value)}
-                                                onChange={(e) =>
-                                                    setEditingRow({ ...editingRow, [key]: e.target.value })
-                                                }
-                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                            />
-                                        </div>
-                                    ))}
-                            </div>
+                                <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                                    {Object.entries(editingRow)
+                                        .filter(([k]) => k !== "stt" && k !== "examSession" && k !== "proctorType")
+                                        .map(([key, value]) => (
+                                            <div key={key}>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                                    {key}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={String(value)}
+                                                    onChange={(e) =>
+                                                        setEditingRow({ ...editingRow, [key]: e.target.value })
+                                                    }
+                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                                />
+                                            </div>
+                                        ))}
+                                </div>
 
-                            <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setEditingRow(null);
-                                        setEditingType(null);
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                                    onClick={handleSaveEdit}
-                                >
-                                    Save Changes
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-        </div>
+                                <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditingRow(null);
+                                            setEditingType(null);
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                                        onClick={handleSaveEdit}
+                                    >
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
+        </div >
     );
 }

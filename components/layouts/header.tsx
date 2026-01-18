@@ -1,17 +1,31 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth-store";
 import { useUIStore } from "@/store/ui-store";
-import { Menu, Bell, User, LogOut } from "lucide-react";
+import { Menu, Bell, User, LogOut, Globe } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 
 export function Header() {
   const router = useRouter();
+  const currentPathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations("Common");
+
   const { user, logout: logoutStore } = useAuthStore();
   const { toggleSidebar } = useUIStore();
+
+  const handleLocaleChange = (newLocale: string) => {
+    // Current pathname includes the locale (e.g., /vi/dashboard)
+    const segments = currentPathname.split('/');
+    segments[1] = newLocale;
+    const newPathname = segments.join('/');
+    router.push(newPathname);
+  };
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -31,12 +45,14 @@ export function Header() {
   const handleLogout = async () => {
     try {
       await authApi.logout();
+      toast.success(t("logoutSuccess"));
       logoutStore();
-      router.push("/auth/login");
+      router.push(`/${locale}/auth/login`);
     } catch (error) {
       console.error("Logout error:", error);
+      toast.error(t("error"));
       logoutStore();
-      router.push("/auth/login");
+      router.push(`/${locale}/auth/login`);
     }
   };
 
@@ -65,6 +81,22 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Language Switcher */}
+          <div className="flex items-center gap-1 bg-orange-600/50 p-1 rounded-lg border border-orange-400/30">
+            <button
+              onClick={() => handleLocaleChange("vi")}
+              className={`px-2 py-1 text-xs font-bold rounded ${locale === "vi" ? "bg-white text-[#F37021]" : "text-white hover:bg-orange-600"}`}
+            >
+              VI
+            </button>
+            <button
+              onClick={() => handleLocaleChange("en")}
+              className={`px-2 py-1 text-xs font-bold rounded ${locale === "en" ? "bg-white text-[#F37021]" : "text-white hover:bg-orange-600"}`}
+            >
+              EN
+            </button>
+          </div>
+
           <div className="flex items-center gap-3 pl-4 border-l border-orange-400/30">
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -103,7 +135,7 @@ export function Header() {
                       onClick={handleLogout}
                     >
                       <LogOut className="mr-3 h-4 w-4 text-red-500 group-hover:text-red-600" />
-                      Log out
+                      {t("logout")}
                     </button>
                   </div>
                 </div>
@@ -115,5 +147,3 @@ export function Header() {
     </header>
   );
 }
-
-

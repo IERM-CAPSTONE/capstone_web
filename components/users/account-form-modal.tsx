@@ -21,6 +21,7 @@ export function AccountFormModal({ user, onClose }: AccountFormModalProps) {
   const [formData, setFormData] = useState({
     email: user?.email || "",
     fullName: user?.fullName || "",
+    username: user?.username || "",
     code: user?.code || "",
     avatarUrl: user?.avatarUrl || "",
     role: (user?.role || "STUDENT") as UserRole,
@@ -33,6 +34,7 @@ export function AccountFormModal({ user, onClose }: AccountFormModalProps) {
       setFormData({
         email: user.email || "",
         fullName: user.fullName || "",
+        username: user.username || "",
         code: user.code || "",
         avatarUrl: user.avatarUrl || "",
         role: (user.role || "STUDENT") as UserRole,
@@ -64,6 +66,7 @@ export function AccountFormModal({ user, onClose }: AccountFormModalProps) {
       if (isEdit) {
         const updateData: UpdateUserData = {
           fullName: formData.fullName || undefined,
+          username: formData.username || undefined,
           code: formData.code || undefined,
           avatarUrl: formData.avatarUrl || undefined,
         };
@@ -72,6 +75,7 @@ export function AccountFormModal({ user, onClose }: AccountFormModalProps) {
         const createData: CreateUserData = {
           email: formData.email,
           fullName: formData.fullName || undefined,
+          username: formData.username || undefined,
           code: formData.code || undefined,
           avatarUrl: formData.avatarUrl || undefined,
           role: formData.role,
@@ -135,6 +139,18 @@ export function AccountFormModal({ user, onClose }: AccountFormModalProps) {
                 }
                 disabled={isLoading}
                 placeholder="Student ID or teacher code"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Username</label>
+              <Input
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+                disabled={isLoading}
+                placeholder="Enter username"
               />
             </div>
 

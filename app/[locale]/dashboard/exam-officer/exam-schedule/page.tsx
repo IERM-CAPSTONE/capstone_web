@@ -16,8 +16,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileText,
-  Import,
-  Download,
   MoreVertical,
   Eye,
   MapPin,
@@ -31,8 +29,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ROUTES } from "@/lib/constants/routes";
-import { parseLocalDate } from "./utils";
-import ImportDialog from "./components/ImportDialog";
+import { parseLocalDate } from "@/app/dashboard/exam-officer/exam-schedule/utils";
+import ImportDialog from "@/app/dashboard/exam-officer/exam-schedule/components/ImportDialog";
 
 export default function ExamsPage() {
   const router = useRouter();
@@ -165,8 +163,6 @@ export default function ExamsPage() {
             <Code className="h-4 w-4" />
             Import Exam Codes
           </Button>
-
-
         </div>
       </div>
 
@@ -263,7 +259,6 @@ export default function ExamsPage() {
                   <th className="px-6 py-4 font-semibold">Time</th>
                   <th className="px-6 py-4 font-semibold">Type</th>
                   <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold">Linked Rooms</th>
                   <th className="px-6 py-4 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -289,19 +284,33 @@ export default function ExamsPage() {
                   </tr>
                 ) : (
                   schedules.map((schedule) => {
-                    const now = new Date();
+                    const getStatusDisplay = (apiStatus: string | null | undefined) => {
+                      switch (apiStatus) {
+                        case "Ongoing":
+                          return {
+                            label: "Ongoing",
+                            color: "bg-green-50 text-green-600 border-green-100",
+                            icon: <div className="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse" />
+                          };
+                        case "Ended":
+                          return {
+                            label: "Completed",
+                            color: "bg-slate-100 text-slate-600 border-slate-200",
+                            icon: <CheckCircle2 className="h-3 w-3" />
+                          };
+                        case "Scheduled":
+                        default:
+                          return {
+                            label: "Upcoming",
+                            color: "bg-blue-50 text-blue-600 border-blue-100",
+                            icon: <Clock className="h-3 w-3" />
+                          };
+                      }
+                    };
+
+                    const status = getStatusDisplay(schedule.status);
                     const open = schedule.examOpenTime ? parseLocalDate(schedule.examOpenTime) : null;
                     const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
-
-                    let status = { label: "Upcoming", color: "bg-blue-50 text-blue-600 border-blue-100", icon: <Clock className="h-3 w-3" /> };
-
-                    if (open && close) {
-                      if (now >= open && now <= close) {
-                        status = { label: "Ongoing", color: "bg-green-50 text-green-600 border-green-100", icon: <div className="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse" /> };
-                      } else if (now > close) {
-                        status = { label: "Completed", color: "bg-slate-100 text-slate-600 border-slate-200", icon: <CheckCircle2 className="h-3 w-3" /> };
-                      }
-                    }
 
                     return (
                       <tr key={schedule.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -336,28 +345,23 @@ export default function ExamsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-500 border border-red-100">
-                            Final
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {schedule.examType && schedule.examType.length > 0 ? (
+                              schedule.examType.map((type) => (
+                                <span key={type} className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                  {type}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${status.color}`}>
                             {status.icon}
                             {status.label}
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {schedule.examRoomId ? (
-                            <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium border border-blue-100 hover:bg-blue-100 transition-colors">
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span>{schedule.examRoomNumber}</span>
-                            </button>
-                          ) : (
-                            <button className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium border border-red-100">
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span>No Room</span>
-                            </button>
-                          )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="relative">
@@ -424,7 +428,6 @@ export default function ExamsPage() {
               Showing page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages || 1}</span> ({data?.total || 0} exam schedules)
             </p>
             <div className="flex items-center gap-1">
-              {/* First Page */}
               <Button
                 variant="outline"
                 size="sm"
@@ -434,8 +437,6 @@ export default function ExamsPage() {
               >
                 First
               </Button>
-
-              {/* Previous Page */}
               <Button
                 variant="outline"
                 size="sm"
@@ -446,63 +447,37 @@ export default function ExamsPage() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              {/* Page Numbers */}
               {(() => {
                 const maxVisible = 5;
                 const pages: (number | string)[] = [];
 
                 if (totalPages <= maxVisible + 2) {
-                  // Show all pages if total is small
                   for (let i = 1; i <= totalPages; i++) {
                     pages.push(i);
                   }
                 } else {
-                  // Always show first page
                   pages.push(1);
-
                   let start = Math.max(2, page - 1);
                   let end = Math.min(totalPages - 1, page + 1);
 
-                  // Adjust range if near start
                   if (page <= 3) {
                     start = 2;
                     end = maxVisible - 1;
                   }
-
-                  // Adjust range if near end
                   if (page >= totalPages - 2) {
                     start = totalPages - maxVisible + 2;
                     end = totalPages - 1;
                   }
-
-                  // Add ellipsis after first page if needed
-                  if (start > 2) {
-                    pages.push('...');
-                  }
-
-                  // Add middle pages
-                  for (let i = start; i <= end; i++) {
-                    pages.push(i);
-                  }
-
-                  // Add ellipsis before last page if needed
-                  if (end < totalPages - 1) {
-                    pages.push('...');
-                  }
-
-                  // Always show last page
+                  if (start > 2) pages.push('...');
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  if (end < totalPages - 1) pages.push('...');
                   pages.push(totalPages);
                 }
 
                 return pages.map((pageNum, idx) => {
                   if (pageNum === '...') {
-                    return (
-                      <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">
-                        ...
-                      </span>
-                    );
+                    return <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">...</span>;
                   }
-
                   return (
                     <Button
                       key={pageNum}
@@ -520,7 +495,6 @@ export default function ExamsPage() {
                 });
               })()}
 
-              {/* Next Page */}
               <Button
                 variant="outline"
                 size="sm"
@@ -530,8 +504,6 @@ export default function ExamsPage() {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
-
-              {/* Last Page */}
               <Button
                 variant="outline"
                 size="sm"
@@ -556,7 +528,6 @@ export default function ExamsPage() {
             <h4 className="text-sm font-bold text-blue-900">Exam Schedule Management</h4>
             <ul className="text-xs text-blue-700 space-y-1">
               <li><span className="font-semibold">• Schedule Actions:</span> Update schedules before exam starts. Archive only completed exams.</li>
-              <li><span className="font-semibold">• Linked Rooms:</span> <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded">Red rooms</span> indicate no exam room assigned yet. Click to assign rooms.</li>
               <li><span className="font-semibold">• Status-Based Permissions:</span> Actions are automatically enabled/disabled based on exam status.</li>
             </ul>
           </div>

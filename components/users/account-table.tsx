@@ -106,6 +106,7 @@ export function AccountTable({
             <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">ACCOUNT ID</th>
             <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">FULL NAME</th>
             <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">EMAIL</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">USERNAME</th>
             <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">ROLE</th>
             <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">STATUS</th>
             <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">CREATED DATE</th>
@@ -131,7 +132,10 @@ export function AccountTable({
                   <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{user.fullName || "N/A"}</div>
                 </td>
                 <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {user.email}
+                  {user.email || <span className="text-gray-300 italic">N/A</span>}
+                </td>
+                <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {user.username || <span className="text-gray-300 italic">None</span>}
                 </td>
                 <td className="py-4 px-4 whitespace-nowrap">{getRoleBadge(user.role)}</td>
                 <td className="py-4 px-4 whitespace-nowrap">{getStatusBadge(user.isActive)}</td>

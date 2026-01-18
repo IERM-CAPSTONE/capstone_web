@@ -1,0 +1,126 @@
+{
+    "Common": {
+        "welcome": "Welcome back",
+        "loading": "Loading...",
+        "logout": "Logout",
+        "error": "An error occurred",
+        "signingIn": "Signing you in...",
+        "loadingDashboard": "Loading dashboard...",
+        "home": "Home",
+        "viewAll": "View All",
+        "page": "Page",
+        "previous": "Previous",
+        "next": "Next",
+        "logoutSuccess": "Logged out successfully"
+    },
+    "Login": {
+        "title": "Welcome Back",
+        "subtitle": "Select your campus and sign in with Google",
+        "selectCampus": "Select Campus",
+        "chooseCampus": "Choose your campus",
+        "loginButton": "Login with Google",
+        "emailNote": "Please use your FPT University email (@fpt.edu.vn)",
+        "proctorNote": "Only authorized proctors can access this system"
+    },
+    "Dashboard": {
+        "title": "Dashboard",
+        "rooms": "Rooms",
+        "exams": "Exams",
+        "students": "Students",
+        "adminPortal": "Admin Portal",
+        "overview": "System overview and configuration",
+        "examOfficerPortal": "Exam Officer Portal",
+        "examOverview": "Overview of exam operations and monitoring",
+        "quickActions": "Quick Actions",
+        "stats": {
+            "totalAccounts": "Total Accounts",
+            "activeAccounts": "Active Accounts",
+            "examRooms": "Exam Rooms",
+            "registeredDevices": "Registered Devices",
+            "examsToday": "Total Exams Today",
+            "totalStudents": "Total Students",
+            "activeProctors": "Active Proctors"
+        },
+        "alerts": {
+            "title": "Ticket Alert",
+            "viewAll": "View All Alerts",
+            "high": "High",
+            "medium": "Medium",
+            "low": "Low"
+        },
+        "systemStatus": {
+            "title": "System Status",
+            "operational": "All Systems Operational",
+            "smooth": "Everything is running smoothly",
+            "onlineDevices": "Online Devices",
+            "offlineDevices": "Offline Devices",
+            "uptime": "Server Uptime",
+            "maintenance": "Last Maintenance",
+            "version": "System Version"
+        },
+        "examOfficer": {
+            "actions": {
+                "viewRooms": "View Exam Rooms",
+                "viewSchedules": "View Schedules",
+                "viewEvents": "View Events",
+                "createSchedule": "Create Schedule"
+            },
+            "scheduleOverview": "Exam Schedule Overview",
+            "noSchedules": "No exam schedules",
+            "ongoing": "Ongoing",
+            "completed": "Completed",
+            "upcoming": "Upcoming",
+            "invigilatorApp": "Invigilator Applications",
+            "reports": "Reports & Analytics",
+            "thisWeek": "This Week",
+            "proctor": "Proctor",
+            "applicant": "Applicant",
+            "examRoom": "Exam Room",
+            "date": "Date",
+            "status": "Status",
+            "actionCol": "Actions",
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "examReports": "Exam Reports",
+            "viewStatistics": "View detailed statistics",
+            "performanceAnalytics": "Performance Analytics",
+            "studentMetrics": "Student & proctor metrics",
+            "examData": "Exam Data",
+            "downloadSchedule": "Download schedule payloads",
+            "monthlySummary": "Monthly Summary",
+            "examsCompleted": "{count} exams completed this month"
+        }
+    },
+    "Rooms": {
+        "detailTitle": "Room Detail",
+        "listTitle": "Room Management",
+        "createRoom": "Create New Room",
+        "roomCount": "rooms",
+        "searchPlaceholder": "Search by name or location...",
+        "basicInfo": "Basic Information",
+        "additionalInfo": "Additional Information",
+        "name": "Room Name",
+        "location": "Location",
+        "capacity": "Capacity",
+        "seats": "seats",
+        "status": "Status",
+        "equipment": "Equipment",
+        "createdAt": "Created Date",
+        "updatedAt": "Last Update",
+        "notFound": "Room not found",
+        "deleteConfirm": "Are you sure you want to delete this room?",
+        "statusAvailable": "Available",
+        "statusOccupied": "Occupied",
+        "statusMaintenance": "Maintenance",
+        "actions": {
+            "back": "Back",
+            "edit": "Edit",
+            "delete": "Delete"
+        }
+    },
+    "Metadata": {
+        "title": "IERM - Intelligent Examination Room Management",
+        "description": "Smart examination management system for FPT University - Secure, efficient, and reliable."
+    }
+}

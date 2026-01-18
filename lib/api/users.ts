@@ -4,8 +4,9 @@ export type UserRole = "ADMIN" | "EXAM_OFFICER" | "PROCTOR" | "STUDENT";
 
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
   fullName: string | null;
+  username: string | null;
   code: string | null;
   avatarUrl: string | null;
   isActive: boolean;
@@ -31,7 +32,7 @@ export interface ListUsersParams {
 }
 
 export interface CreateUserData {
-  email: string;
+  email?: string | null;
   fullName?: string;
   code?: string;
   avatarUrl?: string;
@@ -44,6 +45,7 @@ export interface CreateUserData {
 export interface UpdateUserData {
   email?: string;
   fullName?: string;
+  username?: string;
   code?: string;
   avatarUrl?: string;
   role?: UserRole;

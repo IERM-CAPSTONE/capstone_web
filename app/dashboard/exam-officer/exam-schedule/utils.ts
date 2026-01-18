@@ -41,9 +41,9 @@ export const readFileContent = async (file: File): Promise<{ headers: string[], 
         }
 
         headers = lines[0].split(',').map(h => h.trim());
-        data = lines.slice(1).map((line, idx) => {
+        data = lines.slice(1).map((line) => {
             const values = line.split(',').map(v => v.trim());
-            const row: any = { stt: idx + 1 };
+            const row: any = {};
             headers.forEach((header, i) => {
                 row[header] = values[i] || "";
             });
@@ -62,13 +62,13 @@ export const readFileContent = async (file: File): Promise<{ headers: string[], 
         }
 
         headers = (jsonData[0] as any[]).map(h => String(h || "").trim());
-        data = (jsonData.slice(1) as any[][]).map((row, idx) => {
-            const rowData: any = { stt: idx + 1 };
+        data = (jsonData.slice(1) as any[][]).map((row) => {
+            const rowData: any = {};
             headers.forEach((header, i) => {
                 rowData[header] = String(row[i] || "").trim();
             });
             return rowData;
-        }).filter(row => Object.keys(row).length > 1); // Filter empty rows
+        }).filter(row => Object.keys(row).length > 0); // Filter empty rows
     } else {
         throw new Error("Unsupported file format. Please use CSV or Excel files.");
     }
@@ -92,70 +92,96 @@ const findValue = (row: any, keys: string[]) => {
 export const processImportData = (headers: string[], data: any[]) => {
     // Check format types based on headers (case-insensitive)
     const isScheduleInfo = hasHeader(headers, ["Ca thi", "Mã SV", "Ma SV", "Student Code"]);
-    const isProctorInfo = hasHeader(headers, ["ProctorEmail", "Proctor Email", "Email giám thị", "Email giam thi", "DateExam", "Date Exam"]);
+    const isProctorInfo = hasHeader(headers, ["ProctorEmail"]);
     const isExamCodeInfo = hasHeader(headers, ["Exam Code", "Mã đề", "Ma de"]);
 
     if (isScheduleInfo) {
         // Extract unique exam schedules from "Ca thi" column
-        const examScheduleMap = new Map();
+        const examScheduleMap = new Map<string, any>();
+        const sessionPartsMap = new Map<string, Set<string>>();
+
         data.forEach((row) => {
             const caThi = findValue(row, ["Ca thi", "Exam Session"]);
             const monThi = findValue(row, ["Môn thi", "Subject Code", "Subject"]);
+            const examPartRecord = extractExamPart(findValue(row, ["Nộp bài phần thi", "Phần thi", "Phan thi", "ExamPart", "Exam Part"]));
 
-            if (caThi && !examScheduleMap.has(caThi)) {
-                // Parse ca thi format: "26/12/2025 10h40-12h15 ALPHA 704"
-                const match = caThi.match(
-                    /^(\d{2}\/\d{2}\/\d{4})[\s\.]+(\d+h\d+)-(\d+h\d+)[\s\.]+(.+)$/
-                );
-                if (match) {
-                    const [, date, startTime, endTime, room] = match;
-                    examScheduleMap.set(caThi, {
-                        stt: examScheduleMap.size + 1,
-                        examCode: "", // Set to empty string as requested
-                        subjectCode: monThi,
-                        examDate: date,
-                        startTime: startTime,
-                        endTime: endTime,
-                        room: room,
-                        "Ca thi": caThi,
+            if (caThi) {
+                // Collect exam parts for this session
+                if (!sessionPartsMap.has(caThi)) {
+                    sessionPartsMap.set(caThi, new Set());
+                }
+                if (examPartRecord) {
+                    examPartRecord.split(',').forEach(p => {
+                        const trimmed = p.trim();
+                        if (trimmed) sessionPartsMap.get(caThi)?.add(trimmed);
                     });
+                }
+
+                if (!examScheduleMap.has(caThi)) {
+                    // Parse ca thi format
+                    const match = caThi.match(
+                        /^(\d{2}\/\d{2}\/\d{4})[\s\.]+(\d+h\d+)-(\d+h\d+)[\s\.]+(.+)$/
+                    );
+                    if (match) {
+                        const [, date, startTime, endTime, room] = match;
+                        examScheduleMap.set(caThi, {
+                            examCode: "",
+                            subjectCode: monThi,
+                            examDate: date,
+                            startTime: startTime,
+                            endTime: endTime,
+                            room: room.trim(),
+                            examSession: caThi,
+                        });
+                    }
                 }
             }
         });
 
+        // Add aggregated parts to schedules
+        const schedules = Array.from(examScheduleMap.values()).map(s => {
+            const parts = sessionPartsMap.get(s.examSession);
+            return {
+                ...s,
+                examType: parts ? Array.from(parts).join(', ') : ""
+            };
+        });
+
         // Extract student information
-        const students = data.map((row, idx) => ({
-            stt: idx + 1,
-            StudentCode: findValue(row, ["Mã SV", "Student Code", "Ma SV"]),
-            Name: findValue(row, ["Họ tên", "Name", "Student Name", "Ho ten"]),
-            MemberCode: findValue(row, ["MemberCode", "Member Code"]),
-            CCCD: findValue(row, ["CCCD", "Citizen ID"]),
-            "Ca thi": findValue(row, ["Ca thi", "Exam Session"]),
-            "Môn thi": findValue(row, ["Môn thi", "Subject Code", "Mon thi"]),
-            "Phần thi": extractExamPart(findValue(row, ["Nộp bài phần thi", "Phần thi", "Phan thi", "ExamPart", "Exam Part"])),
-        }));
+        const students = data.map((row) => {
+            const memberCode = findValue(row, ["MemberCode", "Member Code"]);
+            const sttVal = findValue(row, ["STT"]);
+            return {
+                stt: (sttVal !== "" && sttVal !== null && sttVal !== undefined) ? parseInt(String(sttVal), 10) : null,
+                studentCode: findValue(row, ["Mã SV", "Student Code", "Ma SV"]),
+                username: memberCode,
+                memberCode: memberCode,
+                name: findValue(row, ["Họ tên", "Name", "Student Name", "Ho ten"]),
+                email: (findValue(row, ["Email"]) || (memberCode ? `${memberCode}@fpt.edu.vn` : "")),
+                examSession: findValue(row, ["Ca thi", "Exam Session"]),
+                subjectCode: findValue(row, ["Môn thi", "Subject Code", "Mon thi"]),
+                examPart: extractExamPart(findValue(row, ["Nộp bài phần thi", "Phần thi", "Phan thi", "ExamPart", "Exam Part"])),
+            };
+        });
 
         return {
             type: "schedule",
-            schedules: Array.from(examScheduleMap.values()),
+            schedules: schedules,
             students: students,
         };
     } else if (isProctorInfo) {
         // Process Proctor Import
         const proctors = data.map((row, idx) => {
-            const dateExam = findValue(row, ["DateExam", "Ngày thi", "Date Exam", "Ngay thi"]);
-            const timeExam = findValue(row, ["TimeExam", "Giờ thi", "Time Exam", "Gio thi"]);
-            const examRoom = findValue(row, ["ExamRoom", "Phòng thi", "Exam Room", "Room", "Phong thi"]);
-            const proctorEmail = findValue(row, ["ProctorEmail", "Email giám thị", "Proctor Email", "Email", "Email giam thi"]);
-            const examSession = `${dateExam} ${timeExam} ${examRoom}`;
+            const dateExam = findValue(row, ["DateExam"]);
+            const timeExam = findValue(row, ["TimeExam"]);
+            const examRoom = findValue(row, ["ExamRoom"]);
+            const proctorEmail = findValue(row, ["ProctorEmail"]);
 
             return {
-                stt: idx + 1,
-                examSession: examSession, // Key matching to schedule
                 dateExam: dateExam,
                 timeExam: timeExam,
                 examRoom: examRoom,
-                proctorEmail: proctorEmail,
+                proctorEmail: String(proctorEmail ? `${proctorEmail}` : ""),
                 proctorType: "Proctor", // Default
             };
         });
@@ -170,11 +196,11 @@ export const processImportData = (headers: string[], data: any[]) => {
         const codes: any[] = [];
 
         data.forEach((row: any) => {
-            const startDateStr = findValue(row, ["Start Date", "Bắt đầu", "Bat dau"]);
-            const endDateStr = findValue(row, ["End Date", "Kết thúc", "Ket thuc"]);
-            const roomStr = findValue(row, ["Rooms", "Phòng thi", "Phong thi"]);
-            const codeStr = findValue(row, ["Exam Code", "Mã đề", "Ma de"]);
-            const subjectName = findValue(row, ["Subject Name", "Môn thi", "Mon thi"]);
+            const startDateStr = findValue(row, ["Start Date"]);
+            const endDateStr = findValue(row, ["End Date"]);
+            const roomStr = findValue(row, ["Rooms"]);
+            const codeStr = findValue(row, ["Exam Code"]);
+            const subjectName = findValue(row, ["Subject Name"]);
 
             if (!startDateStr || !endDateStr || !roomStr) return;
 
@@ -208,7 +234,6 @@ export const processImportData = (headers: string[], data: any[]) => {
             rooms.forEach((room: string) => {
                 const examSession = `${datePart} ${startTime}-${endTime} ${room}`;
                 codes.push({
-                    stt: codes.length + 1,
                     subjectName,
                     startDate: startDateStr,
                     endDate: endDateStr,
