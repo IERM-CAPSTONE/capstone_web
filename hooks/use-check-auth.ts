@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import apiClient from "@/lib/api/client";
+import { ROUTES } from "@/lib/constants/routes";
 import { UserRole, User } from "@/types";
 
 interface UseCheckAuthOptions {
@@ -78,11 +79,11 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                 if (redirectIfAuthenticated) {
                     const locale = getCurrentLocale();
                     if (userObj.role === "admin") {
-                        router.replace(`/${locale}/dashboard/admin`);
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
                     } else if (userObj.role === "exam_officer") {
-                        router.replace(`/${locale}/dashboard/exam-officer`);
+                        router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
                     } else {
-                        router.replace(`/${locale}/dashboard`);
+                        router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                     }
                 }
             } else if (redirectIfNotAuthenticated) {
@@ -125,11 +126,11 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
             if (redirectIfAuthenticated) {
                 const locale = getCurrentLocale();
                 if (user.role === "admin") {
-                    router.replace(`/${locale}/dashboard/admin`);
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
                 } else if (user.role === "exam_officer") {
-                    router.replace(`/${locale}/dashboard/exam-officer`);
+                    router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
                 } else {
-                    router.replace(`/${locale}/dashboard`);
+                    router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                 }
             }
             return;

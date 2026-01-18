@@ -7,8 +7,9 @@ export interface ExamSchedule {
   openCode?: string | null;
   note?: string | null;
   examRoomId: string | null;
-  examRoomNumber: string | null;
+  roomNumber: string | null;
   proctorId: string | null;
+  proctorName: string | null;
   hallInvigilatorId: string | null;
   hallInvigilatorName: string | null;
   subjectCode: string | null;
@@ -22,16 +23,26 @@ export interface ExamSchedule {
 
 export interface PaginatedExamScheduleResponse {
   data: ExamSchedule[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface ListExamSchedulesParams {
   page?: number;
   limit?: number;
   subjectCode?: string;
+  examCode?: string;
+  date?: string;
+  time?: string;
+  status?: string;
+  fromDate?: string;
+  toDate?: string;
+  startTime?: string;
+  endTime?: string;
   examRoomId?: string;
   proctorId?: string;
 }

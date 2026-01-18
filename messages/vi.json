@@ -37,9 +37,16 @@
             "activeAccounts": "Tài khoản hoạt động",
             "examRooms": "Phòng thi",
             "registeredDevices": "Thiết bị đã đăng ký",
-            "examsToday": "Kỳ thi hôm nay",
+            "examsToday": "Tổng kỳ thi hôm nay",
             "totalStudents": "Tổng sinh viên",
-            "activeProctors": "Giám thị đang trực"
+            "activeProctors": "Giám thị đang trực",
+            "totalSchedules": "Tổng lịch thi",
+            "thisSemester": "Trong học kỳ này",
+            "scheduledToday": "Lịch trình hôm nay",
+            "upcomingExams": "Kỳ thi sắp tới",
+            "futureSchedules": "Lịch trình tương lai",
+            "completedExams": "Kỳ thi hoàn thành",
+            "pastSchedules": "Lịch trình đã qua"
         },
         "alerts": {
             "title": "Cảnh báo Ticket",
@@ -59,11 +66,19 @@
             "version": "Phiên bản hệ thống"
         },
         "examOfficer": {
+            "examSchedules": "Lịch thi",
+            "manageSchedules": "Quản lý lịch thi và sinh viên",
             "actions": {
                 "viewRooms": "Xem phòng thi",
                 "viewSchedules": "Xem lịch thi",
                 "viewEvents": "Xem sự kiện",
-                "createSchedule": "Tạo lịch thi"
+                "createSchedule": "Tạo lịch thi",
+                "importSchedule": "Nhập Lịch + Sinh viên",
+                "importProctors": "Nhập Giám thị",
+                "importExamCodes": "Nhập Mã đề thi",
+                "viewDetails": "Xem chi tiết",
+                "update": "Cập nhật lịch thi",
+                "archive": "Lưu trữ lịch thi"
             },
             "scheduleOverview": "Tổng quan lịch thi",
             "noSchedules": "Không có lịch thi",
@@ -77,6 +92,7 @@
             "applicant": "Người đăng ký",
             "examRoom": "Phòng thi",
             "date": "Ngày",
+            "time": "Giờ thi",
             "status": "Trạng thái",
             "actionCol": "Thao tác",
             "pending": "Chờ duyệt",
@@ -89,7 +105,33 @@
             "examData": "Dữ liệu kỳ thi",
             "downloadSchedule": "Tải xuống lịch thi",
             "monthlySummary": "Tổng kết tháng",
-            "examsCompleted": "{count} kỳ thi hoàn thành trong tháng này"
+            "examsCompleted": "{count} kỳ thi hoàn thành trong tháng này",
+            "archiving": "Đang lưu trữ...",
+            "searchPlaceholder": "Tìm kiếm theo mã đề hoặc tên môn...",
+            "allSubjects": "Tất cả môn học",
+            "advancedFilters": "Bộ lọc nâng cao",
+            "allStatuses": "Tất cả trạng thái",
+            "clearFilters": "Xóa tất cả bộ lọc",
+            "roomId": "Mã phòng",
+            "proctorId": "Mã giám thị",
+            "schedules": "lịch thi",
+            "table": {
+                "examCode": "Mã đề",
+                "openCode": "Mã mở đề",
+                "subject": "Môn học",
+                "date": "Ngày thi",
+                "time": "Giờ thi",
+                "type": "Loại",
+                "room": "Phòng thi",
+                "proctor": "Giám thị",
+                "status": "Trạng thái"
+            }
+        },
+        "pagination": {
+            "showing": "Đang hiển thị trang",
+            "of": "trên",
+            "first": "Đầu",
+            "last": "Cuối"
         }
     },
     "Rooms": {

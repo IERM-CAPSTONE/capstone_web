@@ -39,7 +39,14 @@
             "registeredDevices": "Registered Devices",
             "examsToday": "Total Exams Today",
             "totalStudents": "Total Students",
-            "activeProctors": "Active Proctors"
+            "activeProctors": "Active Proctors",
+            "totalSchedules": "Total Exam Schedules",
+            "thisSemester": "This semester",
+            "scheduledToday": "Scheduled for today",
+            "upcomingExams": "Upcoming Exams",
+            "futureSchedules": "Future schedules",
+            "completedExams": "Completed Exams",
+            "pastSchedules": "Past schedules"
         },
         "alerts": {
             "title": "Ticket Alert",
@@ -59,11 +66,19 @@
             "version": "System Version"
         },
         "examOfficer": {
+            "examSchedules": "Exam Schedules",
+            "manageSchedules": "Manage exam schedules and segments",
             "actions": {
                 "viewRooms": "View Exam Rooms",
                 "viewSchedules": "View Schedules",
                 "viewEvents": "View Events",
-                "createSchedule": "Create Schedule"
+                "createSchedule": "Create Schedule",
+                "importSchedule": "Import Schedule + Students",
+                "importProctors": "Import Proctors",
+                "importExamCodes": "Import Exam Codes",
+                "viewDetails": "View Details",
+                "update": "Update Schedule",
+                "archive": "Archive Schedule"
             },
             "scheduleOverview": "Exam Schedule Overview",
             "noSchedules": "No exam schedules",
@@ -77,6 +92,7 @@
             "applicant": "Applicant",
             "examRoom": "Exam Room",
             "date": "Date",
+            "time": "Time",
             "status": "Status",
             "actionCol": "Actions",
             "pending": "Pending",
@@ -89,7 +105,33 @@
             "examData": "Exam Data",
             "downloadSchedule": "Download schedule payloads",
             "monthlySummary": "Monthly Summary",
-            "examsCompleted": "{count} exams completed this month"
+            "examsCompleted": "{count} exams completed this month",
+            "archiving": "Archiving...",
+            "searchPlaceholder": "Search by exam code or subject name...",
+            "allSubjects": "All Subjects",
+            "advancedFilters": "Advanced Filters",
+            "allStatuses": "All",
+            "clearFilters": "Clear All Filters",
+            "roomId": "Room ID",
+            "proctorId": "Proctor ID",
+            "schedules": "exam schedules",
+            "table": {
+                "examCode": "Exam Code",
+                "openCode": "Open Code",
+                "subject": "Subject",
+                "date": "Exam Date",
+                "time": "Time",
+                "type": "Type",
+                "room": "Room",
+                "proctor": "Proctor",
+                "status": "Status"
+            }
+        },
+        "pagination": {
+            "showing": "Showing page",
+            "of": "of",
+            "first": "First",
+            "last": "Last"
         }
     },
     "Rooms": {

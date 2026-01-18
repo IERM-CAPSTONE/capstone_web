@@ -17,9 +17,9 @@ export default function DashboardRedirectPage() {
       const locale = window.location.pathname.startsWith('/en') ? 'en' : 'vi';
 
       if (user.role === "admin") {
-        router.replace(`/${locale}/dashboard/admin`);
+        router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
       } else if (user.role === "exam_officer") {
-        router.replace(`/${locale}/dashboard/exam-officer`);
+        router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
       } else {
         // For other roles like staff/student if they don't have a specific dashboard yet
         router.replace(`/${locale}/auth/login`);
