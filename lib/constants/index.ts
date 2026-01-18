@@ -1,6 +1,6 @@
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "IERM";
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 export const ROLES = {
   ADMIN: "admin",

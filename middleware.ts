@@ -1,39 +1,42 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import createMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
-  // Use backend-set access token cookie name
-  const token = request.cookies.get("access_token")?.value;
+const intlMiddleware = createMiddleware({
+  locales: ['en', 'vi'],
+  defaultLocale: 'vi',
+  localePrefix: 'always'
+});
+
+export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require authentication
-  const publicRoutes = ["/login", "/register", "/forgot-password"];
-  const isPublicRoute = publicRoutes.includes(pathname) || publicRoutes.some((route) => pathname.startsWith(route));
+  // 1. Auth logic FIRST
+  const token =
+    request.cookies.get("access_token")?.value ||
+    request.cookies.get("refresh_token")?.value ||
+    request.cookies.get("token")?.value;
+
+  const publicRoutes = ["/auth/login", "/register", "/forgot-password", "/auth/callback"];
+  const pathnameWithoutLocale = pathname.replace(/^\/(en|vi)/, "") || "/";
+
+  const isPublicRoute =
+    publicRoutes.includes(pathnameWithoutLocale) ||
+    publicRoutes.some((route) => pathnameWithoutLocale.startsWith(route));
 
   // If accessing a protected route without token, redirect to login
-  if (!isPublicRoute && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!isPublicRoute && !token && pathnameWithoutLocale !== "/") {
+    const locale = pathname.startsWith('/en') ? 'en' : 'vi';
+    // Manually construct the login URL with locale
+    const loginUrl = new URL(`/${locale}/auth/login`, request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // If accessing login/register with token, redirect to dashboard
-  if (isPublicRoute && token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/admin-dashboard", request.url));
-  }
-
-  return NextResponse.next();
+  // 2. If auth is okay, let intl handle everything else
+  return intlMiddleware(request);
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };
-
-

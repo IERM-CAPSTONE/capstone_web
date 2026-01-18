@@ -1,38 +1,29 @@
 import apiClient from "./client";
-import { User } from "@/types";
+
+interface LoginResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    avatar?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  accessToken: string;
+}
 
 export const authApi = {
-  // Initiates Google OAuth via backend. Kept for future use.
-  googleLogin: () => {
-    if (typeof window !== "undefined") {
-      window.location.href = "/api/auth/google";
-    }
+  // Login with email/password (not currently used - system uses Google OAuth)
+  login: async (credentials: { email: string; password: string }): Promise<LoginResponse> => {
+    // Note: This endpoint doesn't exist in the backend
+    // The system uses Google OAuth only
+    const response = await apiClient.post<LoginResponse>("/auth/login", credentials);
+    return response.data;
   },
 
-  // Logout clears auth cookies on the server
+  // Logout user and clear cookies
   logout: async (): Promise<void> => {
     await apiClient.post("/auth/logout");
-  },
-
-  // Refresh access token using refresh cookie
-  refresh: async (): Promise<void> => {
-    await apiClient.post("/auth/refresh");
-  },
-
-  // Get current user info (reads httpOnly access token cookie via same-origin API)
-  me: async (): Promise<{ userId: string; role?: string } | null> => {
-    try {
-      const res = await apiClient.get('/auth/me');
-      return res.data;
-    } catch (e) {
-      return null;
-    }
-  },
-
-  // Optional: credential login (not implemented on backend; placeholder for TS)
-  login: async (
-    _params: { email: string; password: string }
-  ): Promise<{ user: User; accessToken: string }> => {
-    throw new Error("Password login not implemented; use Google login.");
   },
 };

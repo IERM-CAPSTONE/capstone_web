@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "staff" | "student";
+export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor";
 
 export type RoomStatus = "available" | "occupied" | "maintenance";
 
@@ -8,6 +8,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
   role: UserRole;
   avatar?: string;
   createdAt: string;

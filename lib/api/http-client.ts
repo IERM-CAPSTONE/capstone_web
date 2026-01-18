@@ -17,6 +17,19 @@ export class HttpClient {
       headers: {
         "Content-Type": "application/json",
       },
+      paramsSerializer: {
+        serialize: (params) => {
+          // Filter out null, undefined, and empty string values
+          const filteredParams = Object.entries(params)
+            .filter(([, value]) => value !== null && value !== undefined && value !== "")
+            .reduce((acc, [key, value]) => {
+              acc[key] = value;
+              return acc;
+            }, {} as Record<string, any>);
+
+          return new URLSearchParams(filteredParams).toString();
+        },
+      },
     });
 
     this.initializeResponseInterceptor();
@@ -73,8 +86,8 @@ export class HttpClient {
   private handleLogout() {
     if (typeof window !== "undefined") {
       // Avoid redirect loops if already on login page
-      if (!window.location.pathname.includes('/login')) {
-         window.location.href = "/login";
+      if (!window.location.pathname.includes('/auth/login')) {
+        window.location.href = "/auth/login";
       }
     }
   }

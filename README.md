@@ -2,7 +2,7 @@
 
 ## 📋 Yêu cầu
 
-- Node.js 18+ 
+- Node.js 18+
 - npm hoặc yarn
 - Git
 
@@ -38,7 +38,8 @@ NEXT_PUBLIC_APP_NAME=IERM
 NEXT_PUBLIC_APP_VERSION=1.0.0
 ```
 
-**Lưu ý:** 
+**Lưu ý:**
+
 - `NEXT_PUBLIC_API_URL`: URL của NestJS backend API
 - `NEXTAUTH_SECRET`: Tạo một secret key ngẫu nhiên (có thể dùng: `openssl rand -base64 32`)
 
@@ -54,7 +55,7 @@ hoặc
 yarn dev
 ```
 
-Mở [http://localhost:3000](http://localhost:3000) trong browser.
+Mở [http://localhost:3001](http://localhost:3001) trong browser.
 
 ### 4. Build cho production
 
@@ -106,17 +107,20 @@ ierm-web/
 ## 🐛 Troubleshooting
 
 ### Lỗi module not found
+
 ```bash
 rm -rf node_modules package-lock.json
 npm install
 ```
 
 ### Lỗi TypeScript
+
 ```bash
 npm run type-check
 ```
 
 ### Lỗi ESLint
+
 ```bash
 npm run lint
 ```
@@ -128,5 +132,3 @@ npm run lint
 - [TypeScript](https://www.typescriptlang.org/docs/)
 - [Zustand](https://zustand-demo.pmnd.rs/)
 - [React Query](https://tanstack.com/query/latest)
-
-
