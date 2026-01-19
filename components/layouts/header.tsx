@@ -75,7 +75,9 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold leading-none">IERM</span>
-              <span className="text-xs font-medium opacity-90">Admin Portal</span>
+              <span className="text-xs font-medium opacity-90">
+                {user?.role === "exam_officer" ? "Exam Officer Portal" : "Admin Portal"}
+              </span>
             </div>
           </div>
         </div>
@@ -108,8 +110,10 @@ export function Header() {
                   <User className="h-5 w-5" />
                 </div>
                 <div className="hidden md:block text-right">
-                  <p className="text-sm font-semibold leading-tight">{user?.name || "Admin User"}</p>
-                  <p className="text-xs opacity-90">System Administrator</p>
+                  <p className="text-sm font-semibold leading-tight">{user?.name || "System User"}</p>
+                  <p className="text-xs opacity-90">
+                    {user?.role === "exam_officer" ? "Exam Officer" : "System Administrator"}
+                  </p>
                 </div>
               </div>
 

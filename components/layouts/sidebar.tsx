@@ -22,19 +22,18 @@ import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
 
 const adminMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD },
-  { icon: Users, label: "Account Management", href: "/dashboard/accounts" },
+  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_ADMIN },
+  { icon: Users, label: "Account Management", href: ROUTES.ADMIN_ACCOUNTS },
   { icon: Building2, label: "Exam Room Management", href: ROUTES.ROOMS },
-  { icon: Users, label: "Device Management", href: "/dashboard/devices" },
+  { icon: Users, label: "Device Management", href: ROUTES.ADMIN_DEVICES },
 ];
 
 const examOfficerMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_EXAM_OFFICER },
   { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
-  { icon: Building2, label: "Exam Rooms", href: "/dashboard/rooms" },
-  { icon: AlertCircle, label: "Monitoring", href: "/dashboard/monitoring" },
-  { icon: FileText, label: "Reports", href: "/dashboard/reports" },
-  { icon: Users, label: "Students", href: "/dashboard/students" },
+  { icon: Building2, label: "Exam Rooms", href: ROUTES.ROOMS },
+  { icon: AlertCircle, label: "Monitoring", href: ROUTES.MONITORING },
+  { icon: FileText, label: "Reports", href: ROUTES.REPORTS },
+  { icon: Users, label: "Students", href: ROUTES.STUDENTS },
 ];
 
 export function Sidebar() {
@@ -77,10 +76,15 @@ export function Sidebar() {
           <nav className="flex-1 space-y-1 p-4 mt-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
+
+              // Strip locale prefix (e.g., /vi or /en) from pathname for comparison
+              const pathnameWithoutLocale = pathname.replace(/^\/(en|vi)/, "") || "/";
+
+              const itemHref = item.href as string;
               const isActive =
-                item.href === "/dashboard"
-                  ? pathname === item.href
-                  : pathname === item.href || pathname.startsWith(item.href + "/");
+                itemHref === "/"
+                  ? pathnameWithoutLocale === itemHref
+                  : pathnameWithoutLocale === itemHref || pathnameWithoutLocale.startsWith(itemHref + "/");
 
               return (
                 <Link

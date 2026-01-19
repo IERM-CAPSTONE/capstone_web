@@ -21,20 +21,27 @@ export const ROUTES = {
 
   // Dashboard
   DASHBOARD: "/dashboard",
-  DASHBOARD_ADMIN: "/dashboard/admin",
-  DASHBOARD_EXAM_OFFICER: "/dashboard/exam-officer",
+  DASHBOARD_ADMIN: "/admin",
+  DASHBOARD_EXAM_OFFICER: "/exam-officer/exam-schedules",
 
-  // Rooms routes (Ví dụ mẫu)
-  ROOMS: "/rooms",
-  ROOMS_CREATE: "/rooms/create",
-  ROOMS_DETAIL: (id: string) => `/rooms/${id}`,
-  ROOMS_EDIT: (id: string) => `/rooms/${id}/edit`,
+  // Admin routes
+  ADMIN_ACCOUNTS: "/admin/accounts",
+  ADMIN_ACCOUNTS_CREATE: "/admin/accounts/create",
+  ADMIN_ACCOUNTS_EDIT: (id: string) => `/admin/accounts/edit/${id}`,
+  ADMIN_ACCOUNTS_DETAIL: (id: string) => `/admin/accounts/${id}`,
+  ADMIN_DEVICES: "/admin/devices",
+
+  // Rooms routes
+  ROOMS: "/admin/rooms",
+  ROOMS_CREATE: "/admin/rooms/create",
+  ROOMS_DETAIL: (id: string) => `/admin/rooms/${id}`,
+  ROOMS_EDIT: (id: string) => `/admin/rooms/${id}/edit`,
 
   // Exam Schedules
-  EXAMS_SCHEDULE: "/dashboard/exam-officer/exam-schedule",
-  EXAMS_SCHEDULE_CREATE: "/dashboard/exam-officer/exam-schedule/create",
-  EXAMS_SCHEDULE_DETAIL: (id: string) => `/dashboard/exam-officer/exam-schedule/${id}`,
-  EXAMS_SCHEDULE_EDIT: (id: string) => `/dashboard/exam-officer/exam-schedule/${id}/update`,
+  EXAMS_SCHEDULE: "/exam-officer/exam-schedules",
+  EXAMS_SCHEDULE_CREATE: "/exam-officer/exam-schedules/create",
+  EXAMS_SCHEDULE_DETAIL: (id: string) => `/exam-officer/exam-schedules/${id}`,
+  EXAMS_SCHEDULE_EDIT: (id: string) => `/exam-officer/exam-schedules/${id}/update`,
 
   // Các routes khác sẽ được thêm sau khi cần
   STUDENTS: "/students",

@@ -166,4 +166,43 @@ export const usersApi = {
     });
     return response.data.success ? response.data.data : { message: "Failed to start import" };
   },
+
+  // Get only proctors (accessible by Admin, Exam Officer, Proctor)
+  getProctors: async (params?: Omit<ListUsersParams, 'role'>): Promise<PaginatedUserResponse> => {
+    try {
+      const queryParams: any = {};
+      if (params?.page) queryParams.page = String(params.page);
+      if (params?.limit) queryParams.limit = String(params.limit);
+      if (params?.isActive !== undefined) queryParams.isActive = String(params.isActive);
+      if (params?.search) queryParams.search = params.search;
+
+      const response = await apiClient.get<ApiResponse<User[]>>("/users/proctors", {
+        params: queryParams,
+      });
+
+      if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+        const apiResponse = response.data as ApiResponse<User[]>;
+        if (apiResponse.success && apiResponse.meta) {
+          return {
+            data: Array.isArray(apiResponse.data) ? apiResponse.data : [],
+            total: apiResponse.meta.total || 0,
+            page: apiResponse.meta.page || 1,
+            limit: apiResponse.meta.limit || 10,
+            totalPages: apiResponse.meta.totalPages || 0,
+          };
+        }
+      }
+
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      };
+    } catch (error: any) {
+      console.error("Error fetching proctors:", error);
+      throw error;
+    }
+  },
 };

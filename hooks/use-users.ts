@@ -8,6 +8,13 @@ export function useUsers(params?: ListUsersParams) {
   });
 }
 
+export function useProctors(params?: Omit<ListUsersParams, 'role'>) {
+  return useQuery({
+    queryKey: ["proctors", params],
+    queryFn: () => usersApi.getProctors(params),
+  });
+}
+
 export function useUser(id: string) {
   return useQuery({
     queryKey: ["users", id],
