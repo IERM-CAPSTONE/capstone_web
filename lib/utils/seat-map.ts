@@ -11,7 +11,7 @@ export type ExamRoom = {
 
 export type StudentExamWithStudent = {
     id: string;
-    seatNumber: number | null;
+    seatNumber: string | null;
     student?: {
         id: string;
         fullName?: string | null;
@@ -61,8 +61,11 @@ export function generateSeatMap(
 
     const seatLookup = new Map<number, StudentExamWithStudent>();
     for (const se of studentExams) {
-        if (se.seatNumber && se.seatNumber > 0) {
-            seatLookup.set(se.seatNumber, se);
+        if (se.seatNumber) {
+            const seatNum = parseInt(se.seatNumber, 10);
+            if (seatNum > 0) {
+                seatLookup.set(seatNum, se);
+            }
         }
     }
 

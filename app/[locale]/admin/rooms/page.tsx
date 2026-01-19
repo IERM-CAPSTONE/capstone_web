@@ -44,8 +44,7 @@ export default function RoomsPage() {
   const filteredRooms =
     data?.data?.filter(
       (room: Room) =>
-        room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.location.toLowerCase().includes(searchTerm.toLowerCase())
+        room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
   return (
@@ -54,42 +53,46 @@ export default function RoomsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t("listTitle")}</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {t("listTitle")} ({data?.pagination?.total || 0} {t("roomCount")})
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {t("subtitle") || "Manage and configure examination rooms"}
           </p>
         </div>
         <Link href={`/${locale}${ROUTES.ROOMS_CREATE}`}>
-          <Button>
+          <Button className="bg-orange-500 hover:bg-orange-600">
             <Plus className="mr-2 h-4 w-4" />
-            {t("createRoom")}
+            {t("createRoom") || "Create Exam Room"}
           </Button>
         </Link>
       </div>
 
-      {/* Search */}
-      <Card>
+      {/* Search and Filters */}
+      <Card className="border-0 shadow-sm">
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder={t("searchPlaceholder")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder={t("searchPlaceholder") || "Search by room code or name"}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-xs text-gray-500">
+              <div>Status</div>
+              <div>Capacity</div>
+              <div>Devices</div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Room Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("listTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card className="border-0 shadow-sm">
+        <CardContent className="pt-6">
           {error && (
-            <div className="p-4 mb-4 bg-danger/10 text-danger rounded-lg">
-              {commonT("error")}
+            <div className="p-4 mb-4 bg-red-50 text-red-600 rounded-lg">
+              {commonT("error") || "An error occurred"}
             </div>
           )}
 
@@ -101,20 +104,30 @@ export default function RoomsPage() {
           />
 
           {/* Pagination */}
-          {data?.pagination && data.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          {data?.pagination && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                {commonT("page")} {data.pagination.page} / {data.pagination.totalPages}
+                <span>{commonT("showing") || "Showing"}</span>{" "}
+                <span className="font-medium">{filteredRooms.length}</span>{" "}
+                <span>{commonT("of") || "of"}</span>{" "}
+                <span className="font-medium">{data.pagination.total || 0}</span>{" "}
+                <span>{commonT("items") || "rooms"}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  disabled={page === 1 || isLoading}
+                  className="px-4"
                 >
-                  {commonT("previous")}
+                  {commonT("previous") || "Previous"}
                 </Button>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 px-2">
+                  <span className="font-medium">{page}</span>
+                  <span>/</span>
+                  <span className="font-medium">{data.pagination.totalPages}</span>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -123,9 +136,10 @@ export default function RoomsPage() {
                       Math.min(data.pagination.totalPages, p + 1)
                     )
                   }
-                  disabled={page === data.pagination.totalPages}
+                  disabled={page === data.pagination.totalPages || isLoading}
+                  className="px-4"
                 >
-                  {commonT("next")}
+                  {commonT("next") || "Next"}
                 </Button>
               </div>
             </div>

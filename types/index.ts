@@ -17,13 +17,12 @@ export interface User {
 
 export interface Room {
   id: string;
-  name: string;
-  capacity: number;
-  location: string;
-  status: RoomStatus;
-  equipment?: string[];
-  imageUrl?: string;
-  layout?: SeatLayout;
+  roomNumber: string;
+  capacity: number | null;
+  status: string;
+  maxRows?: number;
+  maxColumns?: number;
+  totalSeats?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Building2,
   Users,
-  Users,
   Monitor,
   Menu,
   X,
