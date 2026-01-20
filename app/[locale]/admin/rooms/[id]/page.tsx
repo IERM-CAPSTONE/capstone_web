@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Edit, Trash2, Users, Grid3x3 } from "lucide-react";
+import SeatMapComponent from "@/components/seat-map/SeatMapComponent";
+import { generateSeatMap } from "@/lib/utils/seat-map";
 import { useRoom, useDeleteRoom } from "@/hooks/use-rooms";
 import { ROUTES } from "@/lib/constants/routes";
 import Link from "next/link";
@@ -54,68 +56,14 @@ export default function RoomDetailPage() {
     );
   }
 
-  // Generate seat map grid
-  const renderSeatMap = () => {
-    console.log("Room data:", room);
-    console.log("maxRows:", room.maxRows, "maxColumns:", room.maxColumns);
-    
-    if (!room.maxRows || !room.maxColumns) {
-      return (
-        <div className="text-center py-8 text-gray-500">
-          <p>No seat layout configured</p>
-          <p className="text-xs mt-2 text-gray-400">maxRows: {room.maxRows}, maxColumns: {room.maxColumns}</p>
-        </div>
-      );
-    }
-
-    const rows = [];
-    let seatNumber = 1;
-
-    for (let row = 0; row < room.maxRows; row++) {
-      const seats = [];
-      for (let col = 0; col < room.maxColumns; col++) {
-        const currentSeatNumber = seatNumber;
-        seats.push(
-          <div
-            key={`${row}-${col}`}
-            className="px-3 py-4 border-2 border-slate-400 rounded-lg bg-slate-300 hover:bg-slate-400 transition-colors flex flex-col items-center justify-center text-xs font-medium text-gray-700 min-w-24 h-16 cursor-pointer"
-          >
-            <div className="text-xs font-bold">#{currentSeatNumber.toString().padStart(2, '0')}</div>
-            <div className="text-xs opacity-0">DE000000</div>
-          </div>
-        );
-        seatNumber++;
-      }
-      rows.push(
-        <div key={row} className="flex gap-3 justify-center">
-          {seats}
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex gap-6">
-        {/* Door Indicator */}
-        <div className="flex flex-col items-center justify-start pt-4">
-          <div className="bg-slate-400 text-gray-700 font-semibold px-4 py-2 rounded-lg border-2 border-slate-500 flex items-center gap-2 whitespace-nowrap">
-            <div className="text-sm">Door</div>
-            <svg
-              className="w-6 h-6"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2m10 5a3 3 0 110-6 3 3 0 010 6z" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Seats Grid */}
-        <div className="space-y-3 flex-1">
-          {rows}
-        </div>
-      </div>
-    );
-  };
+  // Generate SeatGrid for SeatMapComponent
+  const seatGrid = generateSeatMap([], {
+    id: room.id,
+    roomNumber: room.roomNumber,
+    max_rows: room.maxRows ?? 0,
+    max_columns: room.maxColumns ?? 0,
+    total_seats: room.totalSeats ?? (room.maxRows ?? 0) * (room.maxColumns ?? 0),
+  });
 
   const getStatusConfig = (status: string) => {
     const normalized = status.toLowerCase();
@@ -170,15 +118,9 @@ export default function RoomDetailPage() {
           <CardTitle className="text-lg font-semibold">Room Information</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          {/* Seat Map Grid */}
-          <div className="mb-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Seat Layout</h3>
-              <div className="text-xs text-gray-500">
-                {room.maxRows} rows × {room.maxColumns} columns
-              </div>
-            </div>
-            {renderSeatMap()}
+          {/* Seat Map with Search & Stats */}
+          <div className="mb-6">
+            <SeatMapComponent seatGrid={seatGrid} />
           </div>
 
           {/* Room Details Grid */}

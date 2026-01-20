@@ -41,6 +41,11 @@ export interface Seat {
   isAvailable: boolean;
 }
 
+export interface SeatAssignment {
+  seatNumber: number;
+  studentId: string;
+}
+
 // Các types khác sẽ được thêm sau khi cần
 // export interface Exam { ... }
 // export interface Student { ... }
