@@ -19,6 +19,9 @@ export interface ExamSchedule {
   examType?: string[];
   createdAt: string;
   updatedAt: string;
+  maxRows?: number | null;
+  maxColumns?: number | null;
+  totalSeats?: number | null;
 }
 
 export interface PaginatedExamScheduleResponse {
@@ -50,7 +53,7 @@ export interface ListExamSchedulesParams {
 export interface CreateExamScheduleData {
   examCode?: string;
   semester?: string;
-  examType?: string;
+  examType?: string[];
   openCode?: string;
   note?: string;
   examRoomId?: string;
