@@ -117,23 +117,10 @@ export default function UpdateExamSchedulePage() {
         );
     }
 
-    // Parse date strings as local time (avoid timezone conversion)
     const parseLocalDate = (dateStr: string | null): Date | null => {
         if (!dateStr) return null;
-        // If it's an ISO string with timezone, extract local components
-        const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-        if (isoMatch) {
-            // Create date using local time components (no timezone conversion)
-            return new Date(
-                parseInt(isoMatch[1]),
-                parseInt(isoMatch[2]) - 1,
-                parseInt(isoMatch[3]),
-                parseInt(isoMatch[4]),
-                parseInt(isoMatch[5]),
-                parseInt(isoMatch[6])
-            );
-        }
-        return new Date(dateStr);
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
     };
     const examOpenTime = schedule.examOpenTime ? parseLocalDate(schedule.examOpenTime) : null;
     const examCloseTime = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
@@ -341,7 +328,7 @@ export default function UpdateExamSchedulePage() {
                                         EXAM ROOM
                                     </label>
                                     <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                                        <p className="text-slate-700 font-medium">{schedule.examRoomNumber || "No room assigned"}</p>
+                                        <p className="text-slate-700 font-medium">{schedule.roomNumber || "No room assigned"}</p>
                                     </div>
                                 </div>
 

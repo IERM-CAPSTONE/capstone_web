@@ -10,25 +10,26 @@ import {
   AlertCircle,
   Calendar,
   Clock,
+  Zap,
   BookOpen,
   Info,
-  Zap,
 } from "lucide-react";
-import { ROUTES } from "@/lib/constants/routes";
+import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
-
-type ExamType = "Final" | "Midterm" | "Retake" | "Quiz";
+import { ROUTES } from "@/lib/constants/routes";
 
 export default function CreateExamSchedulePage() {
   const router = useRouter();
   const createMutation = useCreateExamSchedule();
   const locale = getCurrentLocale();
+  const t = useTranslations("Dashboard");
 
+  type ExamType = "Final_Exam" | "Theory_Exam" | "Retake" | "Practical" | "Multiple_choice" | "Speaking" | "Listening" | "Reading" | "Writing";
   const [formData, setFormData] = useState({
     examCode: "",
     semester: "",
     subjectCode: "",
-    examType: "Final" as ExamType,
+    examType: "Final_Exam" as ExamType,
     examDate: "",
     startTime: "",
     endTime: "",
@@ -42,11 +43,17 @@ export default function CreateExamSchedulePage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const examTypeAbbr: Record<ExamType, string> = {
-    Final: "FE",
-    Midterm: "MI",
+  const examTypeMap: Record<ExamType, string> = {
+    Final_Exam: "FE",
+    Theory_Exam: "TE",
     Retake: "RE",
-    Quiz: "QZ",
+    Practical: "PE",
+    Multiple_choice: "MC",
+    Speaking: "S",
+    Listening: "L",
+    Reading: "R",
+    Writing: "W",
+
   };
 
   const generateSemesterAbbr = (semester: string): string => {
@@ -77,7 +84,7 @@ export default function CreateExamSchedulePage() {
       return;
     }
 
-    const examTypeCode = examTypeAbbr[formData.examType];
+    const examTypeCode = examTypeMap[formData.examType];
     const semesterCode = formData.semester
       ? generateSemesterAbbr(formData.semester)
       : "XXXX";
@@ -147,20 +154,24 @@ export default function CreateExamSchedulePage() {
 
     setIsSubmitting(true);
     try {
-      // Transform form data to API format
+      // Transform form data to API format aligned with API DTO
       const apiData = {
-        examCode: formData.examCode,
-        semester: formData.semester || undefined,
-        subjectCode: formData.subjectCode,
-        examType: formData.examType,
+        examCode: formData.examCode || undefined,
         openCode: formData.openCode || undefined,
-        note: formData.note || undefined,
-        examOpenTime: formData.examDate && formData.startTime
-          ? `${formData.examDate}T${formData.startTime}:00.000Z`
-          : undefined,
-        examCloseTime: formData.examDate && formData.endTime
-          ? `${formData.examDate}T${formData.endTime}:00.000Z`
-          : undefined,
+        examType: examTypeMap[formData.examType] ? [examTypeMap[formData.examType]] : [],
+        subjectCode: formData.subjectCode,
+        examOpenTime: (() => {
+          if (!formData.examDate || !formData.startTime) return undefined;
+          const [year, month, day] = formData.examDate.split('-').map(Number);
+          const [hour, minute] = formData.startTime.split(':').map(Number);
+          return new Date(year, month - 1, day, hour, minute).toISOString();
+        })(),
+        examCloseTime: (() => {
+          if (!formData.examDate || !formData.endTime) return undefined;
+          const [year, month, day] = formData.examDate.split('-').map(Number);
+          const [hour, minute] = formData.endTime.split(':').map(Number);
+          return new Date(year, month - 1, day, hour, minute).toISOString();
+        })(),
         examRoomId: formData.examRoomId || undefined,
         proctorId: formData.proctorId || undefined,
         hallInvigilatorId: formData.hallInvigilatorId || undefined,
@@ -169,8 +180,8 @@ export default function CreateExamSchedulePage() {
       await createMutation.mutateAsync(apiData);
       router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
     } catch (err: any) {
-      const message = err?.message || "Failed to create exam schedule";
-      setError(message);
+      const message = err?.response?.data?.message || err?.message || "Failed to create exam schedule";
+      setError(Array.isArray(message) ? message.join(", ") : message);
     } finally {
       setIsSubmitting(false);
     }
@@ -185,9 +196,9 @@ export default function CreateExamSchedulePage() {
           className="text-slate-600 hover:text-slate-900"
           onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`)}
         >
-          <ChevronLeft className="h-4 w-4 mr-1" /> Back to schedules
+          <ChevronLeft className="h-4 w-4 mr-1" /> {t("examOfficer.createSchedule.backToSchedules")}
         </Button>
-        <span className="text-sm text-slate-400">Create Exam Schedule</span>
+        <span className="text-sm text-slate-400">{t("examOfficer.actions.createSchedule")}</span>
       </div>
 
       <div className="grid gap-6">
@@ -196,16 +207,16 @@ export default function CreateExamSchedulePage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-wide text-orange-500 font-semibold">
-                  Exam Management
+                  {t("title")}
                 </p>
-                <h1 className="text-2xl font-bold text-slate-900 mt-2">Create exam schedule</h1>
+                <h1 className="text-2xl font-bold text-slate-900 mt-2">{t("examOfficer.createSchedule.title")}</h1>
                 <p className="text-sm text-slate-600 mt-2 max-w-2xl">
-                  Define schedule details, generate a unique schedule code, and assign time and room information. You can update proctoring and room assignments later.
+                  {t("examOfficer.createSchedule.description")}
                 </p>
               </div>
               <div className="hidden md:block text-right">
-                <p className="text-xs text-slate-500">Need help?</p>
-                <p className="text-sm font-semibold text-slate-800">Follow the guidelines below</p>
+                <p className="text-xs text-slate-500">{t("examOfficer.createSchedule.needHelp")}</p>
+                <p className="text-sm font-semibold text-slate-800">{t("examOfficer.createSchedule.followGuidelines")}</p>
               </div>
             </div>
           </CardContent>
@@ -229,19 +240,19 @@ export default function CreateExamSchedulePage() {
                 <div className="p-2 bg-orange-50 rounded-lg">
                   <Calendar className="h-5 w-5 text-orange-500" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">Schedule Information</h2>
+                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.createSchedule.scheduleInformation")}</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Exam Code <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.examCode")} <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       name="examCode"
-                      placeholder="e.g. HCM202_FE_SP26_123456"
+                      placeholder={t("examOfficer.createSchedule.examCodePlaceholder")}
                       value={formData.examCode}
                       onChange={handleInputChange}
                       className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
@@ -254,17 +265,17 @@ export default function CreateExamSchedulePage() {
                       <Zap className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Click "Generate" or input manually</p>
+                  <p className="text-xs text-slate-400 mt-1">{t("examOfficer.createSchedule.generateCode")}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Semester
+                    {t("examOfficer.createSchedule.semester")}
                   </label>
                   <input
                     type="text"
                     name="semester"
-                    placeholder="e.g. Fall 2025"
+                    placeholder={t("examOfficer.createSchedule.semesterPlaceholder")}
                     value={formData.semester}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
@@ -273,12 +284,12 @@ export default function CreateExamSchedulePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Subject / Course Name <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.subjectCode")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="subjectCode"
-                    placeholder="e.g. CHEM201"
+                    placeholder={t("examOfficer.createSchedule.subjectCodePlaceholder")}
                     value={formData.subjectCode}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
@@ -287,28 +298,29 @@ export default function CreateExamSchedulePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Exam Type <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.examType")} <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-3">
-                    {(["Final", "Midterm", "Retake", "Quiz"] as ExamType[]).map((type) => (
+                    {Object.entries(examTypeMap).map(([key, label]) => (
                       <button
-                        key={type}
+                        key={key}
                         type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, examType: type }))}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${formData.examType === type
-                            ? "bg-orange-50 text-orange-600 border-orange-300"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                        onClick={() => setFormData((prev) => ({ ...prev, examType: key as ExamType }))}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${formData.examType === key
+                          ? "bg-orange-50 text-orange-600 border-orange-300"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
                           }`}
                       >
-                        {type}
+                        {label}
                       </button>
                     ))}
+
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Exam Date <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.examDate")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -320,17 +332,17 @@ export default function CreateExamSchedulePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Duration</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">{t("examOfficer.createSchedule.duration")}</label>
                   <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 flex items-center gap-2">
                     <Clock className="h-4 w-4 text-slate-400" />
-                    {duration ? duration : "Auto-calculated"}
+                    {duration ? duration : t("examOfficer.createSchedule.durationAuto")}
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Calculated from start and end time</p>
+                  <p className="text-xs text-slate-400 mt-1">{t("examOfficer.createSchedule.durationHelper")}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Start Time <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.startTime")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="time"
@@ -343,7 +355,7 @@ export default function CreateExamSchedulePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    End Time <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.endTime")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="time"
@@ -363,20 +375,20 @@ export default function CreateExamSchedulePage() {
                 <div className="p-2 bg-green-50 rounded-lg">
                   <Clock className="h-5 w-5 text-green-500" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">Open Code</h2>
-                <span className="text-xs text-slate-500 font-medium">(Optional)</span>
+                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.createSchedule.openCodeSection")}</h2>
+                <span className="text-xs text-slate-500 font-medium">{t("examOfficer.createSchedule.openCodeOptional")}</span>
               </div>
 
               <input
                 type="text"
                 name="openCode"
-                placeholder="e.g. OP2025123"
+                placeholder={t("examOfficer.createSchedule.openCodePlaceholder")}
                 value={formData.openCode}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
               />
               <p className="text-xs text-slate-400 mt-2">
-                Code for opening the exam if needed
+                {t("examOfficer.createSchedule.openCodeHelper")}
               </p>
             </CardContent>
           </Card>
@@ -387,26 +399,26 @@ export default function CreateExamSchedulePage() {
                 <div className="p-2 bg-blue-50 rounded-lg">
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">Notes</h2>
-                <span className="text-xs text-slate-500 font-medium">(Optional)</span>
+                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.createSchedule.notesSection")}</h2>
+                <span className="text-xs text-slate-500 font-medium">{t("examOfficer.createSchedule.openCodeOptional")}</span>
               </div>
 
               <textarea
                 name="note"
-                placeholder="Add notes, special instructions, or additional information about the exam..."
+                placeholder={t("examOfficer.createSchedule.notesPlaceholder")}
                 value={formData.note}
                 onChange={handleInputChange}
                 rows={4}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
               />
               <p className="text-xs text-slate-400 mt-2">
-                This information will be visible to proctors and can guide exam conduct
+                {t("examOfficer.createSchedule.notesHelper")}
               </p>
             </CardContent>
           </Card>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400">*Required fields</p>
+            <p className="text-xs text-slate-400">{t("examOfficer.createSchedule.requiredFields")}</p>
             <div className="flex items-center gap-3">
               <Button
                 type="button"
@@ -415,14 +427,14 @@ export default function CreateExamSchedulePage() {
                 onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`)}
                 disabled={isSubmitting}
               >
-                Cancel
+                {t("examOfficer.createSchedule.cancel")}
               </Button>
               <Button
                 type="submit"
                 className="px-6 bg-orange-500 hover:bg-orange-600 text-white"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Creating..." : "Create Exam Schedule"}
+                {isSubmitting ? t("examOfficer.createSchedule.submitting") : t("examOfficer.createSchedule.submit")}
               </Button>
             </div>
           </div>
@@ -435,12 +447,12 @@ export default function CreateExamSchedulePage() {
                 <Info className="h-5 w-5 text-orange-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-slate-900 mb-3">Schedule Creation Guidelines</h3>
+                <h3 className="font-bold text-slate-900 mb-3">{t("examOfficer.createSchedule.guidelines")}</h3>
                 <ul className="space-y-2 text-sm text-slate-700">
-                  <li>• Schedule code must be unique across all exam schedules</li>
-                  <li>• Duration is automatically calculated based on start and end times</li>
-                  <li>• The system will check for potential room conflicts with existing schedules</li>
-                  <li>• You can assign rooms, students, and proctors after creating the schedule</li>
+                  <li>• {t("examOfficer.createSchedule.guideline1")}</li>
+                  <li>• {t("examOfficer.createSchedule.guideline2")}</li>
+                  <li>• {t("examOfficer.createSchedule.guideline3")}</li>
+                  <li>• {t("examOfficer.createSchedule.guideline4")}</li>
                 </ul>
               </div>
             </div>

@@ -484,21 +484,26 @@ export default function ExamOfficerDashboardPage() {
 
                   {/* Page Numbers */}
                   <div className="flex items-center gap-1">
-                    {/* Simplified page numbers for brevity */}
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const p = i + 1;
-                      return (
-                        <Button
-                          key={p}
-                          variant="outline"
-                          size="sm"
-                          className={`h-8 w-8 p-0 ${page === p ? "bg-orange-500 text-white border-orange-500" : "bg-white"}`}
-                          onClick={() => setPage(p)}
-                        >
-                          {p}
-                        </Button>
-                      );
-                    })}
+                    {(() => {
+                      const pages = [];
+                      const startPage = Math.max(1, page <= 5 ? 1 : page - 4);
+                      const endPage = Math.min(totalPages, startPage + 4);
+
+                      for (let p = startPage; p <= endPage; p++) {
+                        pages.push(
+                          <Button
+                            key={p}
+                            variant="outline"
+                            size="sm"
+                            className={`h-8 w-8 p-0 ${page === p ? "bg-orange-500 text-white border-orange-500" : "bg-white"}`}
+                            onClick={() => setPage(p)}
+                          >
+                            {p}
+                          </Button>
+                        );
+                      }
+                      return pages;
+                    })()}
                   </div>
 
                   <Button

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useExamScheduleById, useArchiveExamSchedule } from "@/hooks/use-exam-schedules";
+import SeatingPlan from "../components/SeatingPlan";
 import { ROUTES } from "@/lib/constants/routes";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
@@ -189,7 +190,7 @@ export default function ExamScheduleDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Room</p>
-                  <p className="font-semibold text-slate-900">{schedule.examRoomNumber || "N/A"}</p>
+                  <p className="font-semibold text-slate-900">{schedule.roomNumber || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Invigilator</p>
@@ -223,6 +224,14 @@ export default function ExamScheduleDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Visual Seating Plan */}
+          <SeatingPlan
+            examSessionId={schedule.id}
+            maxRows={schedule.maxRows ?? null}
+            maxColumns={schedule.maxColumns ?? null}
+            totalSeats={schedule.totalSeats ?? null}
+          />
         </div>
 
         {/* Right Column - Quick Actions */}
