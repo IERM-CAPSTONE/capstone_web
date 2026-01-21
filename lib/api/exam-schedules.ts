@@ -16,6 +16,7 @@ export interface ExamSchedule {
   examOpenTime: string | null;
   examCloseTime: string | null;
   status?: string | null;
+  isArchived?: boolean | null;
   examType?: string[];
   createdAt: string;
   updatedAt: string;

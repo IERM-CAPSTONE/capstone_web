@@ -38,6 +38,7 @@ import ImportExamCodeDialog from "./components/ImportExamCodeDialog";
 import { EXAM_SUBJECTS, EXAM_STATUSES } from "@/lib/constants/exam";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
+import { toast } from "sonner";
 
 export default function ExamOfficerDashboardPage() {
   const router = useRouter();
@@ -74,6 +75,7 @@ export default function ExamOfficerDashboardPage() {
   const archiveMutation = useArchiveExamSchedule();
 
   const schedules = data?.data || [];
+  const visibleSchedules = schedules.filter((schedule) => !schedule.isArchived);
   const totalPages = data?.meta?.totalPages || 1;
 
 
@@ -301,29 +303,44 @@ export default function ExamOfficerDashboardPage() {
                           {t("examOfficer.failedLoad") || "Failed to load data"}
                         </td>
                       </tr>
-                    ) : schedules.length === 0 ? (
+                    ) : visibleSchedules.length === 0 ? (
                       <tr>
                         <td colSpan={10} className="px-6 py-12 text-center text-slate-400">
                           {t("examOfficer.noSchedules") || "No exam schedules found"}
                         </td>
                       </tr>
                     ) : (
-                      schedules.map((schedule) => {
-                        const getStatusDisplay = (apiStatus: string | null | undefined) => {
-                          switch (apiStatus) {
+                      visibleSchedules.map((schedule) => {
+                        // Calculate actual status based on current time
+                        const getComputedStatus = (): "Upcoming" | "Ongoing" | "Completed" => {
+                          const now = new Date();
+                          const open = schedule.examOpenTime ? parseLocalDate(schedule.examOpenTime) : null;
+                          const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
+                          
+                          if (!open || !close) return schedule.status as any || "Scheduled";
+                          
+                          if (now < open) return "Upcoming";
+                          if (now >= open && now <= close) return "Ongoing";
+                          return "Completed";
+                        };
+
+                        const computedStatus = getComputedStatus();
+
+                        const getStatusDisplay = (status: string | null | undefined) => {
+                          switch (status) {
                             case "Ongoing":
                               return {
                                 label: t("examOfficer.ongoing") || "Ongoing",
                                 color: "bg-green-50 text-green-600 border-green-100",
                                 icon: <div className="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse" />
                               };
-                            case "Ended":
+                            case "Completed":
                               return {
                                 label: t("examOfficer.completed") || "Completed",
                                 color: "bg-slate-100 text-slate-600 border-slate-200",
                                 icon: <CheckCircle2 className="h-3 w-3" />
                               };
-                            case "Scheduled":
+                            case "Upcoming":
                             default:
                               return {
                                 label: t("examOfficer.upcoming") || "Upcoming",
@@ -333,7 +350,7 @@ export default function ExamOfficerDashboardPage() {
                           }
                         };
 
-                        const status = getStatusDisplay(schedule.status);
+                        const status = getStatusDisplay(computedStatus);
                         const open = schedule.examOpenTime ? parseLocalDate(schedule.examOpenTime) : null;
                         const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
 
@@ -428,15 +445,19 @@ export default function ExamOfficerDashboardPage() {
                                       <FileText className="h-4 w-4" />
                                       {t("examOfficer.actions.update") || "Update Schedule"}
                                     </button>
-                                    {schedule.status === "Ended" && (
+                                    {computedStatus === "Completed" && !schedule.isArchived && (
                                       <button
                                         className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                         onClick={async () => {
+                                          const loadingToast = toast.loading(t("examOfficer.archiving") || "Archiving...");
                                           try {
                                             await archiveMutation.mutateAsync(schedule.id);
+                                            toast.success(t("examOfficer.archiveSuccess") || "Archived successfully");
                                             setOpenDropdown(null);
                                           } catch (err: any) {
-                                            alert(err?.message || "Failed to archive schedule");
+                                            toast.error(err?.message || t("examOfficer.archiveFailed") || "Failed to archive schedule");
+                                          } finally {
+                                            toast.dismiss(loadingToast);
                                           }
                                         }}
                                         disabled={archiveMutation.isPending}

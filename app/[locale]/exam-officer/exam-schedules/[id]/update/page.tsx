@@ -19,12 +19,16 @@ import {
 import { format } from "date-fns";
 import { ROUTES } from "@/lib/constants/routes";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 
 export default function UpdateExamSchedulePage() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const scheduleId = params.id as string;
     const locale = getCurrentLocale();
+    const t = useTranslations("Dashboard");
 
     const { data: schedule, isLoading: isLoadingSchedule } = useExamScheduleById(scheduleId);
     const updateMutation = useUpdateExamSchedule();
@@ -32,6 +36,7 @@ export default function UpdateExamSchedulePage() {
     const [formData, setFormData] = useState({
         examCode: "",
         openCode: "",
+        semester: "",
         note: "",
     });
 
@@ -43,6 +48,7 @@ export default function UpdateExamSchedulePage() {
             setFormData({
                 examCode: schedule.examCode || "",
                 openCode: schedule.openCode || "",
+                semester: schedule.semester || "",
                 note: schedule.note || "",
             });
         }
@@ -58,7 +64,7 @@ export default function UpdateExamSchedulePage() {
 
     const validateForm = () => {
         if (!formData.examCode.trim()) {
-            setError("Exam Code is required");
+            setError(t("examOfficer.updateSchedule.examCode") + " " + t("Common.error"));
             return false;
         }
         setError("");
@@ -79,9 +85,10 @@ export default function UpdateExamSchedulePage() {
                     note: formData.note.trim() || undefined,
                 },
             });
-            router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
+            // Navigate back to detail page
+            router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}/${scheduleId}`);
         } catch (err: any) {
-            const message = err?.message || "Failed to update exam schedule";
+            const message = err?.message || t("examOfficer.updateSchedule.updateFailed");
             setError(message);
         } finally {
             setIsSubmitting(false);
@@ -93,7 +100,7 @@ export default function UpdateExamSchedulePage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-                    <p className="text-slate-600">Loading schedule...</p>
+                    <p className="text-slate-600">{t("Common.loading")}</p>
                 </div>
             </div>
         );
@@ -104,12 +111,12 @@ export default function UpdateExamSchedulePage() {
             <div className="flex items-center justify-center min-h-screen">
                 <Card className="bg-red-50 border-red-200 border">
                     <CardContent className="p-6">
-                        <p className="text-red-600 font-medium">Schedule not found</p>
+                        <p className="text-red-600 font-medium">{t("examOfficer.updateSchedule.scheduleNotFound")}</p>
                         <Button
                             onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`)}
                             className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
                         >
-                            Back to schedules
+                            {t("examOfficer.updateSchedule.backToSchedules")}
                         </Button>
                     </CardContent>
                 </Card>
@@ -138,12 +145,12 @@ export default function UpdateExamSchedulePage() {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-slate-900"
+                    className="text-slate-push(`/${locale}${ROUTES.EXAMS_SCHEDULE}/${scheduleId}`over:text-slate-900"
                     onClick={() => router.back()}
                 >
-                    <ChevronLeft className="h-4 w-4 mr-1" /> Back
+                    <ChevronLeft className="h-4 w-4 mr-1" /> {t("examOfficer.updateSchedule.back")}
                 </Button>
-                <span className="text-sm text-slate-400">Update Exam Schedule</span>
+                <span className="text-sm text-slate-400">{t("examOfficer.updateSchedule.title")}</span>
             </div>
 
             <div className="grid gap-6">
@@ -166,14 +173,14 @@ export default function UpdateExamSchedulePage() {
                                 <div className="p-2 bg-orange-50 rounded-lg">
                                     <Calendar className="h-5 w-5 text-orange-500" />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-900">Schedule Information</h2>
+                                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.updateSchedule.scheduleInformation")}</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Exam Code */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Exam Code <span className="text-red-500">*</span>
+                                        {t("examOfficer.updateSchedule.examCode")} <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -188,7 +195,7 @@ export default function UpdateExamSchedulePage() {
                                 {/* Open Code */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Open Code
+                                        {t("examOfficer.updateSchedule.openCode")}
                                     </label>
                                     <input
                                         type="text"
@@ -203,7 +210,7 @@ export default function UpdateExamSchedulePage() {
                                 {/* Subject / Course Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Subject / Course Name
+                                        {t("examOfficer.updateSchedule.subjectCode")}
                                     </label>
                                     <input
                                         type="text"
@@ -216,11 +223,11 @@ export default function UpdateExamSchedulePage() {
                                 {/* Semester */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Semester
+                                        {t("examOfficer.updateSchedule.semester")}
                                     </label>
                                     <input
                                         type="text"
-                                        value={schedule.semester || ""}
+                                        value={formData.semester}
                                         disabled
                                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-not-allowed"
                                     />
@@ -229,7 +236,7 @@ export default function UpdateExamSchedulePage() {
                                 {/* Exam Type */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Exam Type
+                                        {t("examOfficer.updateSchedule.examType")}
                                     </label>
                                     <input
                                         type="text"
@@ -242,7 +249,7 @@ export default function UpdateExamSchedulePage() {
                                 {/* Exam Date */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Exam Date
+                                        {t("examOfficer.updateSchedule.examDate")}
                                     </label>
                                     <input
                                         type="text"
@@ -254,7 +261,7 @@ export default function UpdateExamSchedulePage() {
 
                                 {/* Duration */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Duration</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">{t("examOfficer.updateSchedule.duration")}</label>
                                     <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 flex items-center gap-2">
                                         <Clock className="h-4 w-4 text-slate-400" />
                                         {duration || "N/A"}
@@ -264,7 +271,7 @@ export default function UpdateExamSchedulePage() {
                                 {/* Start Time */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Start Time
+                                        {t("examOfficer.updateSchedule.startTime")}
                                     </label>
                                     <input
                                         type="text"
@@ -277,7 +284,7 @@ export default function UpdateExamSchedulePage() {
                                 {/* End Time */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        End Time
+                                        {t("examOfficer.updateSchedule.endTime")}
                                     </label>
                                     <input
                                         type="text"
@@ -297,13 +304,13 @@ export default function UpdateExamSchedulePage() {
                                 <div className="p-2 bg-blue-50 rounded-lg">
                                     <BookOpen className="h-5 w-5 text-blue-500" />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-900">Notes & Description</h2>
-                                <span className="text-xs text-slate-500 font-medium">(Optional)</span>
+                                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.updateSchedule.notesSection")}</h2>
+                                <span className="text-xs text-slate-500 font-medium">{t("examOfficer.updateSchedule.notesOptional")}</span>
                             </div>
 
                             <textarea
                                 name="note"
-                                placeholder="Add notes, special instructions, or additional information about the exam..."
+                                placeholder={t("examOfficer.createSchedule.notesPlaceholder")}
                                 rows={4}
                                 value={formData.note}
                                 onChange={handleInputChange}
@@ -319,55 +326,55 @@ export default function UpdateExamSchedulePage() {
                                 <div className="p-2 bg-green-50 rounded-lg">
                                     <MapPin className="h-5 w-5 text-green-500" />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-900">Linked Information</h2>
+                                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.updateSchedule.linkedInformation")}</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        EXAM ROOM
+                                        {t("examOfficer.updateSchedule.examRoom")}
                                     </label>
                                     <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                                        <p className="text-slate-700 font-medium">{schedule.roomNumber || "No room assigned"}</p>
+                                        <p className="text-slate-700 font-medium">{schedule.roomNumber || t("examOfficer.updateSchedule.noRoomAssigned")}</p>
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        LINKED STUDENTS
+                                        {t("examOfficer.updateSchedule.linkedStudents")}
                                     </label>
                                     <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                                        <p className="text-slate-700 font-medium">0 students</p>
+                                        <p className="text-slate-700 font-medium">{t("examOfficer.updateSchedule.studentCount", { count: 0 })}</p>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <p className="text-xs text-yellow-700">
-                                    ⚠ To modify linked information, please use the schedule detail page.
+                                    ⚠ {t("examOfficer.updateSchedule.modifyLinkedInfo")}
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <p className="text-xs text-slate-400">*Required fields</p>
+                        <p className="text-xs text-slate-400">{t("examOfficer.createSchedule.requiredFields")}</p>
                         <div className="flex items-center gap-3">
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="px-6 bg-white"
-                                onClick={() => router.back()}
+                                onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}/${scheduleId}`)}
                                 disabled={isSubmitting}
                             >
-                                Cancel
+                                {t("examOfficer.updateSchedule.cancel")}
                             </Button>
                             <Button
                                 type="submit"
                                 className="px-6 bg-orange-500 hover:bg-orange-600 text-white"
                                 disabled={isSubmitting}
                             >
-                                {isSubmitting ? "Saving..." : "Save Changes"}
+                                {isSubmitting ? t("examOfficer.createSchedule.submitting") : t("examOfficer.updateSchedule.saveChanges")}
                             </Button>
                         </div>
                     </div>
@@ -381,12 +388,12 @@ export default function UpdateExamSchedulePage() {
                                 <Info className="h-5 w-5 text-orange-500" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-bold text-slate-900 mb-3">Update Guidelines</h3>
+                                <h3 className="font-bold text-slate-900 mb-3">{t("examOfficer.updateSchedule.updateGuidelines")}</h3>
                                 <ul className="space-y-2 text-sm text-slate-700">
-                                    <li>• You can edit exam code, open code, and notes only</li>
-                                    <li>• Exam details (date, time, duration, semester, exam type) are read-only and can only be changed in the detail page</li>
-                                    <li>• Subject and linked information cannot be modified here</li>
-                                    <li>• All changes are effective immediately</li>
+                                    <li>• {t("examOfficer.updateSchedule.updateGuide1")}</li>
+                                    <li>• {t("examOfficer.updateSchedule.updateGuide2")}</li>
+                                    <li>• {t("examOfficer.updateSchedule.updateGuide3")}</li>
+                                    <li>• {t("examOfficer.updateSchedule.updateGuide4")}</li>
                                 </ul>
                             </div>
                         </div>
