@@ -63,68 +63,86 @@ export default function SeatingPlan({
 
     const renderSeat = (row: number, col: number) => {
         const seatId = `${row}-${col}`;
+        const label = `R${row}C${col}`;
         const student = seatMap.get(seatId);
+
+        let seatStyles = "bg-slate-50 border-slate-200 opacity-60"; // Default: Available
+        let textStyles = "text-slate-400";
+        let labelStyles = "text-slate-400";
+        let statusText = "Available";
+
+        if (student) {
+            if (student.status === 'CHECKEDIN') {
+                seatStyles = "bg-[#E8F5E9] border-[#A5D6A7] hover:border-[#4CAF50] cursor-pointer shadow-sm";
+                textStyles = "text-[#1B5E20]";
+                labelStyles = "text-[#2E7D32]";
+                statusText = student.studentCode || "Checked-in";
+            } else if (student.status === 'NOT_CHECKEDIN' || (student.status === 'REGISTERED' && student.isMatched === false)) {
+                // You can adjust the logic for "Not checked in" based on your actual status values
+                seatStyles = "bg-[#FFEBEE] border-[#EF9A9A] hover:border-[#E53935] cursor-pointer shadow-sm";
+                textStyles = "text-[#B71C1C]";
+                labelStyles = "text-[#C62828]";
+                statusText = student.studentCode || "Absent";
+            } else {
+                // Default Occupied (Blue)
+                seatStyles = "bg-[#E3F2FD] border-[#90CAF9] hover:border-[#1E88E5] cursor-pointer shadow-sm";
+                textStyles = "text-[#0D47A1]";
+                labelStyles = "text-[#1565C0]";
+                statusText = student.studentCode || "Occupied";
+            }
+        }
 
         return (
             <div
                 key={seatId}
                 onClick={() => student && setSelectedStudent(student)}
                 className={`
-          relative aspect-[4/3] rounded-lg border-2 transition-all duration-200
-          flex flex-col items-center justify-center p-2 text-center group
-          ${student
-                        ? "bg-white border-orange-200 shadow-sm hover:shadow-md hover:border-orange-500 cursor-pointer"
-                        : "bg-slate-50 border-dashed border-slate-200 opacity-60"}
+          relative flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200
+          ${seatStyles}
         `}
             >
-                {/* Desk Icon/Shape */}
-                <div className={`
-          w-full h-2 rounded-full mb-2 
-          ${student ? "bg-orange-400" : "bg-slate-300"}
-        `} />
-
-                {student ? (
-                    <>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-0.5">
-                            Seat {seatId}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 group-hover:text-orange-600 transition-colors">
-                            {student.studentCode}
-                        </span>
-                    </>
-                ) : (
-                    <span className="text-[10px] text-slate-400 font-medium">
-                        {seatId}
-                    </span>
-                )}
+                <div className={`text-[9px] font-bold mb-0.5 ${labelStyles}`}>
+                    {label}
+                </div>
+                <div className={`text-[11px] font-bold ${textStyles}`}>
+                    {statusText}
+                </div>
             </div>
         );
     };
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-orange-50 rounded-md">
-                        <Info className="h-4 w-4 text-orange-500" />
+                    <div className="p-1.5 bg-slate-100 rounded-md">
+                        <UserCheck className="h-4 w-4 text-slate-500" />
                     </div>
                     <h3 className="font-bold text-slate-900">Seating Plan ({students.length}/{totalSeats || rows * cols})</h3>
                 </div>
-                <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 bg-white border-2 border-orange-200 rounded-sm" />
-                        <span className="text-slate-600">Occupied</span>
+                <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-slate-500">
+                        <div className="w-2 h-2 bg-slate-200 rounded-full" />
+                        <span>Available</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-sm" />
-                        <span className="text-slate-600">Empty</span>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-600">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                        <span>Occupied</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 border border-green-200 rounded text-green-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                        <span>Present</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 border border-red-200 rounded text-red-600">
+                        <div className="w-2 h-2 bg-red-500 rounded-full" />
+                        <span>Absent</span>
                     </div>
                 </div>
             </div>
 
-            <Card className="border-none shadow-sm bg-slate-100/50 p-6 md:p-8">
+            <Card className="border border-slate-200 shadow-none bg-white p-6 md:p-8">
                 <div
-                    className="grid gap-3 md:gap-4 max-w-4xl mx-auto"
+                    className="grid gap-3 md:gap-4 max-w-5xl mx-auto"
                     style={{
                         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`
                     }}
@@ -136,7 +154,7 @@ export default function SeatingPlan({
 
                 {/* Legend: Teacher Desk Indicator */}
                 <div className="mt-12 flex justify-center">
-                    <div className="px-10 py-2 bg-slate-200 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-300">
+                    <div className="px-12 py-3 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-200">
                         Teacher Desk / Entrance
                     </div>
                 </div>
