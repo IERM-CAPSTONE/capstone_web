@@ -11,12 +11,14 @@ import {
     X,
     Info,
     CheckCircle2,
-    Clock
+    Clock,
+    Users
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useStudentExamsBySession } from "@/hooks/use-student-exams";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StudentExam } from "@/lib/api/student-exams";
+import { cn } from "@/lib/utils/cn";
 
 interface SeatingPlanProps {
     examSessionId: string;
@@ -66,29 +68,29 @@ export default function SeatingPlan({
         const label = `R${row}C${col}`;
         const student = seatMap.get(seatId);
 
-        let seatStyles = "bg-slate-50 border-slate-200 opacity-60"; // Default: Available
+        let seatStyles = "bg-[#F8FAFC] border-slate-100 opacity-60"; // Default: Available
         let textStyles = "text-slate-400";
-        let labelStyles = "text-slate-400";
+        let labelStyles = "text-slate-300";
         let statusText = "Available";
 
         if (student) {
             if (student.status === 'CHECKEDIN') {
-                seatStyles = "bg-[#E8F5E9] border-[#A5D6A7] hover:border-[#4CAF50] cursor-pointer shadow-sm";
-                textStyles = "text-[#1B5E20]";
-                labelStyles = "text-[#2E7D32]";
-                statusText = student.studentCode || "Checked-in";
-            } else if (student.status === 'NOT_CHECKEDIN' || (student.status === 'REGISTERED' && student.isMatched === false)) {
-                // You can adjust the logic for "Not checked in" based on your actual status values
-                seatStyles = "bg-[#FFEBEE] border-[#EF9A9A] hover:border-[#E53935] cursor-pointer shadow-sm";
-                textStyles = "text-[#B71C1C]";
-                labelStyles = "text-[#C62828]";
-                statusText = student.studentCode || "Absent";
+                seatStyles = "bg-[#F0FDF4] border-[#DCFCE7] shadow-sm";
+                textStyles = "text-[#15803D]";
+                labelStyles = "text-[#16A34A]";
+                statusText = student.studentCode || "PRESENT";
+            } else if (student.status === 'ABSENT' || (student.status === 'REGISTERED' && students.some(s => s.status === 'CHECKEDIN'))) {
+                // If some are checked in but this one isn't, it's basically absent or pending
+                seatStyles = "bg-[#FEF2F2] border-[#FEE2E2] shadow-sm";
+                textStyles = "text-[#EF4444]";
+                labelStyles = "text-[#EF4444]";
+                statusText = student.studentCode || "ABSENT";
             } else {
-                // Default Occupied (Blue)
-                seatStyles = "bg-[#E3F2FD] border-[#90CAF9] hover:border-[#1E88E5] cursor-pointer shadow-sm";
-                textStyles = "text-[#0D47A1]";
-                labelStyles = "text-[#1565C0]";
-                statusText = student.studentCode || "Occupied";
+                // Default Occupied/Registered (Blue)
+                seatStyles = "bg-[#EFF6FF] border-[#DBEAFE] shadow-sm";
+                textStyles = "text-[#1D4ED8]";
+                labelStyles = "text-[#2563EB]";
+                statusText = student.studentCode || "OCCUPIED";
             }
         }
 
@@ -96,15 +98,16 @@ export default function SeatingPlan({
             <div
                 key={seatId}
                 onClick={() => student && setSelectedStudent(student)}
-                className={`
-          relative flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200
-          ${seatStyles}
-        `}
+                className={cn(
+                    "relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 h-[70px]",
+                    student ? "cursor-pointer hover:scale-105 hover:shadow-md z-10" : "cursor-default",
+                    seatStyles
+                )}
             >
-                <div className={`text-[9px] font-bold mb-0.5 ${labelStyles}`}>
+                <div className={cn("text-[10px] font-black mb-0.5 uppercase tracking-tighter", labelStyles)}>
                     {label}
                 </div>
-                <div className={`text-[11px] font-bold ${textStyles}`}>
+                <div className={cn("text-[13px] font-black tracking-tight", textStyles)}>
                     {statusText}
                 </div>
             </div>
@@ -113,30 +116,18 @@ export default function SeatingPlan({
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-slate-100 rounded-md">
-                        <UserCheck className="h-4 w-4 text-slate-500" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 rounded-xl">
+                        <Users className="h-5 w-5 text-slate-500" />
                     </div>
-                    <h3 className="font-bold text-slate-900">Seating Plan ({students.length}/{totalSeats || rows * cols})</h3>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Seating Plan ({students.filter(s => s.status === 'CHECKEDIN').length}/{totalSeats || rows * cols})</h3>
                 </div>
-                <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-wider">
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-slate-500">
-                        <div className="w-2 h-2 bg-slate-200 rounded-full" />
-                        <span>Available</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-600">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                        <span>Occupied</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 border border-green-200 rounded text-green-600">
-                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                        <span>Present</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 border border-red-200 rounded text-red-600">
-                        <div className="w-2 h-2 bg-red-500 rounded-full" />
-                        <span>Absent</span>
-                    </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <LegendItem color="bg-slate-200" label="AVAILABLE" dotColor="bg-slate-300" />
+                    <LegendItem color="bg-blue-50 border-blue-200" label="OCCUPIED" dotColor="bg-blue-500" textColor="text-blue-600" />
+                    <LegendItem color="bg-green-50 border-green-200" label="PRESENT" dotColor="bg-green-500" textColor="text-green-600" />
+                    <LegendItem color="bg-red-50 border-red-200" label="ABSENT" dotColor="bg-red-500" textColor="text-red-600" />
                 </div>
             </div>
 
@@ -235,6 +226,15 @@ export default function SeatingPlan({
                 </div>,
                 document.body
             )}
+        </div>
+    );
+}
+
+function LegendItem({ color, label, dotColor, textColor = "text-slate-500" }: any) {
+    return (
+        <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black tracking-widest", color, textColor)}>
+            <div className={cn("w-2 h-2 rounded-full", dotColor)} />
+            {label}
         </div>
     );
 }

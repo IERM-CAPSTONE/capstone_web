@@ -19,6 +19,7 @@ import {
   BookOpen,
   Loader2,
   MoreVertical,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useExamScheduleById, useArchiveExamSchedule } from "@/hooks/use-exam-schedules";
@@ -67,7 +68,7 @@ export default function ExamScheduleDetailPage() {
   const getComputedStatus = (): "Upcoming" | "Ongoing" | "Completed" => {
     const now = new Date();
     if (!open || !close) return schedule.status as any || "Scheduled";
-    
+
     if (now < open) return "Upcoming";
     if (now >= open && now <= close) return "Ongoing";
     return "Completed";
@@ -279,6 +280,14 @@ export default function ExamScheduleDetailPage() {
                 <Edit className="h-4 w-4" />
                 {t("examOfficer.detailSchedule.editSchedule")}
               </Button>
+              <Button
+                variant="outline"
+                className="w-full gap-2 justify-center border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold"
+                onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_STUDENTS(schedule.id)}`)}
+              >
+                <Users className="h-4 w-4 text-blue-500" />
+                {t("examOfficer.detailSchedule.viewStudents")}
+              </Button>
               {computedStatus === "Completed" && !schedule.isArchived && (
                 <Button
                   variant="outline"
@@ -305,6 +314,6 @@ export default function ExamScheduleDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

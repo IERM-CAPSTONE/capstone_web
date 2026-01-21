@@ -156,6 +156,7 @@
                 "seatingPlan": "Seating Plan",
                 "quickActions": "Quick Actions",
                 "editSchedule": "Edit Schedule",
+                "viewStudents": "View Student List",
                 "archiveSchedule": "Archive Schedule",
                 "archiving": "Archiving...",
                 "statusOngoing": "This exam session is currently in progress.",

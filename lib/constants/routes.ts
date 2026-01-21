@@ -42,6 +42,7 @@ export const ROUTES = {
   EXAMS_SCHEDULE_CREATE: "/exam-officer/exam-schedules/create",
   EXAMS_SCHEDULE_DETAIL: (id: string) => `/exam-officer/exam-schedules/${id}`,
   EXAMS_SCHEDULE_EDIT: (id: string) => `/exam-officer/exam-schedules/${id}/update`,
+  EXAMS_SCHEDULE_STUDENTS: (id: string) => `/exam-officer/exam-schedules/${id}/students`,
 
   // Các routes khác sẽ được thêm sau khi cần
   STUDENTS: "/students",
