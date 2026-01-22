@@ -30,7 +30,7 @@ export const roomsApi = {
 
   // Update room
   update: async (id: string, data: Partial<Room>): Promise<Room> => {
-    const response = await apiClient.put<ApiResponse<Room>>(`/exam-rooms/${id}`, data);
+    const response = await apiClient.patch<ApiResponse<Room>>(`/exam-rooms/${id}`, data);
     if (!response.data.success || !response.data.data) {
       throw new Error("Failed to update room");
     }

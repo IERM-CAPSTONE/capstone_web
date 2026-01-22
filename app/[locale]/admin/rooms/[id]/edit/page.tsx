@@ -21,6 +21,7 @@ export default function RoomEditPage() {
 
   const { data: room, isLoading, error } = useRoom(id);
   const updateRoom = useUpdateRoom();
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     roomNumber: room?.roomNumber || "",
@@ -39,6 +40,7 @@ export default function RoomEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveSuccess(false);
     try {
       await updateRoom.mutateAsync({
         id,
@@ -47,7 +49,9 @@ export default function RoomEditPage() {
           capacity: formData.capacity ? parseInt(formData.capacity) : null,
         },
       });
-      router.push(`/${locale}${ROUTES.ROOMS_DETAIL(id)}`);
+      setSaveSuccess(true);
+      // Hide success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error("Error updating room:", error);
     }
@@ -207,6 +211,12 @@ export default function RoomEditPage() {
             </div>
 
             <div className="flex gap-2 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              {saveSuccess && (
+                <div className="mr-auto text-sm text-green-600 font-medium flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-green-600 rounded-full"></span>
+                  Changes saved successfully
+                </div>
+              )}
               <Button
                 type="button"
                 variant="outline"
