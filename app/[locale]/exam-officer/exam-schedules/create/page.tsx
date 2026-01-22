@@ -109,6 +109,12 @@ export default function CreateExamSchedulePage() {
     return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
   })();
 
+  const getTomorrowDate = (): string => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split("T")[0];
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -132,6 +138,18 @@ export default function CreateExamSchedulePage() {
       setError("Exam Date is required");
       return false;
     }
+
+    // Validate exam date is from tomorrow onwards
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(formData.examDate);
+    
+    if (selectedDate < tomorrow) {
+      setError("Cannot select today or past dates. Please choose tomorrow or later.");
+      return false;
+    }
+
     if (!formData.startTime) {
       setError("Start Time is required");
       return false;
@@ -140,10 +158,22 @@ export default function CreateExamSchedulePage() {
       setError("End Time is required");
       return false;
     }
+
+    // End time must be after start time and at least 1 hour difference
     if (formData.startTime >= formData.endTime) {
       setError("End Time must be after Start Time");
       return false;
     }
+
+    const [startHour, startMin] = formData.startTime.split(":").map(Number);
+    const [endHour, endMin] = formData.endTime.split(":").map(Number);
+    const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
+    
+    if (durationMinutes < 60) {
+      setError("Exam duration must be at least 1 hour");
+      return false;
+    }
+
     setError("");
     return true;
   };
@@ -158,6 +188,8 @@ export default function CreateExamSchedulePage() {
       const apiData = {
         examCode: formData.examCode || undefined,
         openCode: formData.openCode || undefined,
+        semester: formData.semester || undefined,
+        note: formData.note || undefined,
         examType: examTypeMap[formData.examType] ? [examTypeMap[formData.examType]] : [],
         subjectCode: formData.subjectCode,
         examOpenTime: (() => {
@@ -327,8 +359,12 @@ export default function CreateExamSchedulePage() {
                     name="examDate"
                     value={formData.examDate}
                     onChange={handleInputChange}
+                    min={getTomorrowDate()}
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
+                  <p className="text-xs text-slate-400 mt-1">
+                    {t("examOfficer.createSchedule.examDateHelper")}
+                  </p>
                 </div>
 
                 <div>

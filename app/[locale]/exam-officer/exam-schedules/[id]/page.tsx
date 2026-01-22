@@ -19,6 +19,7 @@ import {
   BookOpen,
   Loader2,
   MoreVertical,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useExamScheduleById, useArchiveExamSchedule } from "@/hooks/use-exam-schedules";
@@ -27,6 +28,7 @@ import { ROUTES } from "@/lib/constants/routes";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
 import { parseLocalDate } from "../utils";
+import { toast } from "sonner";
 
 export default function ExamScheduleDetailPage() {
   const router = useRouter();
@@ -62,21 +64,33 @@ export default function ExamScheduleDetailPage() {
   const open = schedule.examOpenTime ? parseLocalDate(schedule.examOpenTime) : null;
   const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
 
-  const getStatusDisplay = (apiStatus: string | null | undefined) => {
-    switch (apiStatus) {
+  // Calculate actual status based on current time
+  const getComputedStatus = (): "Upcoming" | "Ongoing" | "Completed" => {
+    const now = new Date();
+    if (!open || !close) return schedule.status as any || "Scheduled";
+
+    if (now < open) return "Upcoming";
+    if (now >= open && now <= close) return "Ongoing";
+    return "Completed";
+  };
+
+  const computedStatus = getComputedStatus();
+
+  const getStatusDisplay = (status: string | null | undefined) => {
+    switch (status) {
       case "Ongoing":
         return {
           label: t("examOfficer.ongoing") || "Ongoing",
           color: "bg-green-500 text-white",
           icon: <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
         };
-      case "Ended":
+      case "Completed":
         return {
           label: t("examOfficer.completed") || "Completed",
           color: "bg-slate-500 text-white",
           icon: <CheckCircle2 className="h-3.5 w-3.5" />
         };
-      case "Scheduled":
+      case "Upcoming":
       default:
         return {
           label: t("examOfficer.upcoming") || "Upcoming",
@@ -86,7 +100,7 @@ export default function ExamScheduleDetailPage() {
     }
   };
 
-  const status = getStatusDisplay(schedule.status);
+  const status = getStatusDisplay(computedStatus);
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto p-6 bg-slate-50/50 min-h-screen">
@@ -102,7 +116,7 @@ export default function ExamScheduleDetailPage() {
           {t("examOfficerPortal")}
         </button>
         <ChevronRight className="h-3 w-3" />
-        <span className="text-slate-900 font-medium">Schedule Detail</span>
+        <span className="text-slate-900 font-medium">{t("examOfficer.detailSchedule.scheduleDetail")}</span>
       </nav>
 
       {/* Header */}
@@ -130,14 +144,14 @@ export default function ExamScheduleDetailPage() {
             className="gap-2 bg-white"
             onClick={() => window.location.reload()}
           >
-            Refresh
+            {t("examOfficer.detailSchedule.refresh")}
           </Button>
           <Button
             className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
             onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_EDIT(schedule.id)}`)}
           >
             <Edit className="h-4 w-4" />
-            Edit
+            {t("examOfficer.detailSchedule.editSchedule")}
           </Button>
         </div>
       </div>
@@ -151,17 +165,17 @@ export default function ExamScheduleDetailPage() {
             <div className="px-6 py-4 bg-gradient-to-r from-orange-50 to-orange-50/50 border-b border-slate-100">
               <h2 className="font-bold text-slate-900 flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-500" />
-                Schedule Overview
+                {t("examOfficer.detailSchedule.scheduleOverview")}
               </h2>
             </div>
             <CardContent className="p-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Semester</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.semester")}</p>
                   <p className="font-semibold text-slate-900">{schedule.semester || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Exam Type</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.examType")}</p>
                   <div className="flex flex-wrap gap-1">
                     {schedule.examType && schedule.examType.length > 0 ? (
                       schedule.examType.map((type) => (
@@ -175,25 +189,25 @@ export default function ExamScheduleDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Exam Date</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.examDate")}</p>
                   <div className="flex items-center gap-2 text-slate-900 font-bold">
                     <Calendar className="h-4 w-4 text-orange-500" />
                     {open ? format(open, "dd/MM/yyyy") : "N/A"}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Duration</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.duration")}</p>
                   <div className="flex items-center gap-2 text-slate-900 font-bold">
                     <Clock className="h-4 w-4 text-blue-500" />
                     {open && close ? `${format(open, "HH:mm")} - ${format(close, "HH:mm")}` : "N/A"}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Room</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.room")}</p>
                   <p className="font-semibold text-slate-900">{schedule.roomNumber || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Invigilator</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.invigilator")}</p>
                   <p className="font-semibold text-slate-900">{schedule.proctorId || "N/A"}</p>
                 </div>
               </div>
@@ -205,20 +219,20 @@ export default function ExamScheduleDetailPage() {
             <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-50/50 border-b border-slate-100">
               <h2 className="font-bold text-slate-900 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-500" />
-                Description & Notes
+                {t("examOfficer.detailSchedule.descriptionNotes")}
               </h2>
             </div>
             <CardContent className="p-6 space-y-6">
               <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Note</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{schedule.note || "No notes provided."}</p>
+                <h3 className="font-semibold text-slate-900 mb-2">{t("examOfficer.detailSchedule.note")}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{schedule.note || t("examOfficer.detailSchedule.noNotesProvided")}</p>
               </div>
               <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
                 <div className="flex gap-3">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-semibold text-yellow-900 mb-1">Internal Information</h4>
-                    <p className="text-sm text-yellow-700">Open Code: <span className="font-bold">{schedule.openCode || "N/A"}</span></p>
+                    <h4 className="font-semibold text-yellow-900 mb-1">{t("examOfficer.detailSchedule.internalInformation")}</h4>
+                    <p className="text-sm text-yellow-700">{t("examOfficer.detailSchedule.openCode")}: <span className="font-bold">{schedule.openCode || "N/A"}</span></p>
                   </div>
                 </div>
               </div>
@@ -246,9 +260,9 @@ export default function ExamScheduleDetailPage() {
                 </span>
               </div>
               <p className="text-center text-sm text-slate-600 leading-relaxed">
-                {schedule.status === "Ongoing" ? "This exam session is currently in progress." :
-                  schedule.status === "Ended" ? "This exam session has been completed." :
-                    "This exam session is scheduled for the future."}
+                {computedStatus === "Ongoing" ? t("examOfficer.detailSchedule.statusOngoing") :
+                  computedStatus === "Completed" ? t("examOfficer.detailSchedule.statusCompleted") :
+                    t("examOfficer.detailSchedule.statusUpcoming")}
               </p>
             </CardContent>
           </Card>
@@ -256,7 +270,7 @@ export default function ExamScheduleDetailPage() {
           {/* Quick Actions */}
           <Card className="border-none shadow-sm overflow-hidden">
             <div className="px-6 py-4 bg-gradient-to-r from-orange-50 to-orange-50/50 border-b border-slate-100">
-              <h2 className="font-bold text-slate-900 text-sm">Quick Actions</h2>
+              <h2 className="font-bold text-slate-900 text-sm">{t("examOfficer.detailSchedule.quickActions")}</h2>
             </div>
             <CardContent className="p-4 space-y-3">
               <Button
@@ -264,30 +278,42 @@ export default function ExamScheduleDetailPage() {
                 onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_EDIT(schedule.id)}`)}
               >
                 <Edit className="h-4 w-4" />
-                Edit Schedule
+                {t("examOfficer.detailSchedule.editSchedule")}
               </Button>
-              {schedule.status === "Ended" && (
+              <Button
+                variant="outline"
+                className="w-full gap-2 justify-center border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold"
+                onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_STUDENTS(schedule.id)}`)}
+              >
+                <Users className="h-4 w-4 text-blue-500" />
+                {t("examOfficer.detailSchedule.viewStudents")}
+              </Button>
+              {computedStatus === "Completed" && !schedule.isArchived && (
                 <Button
                   variant="outline"
                   className="w-full gap-2 justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 bg-white"
                   onClick={async () => {
+                    const loadingToast = toast.loading(t("examOfficer.detailSchedule.archiving") || "Archiving...");
                     try {
                       await archiveMutation.mutateAsync(schedule.id);
+                      toast.success(t("examOfficer.archiveSuccess") || "Archived successfully");
                       router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
                     } catch (err: any) {
-                      alert(err?.message || "Failed to archive schedule");
+                      toast.error(err?.message || t("examOfficer.archiveFailed") || "Failed to archive schedule");
+                    } finally {
+                      toast.dismiss(loadingToast);
                     }
                   }}
                   disabled={archiveMutation.isPending}
                 >
                   <Archive className="h-4 w-4" />
-                  {archiveMutation.isPending ? "Archiving..." : "Archive Schedule"}
+                  {archiveMutation.isPending ? t("examOfficer.detailSchedule.archiving") : t("examOfficer.detailSchedule.archiveSchedule")}
                 </Button>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
