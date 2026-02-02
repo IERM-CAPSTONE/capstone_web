@@ -23,6 +23,7 @@ export const ROUTES = {
   DASHBOARD: "/dashboard",
   DASHBOARD_ADMIN: "/admin",
   DASHBOARD_EXAM_OFFICER: "/exam-officer/exam-schedules",
+  DASHBOARD_PROCTOR: "/proctor",
 
   // Admin routes
   ADMIN_ACCOUNTS: "/admin/accounts",
@@ -43,6 +44,10 @@ export const ROUTES = {
   EXAMS_SCHEDULE_DETAIL: (id: string) => `/exam-officer/exam-schedules/${id}`,
   EXAMS_SCHEDULE_EDIT: (id: string) => `/exam-officer/exam-schedules/${id}/update`,
   EXAMS_SCHEDULE_STUDENTS: (id: string) => `/exam-officer/exam-schedules/${id}/students`,
+
+  // Proctor Applications
+  PROCTOR_APPLICATIONS: "/proctor/applications",
+  EXAM_OFFICER_PROCTOR_APPLICATIONS: "/exam-officer/proctor-applications",
 
   // Các routes khác sẽ được thêm sau khi cần
   STUDENTS: "/students",

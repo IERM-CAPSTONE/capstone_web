@@ -260,6 +260,78 @@
             "delete": "Xóa"
         }
     },
+    "ProctorApplications": {
+        "title": "Đơn đăng ký giám thị",
+        "myApplications": "Đơn của tôi",
+        "management": "Quản lý đơn đăng ký",
+        "createApplication": "Tạo đơn mới",
+        "editApplication": "Chỉnh sửa đơn",
+        "viewDetails": "Xem chi tiết",
+        "preferredShift": "Ca làm việc ưu tiên",
+        "preferredType": "Loại giám thị ưu tiên",
+        "preferredDate": "Ngày ưu tiên",
+        "notes": "Ghi chú",
+        "status": "Trạng thái",
+        "applicant": "Người nộp",
+        "teacherName": "Tên giảng viên",
+        "teacherCode": "Mã giảng viên",
+        "createdAt": "Ngày tạo",
+        "updatedAt": "Ngày cập nhật",
+        "actions": "Thao tác",
+        "shifts": {
+            "morning": "Buổi sáng",
+            "afternoon": "Buổi chiều"
+        },
+        "types": {
+            "room": "Giám thị phòng",
+            "hall": "Giám thị hội trường"
+        },
+        "statuses": {
+            "pending": "Chờ duyệt",
+            "approved": "Đã duyệt",
+            "rejected": "Từ chối",
+            "canceled": "Đã hủy"
+        },
+        "filters": {
+            "allStatuses": "Tất cả trạng thái",
+            "teacherId": "Mã giảng viên",
+            "startDate": "Ngày bắt đầu",
+            "endDate": "Ngày kết thúc",
+            "apply": "Áp dụng",
+            "reset": "Đặt lại"
+        },
+        "statistics": {
+            "pending": "Chờ duyệt",
+            "approved": "Đã duyệt",
+            "rejected": "Từ chối",
+            "total": "Tổng đơn"
+        },
+        "messages": {
+            "createSuccess": "Tạo đơn thành công",
+            "updateSuccess": "Cập nhật đơn thành công",
+            "cancelSuccess": "Hủy đơn thành công",
+            "approveSuccess": "Duyệt đơn thành công",
+            "rejectSuccess": "Từ chối đơn thành công",
+            "deleteSuccess": "Xóa đơn thành công",
+            "confirmCancel": "Bạn có chắc chắn muốn hủy đơn này?",
+            "confirmApprove": "Bạn có chắc chắn muốn duyệt đơn này?",
+            "confirmReject": "Bạn có chắc chắn muốn từ chối đơn này?",
+            "confirmDelete": "Bạn có chắc chắn muốn xóa đơn này?",
+            "noApplications": "Không tìm thấy đơn nào",
+            "selectDate": "Vui lòng chọn ngày",
+            "loadingDates": "Đang tải ngày khả dụng..."
+        },
+        "buttons": {
+            "create": "Tạo mới",
+            "update": "Cập nhật",
+            "cancel": "Hủy",
+            "approve": "Duyệt",
+            "reject": "Từ chối",
+            "delete": "Xóa",
+            "edit": "Chỉnh sửa",
+            "close": "Đóng"
+        }
+    },
     "Metadata": {
         "title": "IERM - Hệ thống quản lý phòng thi thông minh",
         "description": "Hệ thống quản lý phòng thi thông minh dành cho Đại học FPT - An toàn, hiệu quả và tin cậy."

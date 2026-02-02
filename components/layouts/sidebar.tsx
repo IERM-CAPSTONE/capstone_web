@@ -16,6 +16,7 @@ import {
   AlertCircle,
   FileText,
   Settings,
+  ClipboardList,
 } from "lucide-react";
 import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,17 @@ const adminMenuItems = [
 
 const examOfficerMenuItems = [
   { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
+  { icon: ClipboardList, label: "Proctor Applications", href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
   { icon: Building2, label: "Exam Rooms", href: ROUTES.ROOMS },
   { icon: AlertCircle, label: "Monitoring", href: ROUTES.MONITORING },
   { icon: FileText, label: "Reports", href: ROUTES.REPORTS },
   { icon: Users, label: "Students", href: ROUTES.STUDENTS },
+];
+
+const proctorMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_PROCTOR },
+  { icon: ClipboardList, label: "My Applications", href: ROUTES.PROCTOR_APPLICATIONS },
+  { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
 ];
 
 export function Sidebar() {
@@ -40,7 +48,12 @@ export function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user } = useAuthStore();
 
-  const menuItems = user?.role === "exam_officer" ? examOfficerMenuItems : adminMenuItems;
+  const menuItems = 
+    user?.role === "exam_officer" 
+      ? examOfficerMenuItems 
+      : user?.role === "proctor"
+      ? proctorMenuItems
+      : adminMenuItems;
 
   return (
     <>
