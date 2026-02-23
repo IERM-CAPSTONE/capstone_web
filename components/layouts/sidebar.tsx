@@ -31,7 +31,7 @@ const adminMenuItems = [
 const examOfficerMenuItems = [
   { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
   { icon: ClipboardList, label: "Proctor Applications", href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
-  { icon: Building2, label: "Exam Rooms", href: ROUTES.ROOMS },
+  { icon: Building2, label: "Exam Rooms", href: ROUTES.EXAM_OFFICER_ROOMS },
   { icon: AlertCircle, label: "Monitoring", href: ROUTES.MONITORING },
   { icon: FileText, label: "Reports", href: ROUTES.REPORTS },
   { icon: Users, label: "Students", href: ROUTES.STUDENTS },

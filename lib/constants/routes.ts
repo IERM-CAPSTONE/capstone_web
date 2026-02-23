@@ -38,6 +38,9 @@ export const ROUTES = {
   ROOMS_DETAIL: (id: string) => `/admin/rooms/${id}`,
   ROOMS_EDIT: (id: string) => `/admin/rooms/${id}/edit`,
 
+  // Exam Officer rooms
+  EXAM_OFFICER_ROOMS: "/exam-officer/rooms",
+
   // Exam Schedules
   EXAMS_SCHEDULE: "/exam-officer/exam-schedules",
   EXAMS_SCHEDULE_CREATE: "/exam-officer/exam-schedules/create",
