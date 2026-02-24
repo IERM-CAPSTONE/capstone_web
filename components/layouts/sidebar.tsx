@@ -28,6 +28,7 @@ const adminMenuItems = [
 ];
 
 const examOfficerMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_EXAM_OFFICER },
   { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
   { icon: Building2, label: "Exam Rooms", href: ROUTES.ROOMS },
   { icon: AlertCircle, label: "Monitoring", href: ROUTES.MONITORING },
