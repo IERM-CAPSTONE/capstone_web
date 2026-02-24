@@ -16,9 +16,12 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useStudentExamsBySession } from "@/hooks/use-student-exams";
-import { Skeleton } from "@/components/ui/skeleton";
 import { StudentExam } from "@/lib/api/student-exams";
 import { cn } from "@/lib/utils/cn";
+import { useEffect } from "react";
+import { useSocket } from "@/hooks/use-socket";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface SeatingPlanProps {
     examSessionId: string;
@@ -35,8 +38,41 @@ export default function SeatingPlan({
 }: SeatingPlanProps) {
     const { data: studentsResponse, isLoading } = useStudentExamsBySession(examSessionId);
     const [selectedStudent, setSelectedStudent] = useState<StudentExam | null>(null);
+    const [authenticatedStudentIds, setAuthenticatedStudentIds] = useState<Set<string>>(new Set());
+    const { on } = useSocket();
+    const queryClient = useQueryClient();
 
     const students = studentsResponse?.data || [];
+
+    useEffect(() => {
+        if (!on) return;
+
+        const cleanup = on("face_authenticated", (data) => {
+            if (data.status === 'success') {
+                // Check if this student is actually in the current session
+                const studentInSession = students.find(s => s.studentId === data.studentId);
+
+                if (studentInSession) {
+                    toast.success(`${data.studentName} (${data.studentCode}) has checked in successfully!`, {
+                        description: "Face authentication completed",
+                        icon: <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    });
+
+                    // Add to local state for immediate UI update
+                    setAuthenticatedStudentIds(prev => {
+                        const next = new Set(prev);
+                        next.add(data.studentId);
+                        return next;
+                    });
+
+                    // Refresh query to get latest data from server
+                    queryClient.invalidateQueries({ queryKey: ["student-exams", { examSessionId }] });
+                }
+            }
+        });
+
+        return cleanup;
+    }, [on, students, examSessionId, queryClient]);
 
     // Real dimensions from room, fallback to 5x6
     const rows = maxRows || 5;
@@ -74,7 +110,9 @@ export default function SeatingPlan({
         let statusText = "Available";
 
         if (student) {
-            if (student.status === 'CHECKEDIN') {
+            const isLocalPresent = authenticatedStudentIds.has(student.studentId);
+
+            if (student.status === 'CHECKEDIN' || isLocalPresent) {
                 seatStyles = "bg-[#F0FDF4] border-[#DCFCE7] shadow-sm";
                 textStyles = "text-[#15803D]";
                 labelStyles = "text-[#16A34A]";
@@ -121,7 +159,7 @@ export default function SeatingPlan({
                     <div className="p-2 bg-slate-100 rounded-xl">
                         <Users className="h-5 w-5 text-slate-500" />
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Seating Plan ({students.filter(s => s.status === 'CHECKEDIN').length}/{totalSeats || rows * cols})</h3>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Seating Plan ({students.filter(s => s.status === 'CHECKEDIN' || authenticatedStudentIds.has(s.studentId)).length}/{totalSeats || rows * cols})</h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <LegendItem color="bg-slate-200" label="AVAILABLE" dotColor="bg-slate-300" />
