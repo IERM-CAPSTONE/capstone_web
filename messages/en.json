@@ -260,6 +260,78 @@
             "delete": "Delete"
         }
     },
+    "ProctorApplications": {
+        "title": "Proctor Applications",
+        "myApplications": "My Applications",
+        "management": "Application Management",
+        "createApplication": "Create Application",
+        "editApplication": "Edit Application",
+        "viewDetails": "View Details",
+        "preferredShift": "Preferred Shift",
+        "preferredType": "Preferred Type",
+        "preferredDate": "Preferred Date",
+        "notes": "Notes",
+        "status": "Status",
+        "applicant": "Applicant",
+        "teacherName": "Teacher Name",
+        "teacherCode": "Teacher Code",
+        "createdAt": "Created At",
+        "updatedAt": "Updated At",
+        "actions": "Actions",
+        "shifts": {
+            "morning": "Morning",
+            "afternoon": "Afternoon"
+        },
+        "types": {
+            "room": "Room Proctor",
+            "hall": "Hall Invigilator"
+        },
+        "statuses": {
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "canceled": "Canceled"
+        },
+        "filters": {
+            "allStatuses": "All Statuses",
+            "teacherId": "Teacher ID",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "apply": "Apply Filters",
+            "reset": "Reset"
+        },
+        "statistics": {
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "total": "Total Applications"
+        },
+        "messages": {
+            "createSuccess": "Application created successfully",
+            "updateSuccess": "Application updated successfully",
+            "cancelSuccess": "Application canceled successfully",
+            "approveSuccess": "Application approved successfully",
+            "rejectSuccess": "Application rejected successfully",
+            "deleteSuccess": "Application deleted successfully",
+            "confirmCancel": "Are you sure you want to cancel this application?",
+            "confirmApprove": "Are you sure you want to approve this application?",
+            "confirmReject": "Are you sure you want to reject this application?",
+            "confirmDelete": "Are you sure you want to delete this application?",
+            "noApplications": "No applications found",
+            "selectDate": "Please select a date",
+            "loadingDates": "Loading available dates..."
+        },
+        "buttons": {
+            "create": "Create",
+            "update": "Update",
+            "cancel": "Cancel",
+            "approve": "Approve",
+            "reject": "Reject",
+            "delete": "Delete",
+            "edit": "Edit",
+            "close": "Close"
+        }
+    },
     "Metadata": {
         "title": "IERM - Intelligent Examination Room Management",
         "description": "Smart examination management system for FPT University - Secure, efficient, and reliable."
