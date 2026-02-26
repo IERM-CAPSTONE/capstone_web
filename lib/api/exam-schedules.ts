@@ -18,6 +18,7 @@ export interface ExamSchedule {
   status?: string | null;
   isArchived?: boolean | null;
   examType?: string[];
+  hasStudentsImported?: boolean;
   createdAt: string;
   updatedAt: string;
   maxRows?: number | null;
@@ -131,6 +132,12 @@ export const examSchedulesApi = {
       `/exam-sessions/${id}/archive`
     );
     return response.data.data;
+  },
+
+  // Finalize seat assignments for a session
+  finalizeSeats: async (id: string): Promise<{ success: boolean; message: string; data: { studentsAssigned: number; seatsUsed: number } }> => {
+    const response = await apiClient.post(`/exam-sessions/${id}/finalize-seats`);
+    return response.data;
   },
 
   // Import exam schedules (legacy - file upload)

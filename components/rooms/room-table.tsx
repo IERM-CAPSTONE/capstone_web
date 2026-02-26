@@ -12,9 +12,18 @@ interface RoomTableProps {
   onEdit?: (room: Room) => void;
   onDelete?: (id: string) => void;
   isLoading?: boolean;
+  showActions?: boolean;
+  showCreateButton?: boolean;
 }
 
-export function RoomTable({ rooms, onEdit, onDelete, isLoading }: RoomTableProps) {
+export function RoomTable({
+  rooms,
+  onEdit,
+  onDelete,
+  isLoading,
+  showActions = true,
+  showCreateButton = true,
+}: RoomTableProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -27,9 +36,11 @@ export function RoomTable({ rooms, onEdit, onDelete, isLoading }: RoomTableProps
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <p className="text-gray-500 mb-4">No exam rooms</p>
-        <Link href={ROUTES.ROOMS_CREATE}>
-          <Button>Create First Exam Room</Button>
-        </Link>
+        {showCreateButton && (
+          <Link href={ROUTES.ROOMS_CREATE}>
+            <Button>Create First Exam Room</Button>
+          </Link>
+        )}
       </div>
     );
   }
@@ -96,9 +107,11 @@ export function RoomTable({ rooms, onEdit, onDelete, isLoading }: RoomTableProps
             <th className="text-left px-6 py-4 font-semibold text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
               Updated
             </th>
-            <th className="text-right px-6 py-4 font-semibold text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-              Actions
-            </th>
+            {showActions && (
+              <th className="text-right px-6 py-4 font-semibold text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -133,30 +146,32 @@ export function RoomTable({ rooms, onEdit, onDelete, isLoading }: RoomTableProps
                   {formatDate(room.updatedAt)}
                 </div>
               </td>
-              <td className="px-6 py-4">
-                <div className="flex items-center justify-end gap-2">
-                  <Link href={ROUTES.ROOMS_DETAIL(room.id)}>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                      <Eye className="h-4 w-4 text-blue-600" />
-                    </Button>
-                  </Link>
-                  <Link href={ROUTES.ROOMS_EDIT(room.id)}>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-amber-50 dark:hover:bg-amber-900/20">
-                      <Edit className="h-4 w-4 text-amber-600" />
-                    </Button>
-                  </Link>
-                  {onDelete && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(room.id)}
-                      className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  )}
-                </div>
-              </td>
+              {showActions && (
+                <td className="px-6 py-4">
+                  <div className="flex items-center justify-end gap-2">
+                    <Link href={ROUTES.ROOMS_DETAIL(room.id)}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                        <Eye className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </Link>
+                    <Link href={ROUTES.ROOMS_EDIT(room.id)}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                        <Edit className="h-4 w-4 text-amber-600" />
+                      </Button>
+                    </Link>
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(room.id)}
+                        className="h-8 w-8 p-0 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

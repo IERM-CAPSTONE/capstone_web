@@ -5,6 +5,7 @@ export interface StudentExam {
     examSessionId: string;
     studentId: string;
     seatNumber: string | null;
+    seatPosition?: string | null;
     status: string;
     currentLocation: string | null;
     identityId: string | null;

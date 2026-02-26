@@ -355,7 +355,11 @@ export default function ExamOfficerDashboardPage() {
                         const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
 
                         return (
-                          <tr key={schedule.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <tr
+                            key={schedule.id}
+                            className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                            onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_DETAIL(schedule.id)}`)}
+                          >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-50 rounded-lg">
@@ -416,19 +420,35 @@ export default function ExamOfficerDashboardPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <div className="relative">
+                              <div className="relative flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-3 text-slate-700 bg-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_DETAIL(schedule.id)}`);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  {t("examOfficer.actions.viewDetails") || "View"}
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
-                                  onClick={() => setOpenDropdown(openDropdown === schedule.id ? null : schedule.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdown(openDropdown === schedule.id ? null : schedule.id);
+                                  }}
                                 >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                                 {openDropdown === schedule.id && (
                                   <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
                                     <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-100"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_DETAIL(schedule.id)}`);
                                         setOpenDropdown(null);
                                       }}
@@ -437,7 +457,8 @@ export default function ExamOfficerDashboardPage() {
                                       {t("examOfficer.actions.viewDetails") || "View Details"}
                                     </button>
                                     <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-100"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_EDIT(schedule.id)}`);
                                         setOpenDropdown(null);
                                       }}
@@ -448,7 +469,8 @@ export default function ExamOfficerDashboardPage() {
                                     {computedStatus === "Completed" && !schedule.isArchived && (
                                       <button
                                         className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                        onClick={async () => {
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
                                           const loadingToast = toast.loading(t("examOfficer.archiving") || "Archiving...");
                                           try {
                                             await archiveMutation.mutateAsync(schedule.id);
