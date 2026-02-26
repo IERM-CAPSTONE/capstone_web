@@ -139,11 +139,14 @@ export const processImportData = (headers: string[], data: any[]) => {
         const students = data.map((row) => {
             const memberCode = findValue(row, ["MemberCode", "Member Code"]);
             const sttVal = findValue(row, ["STT"]);
+            const cccdRaw = findValue(row, ["CCCD", "CitizenID", "Citizen Id", "Citizen ID"]);
+            const cccd = String(cccdRaw || "").trim();
             return {
                 stt: (sttVal !== "" && sttVal !== null && sttVal !== undefined) ? parseInt(String(sttVal), 10) : null,
                 studentCode: findValue(row, ["Mã SV", "Student Code", "Ma SV"]),
                 username: memberCode,
                 memberCode: memberCode,
+                cccd: cccd || null,
                 name: findValue(row, ["Họ tên", "Name", "Student Name", "Ho ten"]),
                 email: (findValue(row, ["Email"]) || (memberCode ? `${memberCode}@fpt.edu.vn` : "")),
                 examSession: findValue(row, ["Ca thi", "Exam Session"]),

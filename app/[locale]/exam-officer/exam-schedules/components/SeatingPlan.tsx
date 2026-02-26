@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,11 @@ export default function SeatingPlan({
 }: SeatingPlanProps) {
     const { data: studentsResponse, isLoading } = useStudentExamsBySession(examSessionId);
     const [selectedStudent, setSelectedStudent] = useState<StudentExam | null>(null);
+    const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
+    useEffect(() => {
+        setAvatarLoadFailed(false);
+    }, [selectedStudent?.id]);
 
     const students = studentsResponse?.data || [];
 
@@ -154,7 +159,7 @@ export default function SeatingPlan({
             {/* Student Detail Modal */}
             {selectedStudent && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md border-none shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <Card className="w-full max-w-md border-none shadow-2xl overflow-hidden rounded-2xl animate-in zoom-in-95 duration-200">
                         <div className="relative h-24 bg-gradient-to-r from-orange-400 to-orange-600">
                             <button
                                 onClick={() => setSelectedStudent(null)}
@@ -164,19 +169,28 @@ export default function SeatingPlan({
                             </button>
                         </div>
 
-                        <CardContent className="px-6 pb-6 -mt-10">
+                        <CardContent className="px-6 pb-6 -mt-6 space-y-5">
                             <div className="flex flex-col items-center">
-                                <div className="p-1 bg-white rounded-full shadow-lg mb-4">
+                                <div className="relative z-10 p-1 bg-white rounded-full shadow-lg mb-4">
                                     <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center border-4 border-slate-50">
-                                        <User className="h-10 w-10 text-slate-400" />
+                                        {selectedStudent.studentAvatarUrl && !avatarLoadFailed ? (
+                                            <img
+                                                src={selectedStudent.studentAvatarUrl}
+                                                alt={selectedStudent.studentName || "Student avatar"}
+                                                className="w-full h-full rounded-full object-cover"
+                                                onError={() => setAvatarLoadFailed(true)}
+                                            />
+                                        ) : (
+                                            <User className="h-10 w-10 text-slate-400" />
+                                        )}
                                     </div>
                                 </div>
                                 <h4 className="text-xl font-bold text-slate-900">{selectedStudent.studentName || "Unknown Student"}</h4>
-                                <p className="text-sm text-slate-500 font-medium mb-6">Student ID: {selectedStudent.studentCode}</p>
+                                <p className="text-sm text-slate-500 font-medium">Student ID: {selectedStudent.studentCode}</p>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/80">
+                                <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white rounded-lg shadow-sm">
                                         <MapPin className="h-4 w-4 text-orange-500" />
                                     </div>
@@ -185,35 +199,48 @@ export default function SeatingPlan({
                                         <p className="text-sm font-bold text-slate-900">Desk {selectedStudent.seatNumber}</p>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2">
-                                            <Mail className="h-4 w-4 text-slate-400" />
-                                            <span className="text-slate-600">Email</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <UserCheck className="h-4 w-4 text-slate-400" />
-                                            <span className="text-slate-600">Status</span>
-                                        </div>
+                            <div className="border-t border-dashed border-slate-200" />
+
+                            <div className="space-y-3 text-sm">
+                                <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                        <Mail className="h-4 w-4 text-slate-400" />
+                                        <span>Email</span>
                                     </div>
-                                    <div className="space-y-3 text-right">
-                                        <p className="font-medium text-slate-900 truncate">student@fpt.edu.vn</p>
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            {selectedStudent.status === 'CHECKEDIN' ? (
-                                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                            ) : (
-                                                <Clock className="h-4 w-4 text-slate-400" />
-                                            )}
-                                            <span className={`font-bold uppercase text-[10px] ${selectedStudent.status === 'CHECKEDIN' ? 'text-green-600' : 'text-slate-500'}`}>
-                                                {selectedStudent.status}
-                                            </span>
-                                        </div>
+                                    <p className="font-medium text-slate-900 truncate text-right">student@fpt.edu.vn</p>
+                                </div>
+
+                                <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                        <Info className="h-4 w-4 text-slate-400" />
+                                        <span>CCCD</span>
+                                    </div>
+                                    <p className="font-medium text-slate-900 truncate text-right">{selectedStudent.citizenId || '-'}</p>
+                                </div>
+
+                                <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                        <UserCheck className="h-4 w-4 text-slate-400" />
+                                        <span>Status</span>
+                                    </div>
+                                    <div className="flex items-center justify-end gap-1.5">
+                                        {selectedStudent.status === 'CHECKEDIN' ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <Clock className="h-4 w-4 text-slate-400" />
+                                        )}
+                                        <span className={`font-bold uppercase text-[10px] ${selectedStudent.status === 'CHECKEDIN' ? 'text-green-600' : 'text-slate-500'}`}>
+                                            {selectedStudent.status}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8">
+                            <div className="border-t border-dashed border-slate-200" />
+
+                            <div>
                                 <Button
                                     className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 text-sm font-bold uppercase tracking-wider"
                                     onClick={() => setSelectedStudent(null)}

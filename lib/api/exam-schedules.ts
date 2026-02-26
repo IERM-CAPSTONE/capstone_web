@@ -189,7 +189,7 @@ export interface StudentItem {
   name: string;
   email: string;
   memberCode: string;
-  cccd: string;
+  cccd?: string | null;
   subjectCode: string;
   examSession: string;
   examPart: string;

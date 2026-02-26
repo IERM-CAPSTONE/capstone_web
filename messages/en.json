@@ -12,7 +12,8 @@
         "previous": "Previous",
         "next": "Next",
         "logoutSuccess": "Logged out successfully",
-        "actions": "Actions"
+        "actions": "Actions",
+        "cancel": "Cancel"
     },
     "Login": {
         "title": "Welcome Back",
@@ -163,7 +164,10 @@
                 "statusCompleted": "This exam session has been completed.",
                 "statusUpcoming": "This exam session is scheduled for the future.",
                 "refresh": "Refresh",
-                "back": "Back to schedules"
+                "back": "Back to schedules",
+                "assignProctor": "Assign Proctor",
+                "selectProctor": "Select Proctor",
+                "noProctorAssigned": "No proctor assigned"
             },
             "actions": {
                 "viewRooms": "View Exam Rooms",

@@ -22,8 +22,9 @@ import {
   Users,
 } from "lucide-react";
 import { format } from "date-fns";
-import { useExamScheduleById, useArchiveExamSchedule } from "@/hooks/use-exam-schedules";
+import { useExamScheduleById, useArchiveExamSchedule, useUpdateExamSchedule } from "@/hooks/use-exam-schedules";
 import SeatingPlan from "../components/SeatingPlan";
+import AssignProctorDialog from "../components/AssignProctorDialog";
 import { ROUTES } from "@/lib/constants/routes";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
@@ -40,6 +41,9 @@ export default function ExamScheduleDetailPage() {
 
   const { data: schedule, isLoading, error } = useExamScheduleById(scheduleId);
   const archiveMutation = useArchiveExamSchedule();
+  const updateMutation = useUpdateExamSchedule();
+
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -208,7 +212,18 @@ export default function ExamScheduleDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.invigilator")}</p>
-                  <p className="font-semibold text-slate-900">{schedule.proctorId || "N/A"}</p>
+                  <div className="flex items-center justify-between group/proctor">
+                    <p className="font-semibold text-slate-900">{schedule.proctorName || schedule.proctorId || t("examOfficer.detailSchedule.noProctorAssigned")}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1 opacity-0 group-hover/proctor:opacity-100 transition-opacity"
+                      onClick={() => setIsAssignDialogOpen(true)}
+                    >
+                      <Users className="h-3 w-3" />
+                      {schedule.proctorId ? "Change" : "Assign"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -314,6 +329,24 @@ export default function ExamScheduleDetailPage() {
           </Card>
         </div>
       </div>
+      <AssignProctorDialog
+        isOpen={isAssignDialogOpen}
+        onClose={() => setIsAssignDialogOpen(false)}
+        currentProctorId={schedule.proctorId}
+        isUpdating={updateMutation.isPending}
+        onAssign={async (proctorId) => {
+          try {
+            await updateMutation.mutateAsync({
+              id: schedule.id,
+              data: { proctorId }
+            });
+            toast.success("Proctor assigned successfully");
+            setIsAssignDialogOpen(false);
+          } catch (err: any) {
+            toast.error(err?.message || "Failed to assign proctor");
+          }
+        }}
+      />
     </div >
   );
 }

@@ -16,6 +16,8 @@ export interface StudentExam {
     updatedAt: string;
     studentName?: string | null;
     studentCode?: string | null;
+    studentAvatarUrl?: string | null;
+    citizenId?: string | null;
 }
 
 export interface PaginatedStudentExamResponse {

@@ -12,7 +12,8 @@
         "previous": "Trước",
         "next": "Tiếp",
         "logoutSuccess": "Đăng xuất thành công",
-        "actions": "Thao tác"
+        "actions": "Thao tác",
+        "cancel": "Hủy"
     },
     "Login": {
         "title": "Chào mừng bạn",
@@ -163,7 +164,10 @@
                 "statusCompleted": "Phiên thi này đã kết thúc.",
                 "statusUpcoming": "Phiên thi này được lên lịch cho tương lai.",
                 "refresh": "Làm mới",
-                "back": "Quay lại danh sách"
+                "back": "Quay lại danh sách",
+                "assignProctor": "Gán giám thị",
+                "selectProctor": "Chọn giám thị",
+                "noProctorAssigned": "Chưa gán giám thị"
             },
             "actions": {
                 "viewRooms": "Xem phòng thi",
