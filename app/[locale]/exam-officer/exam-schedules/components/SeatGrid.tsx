@@ -12,6 +12,8 @@ interface SeatGridProps {
   onSeatLockToggle?: (seat: ExamSeat) => void;
   isEditing?: boolean;
   userRole?: string;
+  isSwapMode?: boolean;
+  swapSourceSeat?: ExamSeat | null;
 }
 
 export function SeatGrid({
@@ -23,19 +25,21 @@ export function SeatGrid({
   onSeatLockToggle,
   isEditing = false,
   userRole = 'GUEST',
+  isSwapMode = false,
+  swapSourceSeat = null,
 }: SeatGridProps) {
-  // Map students to seats for easy lookup
-  const studentMap = new Map<string, StudentExam>();
+  // Map students to seats by seatPosition (seat ID) for finalized layouts
+  const studentBySeatId = new Map<string, StudentExam>();
   students.forEach(st => {
-    if (st.seatNumber) {
-      studentMap.set(st.seatNumber, st);
+    if (st.seatPosition) {
+      studentBySeatId.set(st.seatPosition, st);
     }
   });
 
   const renderSeat = (row: number, col: number) => {
-    const seatNumber = (row - 1) * cols + col;
     const seat = seats.find(s => s.row === row && s.col === col);
-    const student = studentMap.get(seatNumber.toString());
+    const student = seat ? studentBySeatId.get(seat.id) : undefined;
+    const isSwapSource = isSwapMode && swapSourceSeat?.id === seat?.id;
 
     return (
       <SeatCell
@@ -49,6 +53,8 @@ export function SeatGrid({
         onLockToggle={onSeatLockToggle}
         isEditing={isEditing}
         userRole={userRole}
+        isSwapMode={isSwapMode}
+        isSwapSource={isSwapSource}
       />
     );
   };

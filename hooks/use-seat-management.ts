@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import apiClient from '@/lib/api/client';
+import { examSeatsApi } from '@/lib/api/exam-seats';
 
 export interface ExamSeat {
   id: string;
@@ -93,6 +94,31 @@ export const useSeatManagement = (examSessionId: string) => {
     [updateSeatStatus]
   );
 
+  // Swap two seats
+  const swapSeats = useCallback(
+    async (sourceSeatId: string, targetSeatId: string) => {
+      try {
+        setError(null);
+        const response = await examSeatsApi.swapSeats(sourceSeatId, targetSeatId);
+
+        if (response.success) {
+          // Refetch seats to get updated state
+          // This will be handled by the calling component
+          return { success: true, data: response.data };
+        } else {
+          setError(response.message || 'Failed to swap seats');
+          return { success: false, error: response.message || 'Failed to swap seats' };
+        }
+      } catch (err: any) {
+        const errorMsg = err?.response?.data?.message || 'Error swapping seats';
+        setError(errorMsg);
+        console.error('Error swapping seats:', err);
+        return { success: false, error: errorMsg };
+      }
+    },
+    []
+  );
+
   // Get seat by coordinates
   const getSeatByCoordinate = useCallback(
     (row: number, col: number): ExamSeat | undefined => {
@@ -109,6 +135,7 @@ export const useSeatManagement = (examSessionId: string) => {
     updateSeatStatus,
     lockSeat,
     unlockSeat,
+    swapSeats,
     getSeatByCoordinate,
   };
 };

@@ -50,7 +50,7 @@ export function SeatActionsPanel({
             {showFinalizeButton && (
               <Button
                 onClick={onFinalize}
-                variant="default"
+                variant="primary"
                 className="gap-2 bg-orange-600 hover:bg-orange-700"
                 disabled={isFinalizingSeats}
               >
@@ -79,7 +79,7 @@ export function SeatActionsPanel({
             </Button>
             <Button
               onClick={() => onEditToggle(false)}
-              variant="default"
+              variant="primary"
               className="bg-green-600 hover:bg-green-700 gap-2"
             >
               <Save className="h-4 w-4" />
@@ -124,10 +124,10 @@ export function SeatActionsPanel({
       )}
 
       {/* Help text when finalized */}
-      {hasStudentsImported && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-[12px] text-green-700 font-medium">
-            ✅ Seats have been finalized. Layout editing is locked.
+      {hasStudentsImported && !isEditing && (
+        <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+          <p className="text-[12px] text-cyan-700 font-medium">
+            ✅ Seats finalized. 🔄 Click two seats to swap students (locked seats cannot be swapped).
           </p>
         </div>
       )}

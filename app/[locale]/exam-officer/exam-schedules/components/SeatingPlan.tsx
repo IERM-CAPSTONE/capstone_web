@@ -37,6 +37,7 @@ export default function SeatingPlan({
         fetchSeats,
         lockSeat,
         unlockSeat,
+        swapSeats,
     } = useSeatManagement(examSessionId);
 
     // UI state
@@ -45,12 +46,18 @@ export default function SeatingPlan({
     const [selectedSeat, setSelectedSeat] = useState<ExamSeat | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
     const [isFinalizingSeats, setIsFinalizingSeats] = useState(false);
+    const [swapSourceSeat, setSwapSourceSeat] = useState<ExamSeat | null>(null);
 
     const students = studentsResponse?.data || [];
     const rows = maxRows || 5;
     const cols = maxColumns || 6;
-    const hasStudentsImported = scheduleData?.hasStudentsImported || false;
+    const hasAssignedStudents = students.some(s => !!s.seatPosition);
+    const hasStudentsImported = scheduleData?.hasStudentsImported ?? hasAssignedStudents;
     const unassignedStudentsCount = students.filter(s => !s.seatPosition).length;
+    const isLoading = studentsLoading || seatsLoading;
+    
+    // Auto-enable swap mode when finalized and not editing
+    const isSwapMode = hasStudentsImported && !isEditing;
 
     // Fetch seats on mount
     useEffect(() => {
@@ -61,6 +68,32 @@ export default function SeatingPlan({
     const handleSeatSelect = (seat: ExamSeat | undefined) => {
         if (!seat) return;
         
+        // If in swap mode, handle swap logic
+        if (isSwapMode) {
+            if (seat.status === 'Locked') {
+                setActionError('Cannot swap locked seats');
+                return;
+            }
+
+            if (!swapSourceSeat) {
+                // First seat selected
+                setSwapSourceSeat(seat);
+                setActionError(null);
+            } else {
+                // Check if clicking the same seat to cancel
+                if (seat.id === swapSourceSeat.id) {
+                    setSwapSourceSeat(null);
+                    setActionError(null);
+                    return;
+                }
+                
+                // Second seat selected - perform swap
+                handleSwapSeatsInternal(swapSourceSeat.id, seat.id);
+            }
+            return;
+        }
+
+        // Normal selection mode
         setSelectedSeat(seat);
 
         // Find corresponding student
@@ -90,6 +123,31 @@ export default function SeatingPlan({
         }
     };
 
+    // Handle swap seats
+    const handleSwapSeatsInternal = async (sourceSeatId: string, targetSeatId: string) => {
+        try {
+            setActionError(null);
+            const result = await swapSeats(sourceSeatId, targetSeatId);
+
+            if (result.success) {
+                toast.success('Seats swapped successfully!');
+                // Refresh seat data
+                await fetchSeats();
+                await refetchStudents();
+                // Reset swap state
+                setSwapSourceSeat(null);
+            } else {
+                const errorMsg = result.error || 'Failed to swap seats';
+                setActionError(errorMsg);
+                toast.error(errorMsg);
+            }
+        } catch (err: any) {
+            const errorMsg = err?.response?.data?.message || 'Error swapping seats';
+            setActionError(errorMsg);
+            toast.error(errorMsg);
+        }
+    };
+
     // Handle finalize seat assignments
     const handleFinalizeSeats = async () => {
         try {
@@ -115,8 +173,6 @@ export default function SeatingPlan({
             setIsFinalizingSeats(false);
         }
     };
-
-    const isLoading = studentsLoading || seatsLoading;
 
     return (
         <div className="space-y-6">
@@ -170,6 +226,8 @@ export default function SeatingPlan({
                     students={students}
                     onSeatSelect={handleSeatSelect}
                     onSeatLockToggle={handleSeatLockToggle}
+                    isSwapMode={isSwapMode}
+                    swapSourceSeat={swapSourceSeat}
                     isEditing={isEditing}
                     userRole={user?.role}
                 />

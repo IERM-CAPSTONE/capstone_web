@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils/cn";
 import { ExamSeat } from "@/hooks/use-seat-management";
-import { Lock, Unlock } from "lucide-react";
+import { Lock, Unlock, Shuffle } from "lucide-react";
 
 interface SeatCellProps {
   seat?: ExamSeat;
@@ -12,6 +12,8 @@ interface SeatCellProps {
   onLockToggle?: (seat: ExamSeat) => void;
   isEditing?: boolean;
   userRole?: string;
+  isSwapMode?: boolean;
+  isSwapSource?: boolean;
 }
 
 export function SeatCell({
@@ -22,6 +24,8 @@ export function SeatCell({
   studentStatus,
   onSelect,
   onLockToggle,
+  isSwapMode = false,
+  isSwapSource = false,
   isEditing = false,
   userRole = 'GUEST',
 }: SeatCellProps) {
@@ -46,36 +50,43 @@ export function SeatCell({
     // Assigned seat - Orange/Yellow
     seatStyles = "bg-orange-50 border-orange-200 shadow-sm";
     textStyles = "text-orange-700";
-    labelStyles = "text-orange-800";
+    labelStyles = "text-orange-500";
     statusText = studentCode || "ASSIGNED";
   } else if (seat?.status === 'Present') {
     // Present seat - Blue
     seatStyles = "bg-blue-50 border-blue-200 shadow-sm";
     textStyles = "text-blue-700";
-    labelStyles = "text-blue-800";
+    labelStyles = "text-blue-500";
     statusText = studentCode || "PRESENT";
   } else if (seat?.status === 'Absent') {
     // Absent seat - Red
     seatStyles = "bg-red-50 border-red-200 shadow-sm";
     textStyles = "text-red-700";
-    labelStyles = "text-red-800";
+    labelStyles = "text-red-500";
     statusText = studentCode || "ABSENT";
   } else if (seat?.status === 'Available') {
     // Available seat - Green
     seatStyles = "bg-green-50 border-green-200 shadow-sm";
     textStyles = "text-green-700";
-    labelStyles = "text-green-800";
+    labelStyles = "text-green-500";
     statusText = "Available";
   }
 
+  const canSwap = isSwapMode && seat && seat.status !== 'Locked' && ['admin', 'exam_officer', 'proctor'].includes(userRole);
   const canManage = isEditing && ['admin', 'exam_officer', 'proctor'].includes(userRole);
   const canLock = canManage && seat && (seat.status === 'Available' || seat.status === 'Locked');
 
   return (
     <div
-      onClick={() => {
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (canLock && seat) {
           onLockToggle?.(seat);
+          return;
+        }
+        if (canSwap && seat) {
+          onSelect(seat);
           return;
         }
         if (seat) {
@@ -85,6 +96,9 @@ export function SeatCell({
       className={cn(
         "relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 h-[70px] group",
         seat ? "cursor-pointer hover:scale-105 hover:shadow-md z-10" : "cursor-default",
+        // Add swap mode styling
+        isSwapSource && "ring-4 ring-cyan-400 shadow-lg scale-105",
+        canSwap && !isSwapSource && "hover:ring-2 hover:ring-cyan-300",
         seatStyles
       )}
     >
@@ -111,10 +125,17 @@ export function SeatCell({
         </button>
       )}
 
+      {/* Swap mode indicator - appears when seat is selected as source */}
+      {isSwapSource && (
+        <div className="absolute top-1 right-1 p-1 rounded-md bg-cyan-100 text-cyan-600">
+          <Shuffle className="h-3 w-3" />
+        </div>
+      )}
+
       <div className={cn("text-[10px] font-black mb-0.5 uppercase tracking-tighter", labelStyles)}>
         {label}
       </div>
-      <div className={cn("text-[13px] font-black tracking-tight flex items-center gap-1", textStyles)}>
+      <div className={cn("text-[14px] font-black tracking-tight flex items-center gap-1", textStyles)}>
         {statusIcon}
         {statusText}
       </div>
