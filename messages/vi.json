@@ -1,17 +1,24 @@
 {
     "Common": {
-        "welcome": "Chào mừng quay trở lại",
+        "welcome": "Chào mừng trở lại",
         "loading": "Đang tải...",
+        "refresh": "Làm mới",
+        "save": "Lưu",
+        "cancel": "Hủy",
+        "delete": "Xóa",
+        "edit": "Chỉnh sửa",
+        "create": "Tạo",
+        "update": "Cập nhật",
+        "processing": "Đang xử lý...",
         "logout": "Đăng xuất",
-        "error": "Đã xảy ra lỗi",
-        "signingIn": "Đang đăng nhập...",
-        "loadingDashboard": "Đang tải bảng điều khiển...",
-        "home": "Trang chủ",
-        "viewAll": "Xem tất cả",
+        "error": "Đã có lỗi xảy ra",
+        "noResults": "Không tìm thấy kết quả",
+        "showing": "Hiển thị",
+        "to": "đến",
+        "of": "trên",
         "page": "Trang",
         "previous": "Trước",
-        "next": "Tiếp",
-        "logoutSuccess": "Đăng xuất thành công",
+        "next": "Sau",
         "actions": "Thao tác"
     },
     "Login": {
@@ -170,7 +177,8 @@
                 "viewSchedules": "Xem lịch thi",
                 "viewEvents": "Xem sự kiện",
                 "createSchedule": "Tạo lịch thi",
-                "importSchedule": "Nhập Lịch + Sinh viên",
+                "autoCreateSchedule": "Tạo lịch thi tự động",
+                "importSchedule": "Nhập lịch thi sẵn",
                 "importProctors": "Nhập Giám thị",
                 "importExamCodes": "Nhập Mã đề thi",
                 "viewDetails": "Xem chi tiết",
@@ -335,5 +343,83 @@
     "Metadata": {
         "title": "IERM - Hệ thống quản lý phòng thi thông minh",
         "description": "Hệ thống quản lý phòng thi thông minh dành cho Đại học FPT - An toàn, hiệu quả và tin cậy."
-    }
-}
+    },
+    "Sidebar": {
+        "dashboard": "Bảng điều khiển",
+        "accounts": "Quản lý tài khoản",
+        "rooms": "Phòng thi",
+        "devices": "Thiết bị",
+        "semesters": "Học kỳ",
+        "schedules": "Lịch thi",
+        "applications": "Đơn đăng ký",
+        "subjects": "Môn học"
+    },
+    "Semesters": {
+        "title": "Quản lý học kỳ",
+        "subtitle": "Cấu hình các học kỳ và thời gian hoạt động",
+        "addSemester": "Thêm học kỳ",
+        "searchPlaceholder": "Tìm kiếm theo mã hoặc tên...",
+        "table": {
+            "code": "Mã học kỳ",
+            "name": "Tên học kỳ",
+            "startDate": "Ngày bắt đầu",
+            "endDate": "Ngày kết thúc",
+            "actions": "Thao tác"
+        },
+        "dialog": {
+            "createTitle": "Thêm học kỳ",
+            "editTitle": "Chỉnh sửa học kỳ",
+            "code": "Mã học kỳ",
+            "codePlaceholder": "VD: SP26",
+            "name": "Tên học kỳ",
+            "namePlaceholder": "VD: Spring 2026",
+            "startDate": "Ngày bắt đầu",
+            "endDate": "Ngày kết thúc",
+            "cancel": "Hủy",
+            "save": "Lưu",
+            "createSuccess": "Tạo học kỳ thành công",
+            "updateSuccess": "Cập nhật học kỳ thành công",
+            "deleteSuccess": "Xóa học kỳ thành công"
+        },
+        "pagination": {
+            "showing": "Hiển thị",
+            "to": "đến",
+            "of": "trên",
+            "results": "học kỳ",
+            "previous": "Trước",
+            "next": "Sau"
+        }
+    },
+    "Subjects": {
+        "title": "Quản lý môn học",
+        "subtitle": "Quản lý môn thi và các thành phần thi linh hoạt",
+        "addSubject": "Thêm môn học",
+        "importSubjects": "Nhập môn học",
+        "searchPlaceholder": "Tìm kiếm theo mã, tên hoặc bộ môn...",
+        "manageExamTypes": "Quản lý loại thi",
+        "quickSearch": "Tìm kiếm nhanh",
+        "table": {
+            "code": "Mã môn học",
+            "name": "Tên môn học",
+            "semester": "Học kỳ",
+            "department": "Bộ môn",
+            "parts": "Thành phần thi",
+            "actions": "Thao tác",
+            "noParts": "Chưa định nghĩa thành phần",
+            "results": "môn học"
+        },
+        "dialog": {
+            "createTitle": "Thêm môn học",
+            "editTitle": "Chỉnh sửa môn học",
+            "code": "Mã môn học",
+            "name": "Tên môn học",
+            "semester": "Học kỳ",
+            "department": "Bộ môn",
+            "parts": "Thành phần thi",
+            "addPart": "Thêm thành phần",
+            "duration": "Thời lượng (phút)",
+            "examType": "Loại thi",
+            "noParts": "Chưa có thành phần thi nào được thêm.",
+            "typeLabel": "Loại"
+        }
+    }}

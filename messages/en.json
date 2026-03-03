@@ -2,16 +2,23 @@
     "Common": {
         "welcome": "Welcome back",
         "loading": "Loading...",
+        "refresh": "Refresh",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "update": "Update",
+        "processing": "Processing...",
         "logout": "Logout",
         "error": "An error occurred",
-        "signingIn": "Signing you in...",
-        "loadingDashboard": "Loading dashboard...",
-        "home": "Home",
-        "viewAll": "View All",
+        "noResults": "No results found",
+        "showing": "Showing",
+        "to": "to",
+        "of": "of",
         "page": "Page",
         "previous": "Previous",
         "next": "Next",
-        "logoutSuccess": "Logged out successfully",
         "actions": "Actions"
     },
     "Login": {
@@ -170,7 +177,8 @@
                 "viewSchedules": "View Schedules",
                 "viewEvents": "View Events",
                 "createSchedule": "Create Schedule",
-                "importSchedule": "Import Schedule + Students",
+                "autoCreateSchedule": "Auto Create Schedule",
+                "importSchedule": "Import Prepared Schedule",
                 "importProctors": "Import Proctors",
                 "importExamCodes": "Import Exam Codes",
                 "viewDetails": "View Details",
@@ -335,5 +343,84 @@
     "Metadata": {
         "title": "IERM - Intelligent Examination Room Management",
         "description": "Smart examination management system for FPT University - Secure, efficient, and reliable."
+    },
+    "Sidebar": {
+        "dashboard": "Dashboard",
+        "accounts": "Account Management",
+        "rooms": "Exam Rooms",
+        "devices": "Devices",
+        "semesters": "Semesters",
+        "schedules": "Exam Schedules",
+        "applications": "Proctor Applications",
+        "subjects": "Subjects"
+    },
+    "Semesters": {
+        "title": "Semester Management",
+        "subtitle": "Configure academic terms and their active periods",
+        "addSemester": "Add Semester",
+        "searchPlaceholder": "Search by code or name...",
+        "table": {
+            "code": "Code",
+            "name": "Name",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "actions": "Actions"
+        },
+        "dialog": {
+            "createTitle": "Add Semester",
+            "editTitle": "Edit Semester",
+            "code": "Semester Code",
+            "codePlaceholder": "e.g. SP26",
+            "name": "Semester Name",
+            "namePlaceholder": "e.g. Spring 2026",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "cancel": "Cancel",
+            "save": "Save",
+            "createSuccess": "Semester created successfully",
+            "updateSuccess": "Semester updated successfully",
+            "deleteSuccess": "Semester deleted successfully"
+        },
+        "pagination": {
+            "showing": "Showing",
+            "to": "to",
+            "of": "of",
+            "results": "semesters",
+            "previous": "Previous",
+            "next": "Next"
+        }
+    },
+    "Subjects": {
+        "title": "Subject Management",
+        "subtitle": "Manage exam subjects and their components",
+        "addSubject": "Add Subject",
+        "importSubjects": "Import Subjects",
+        "searchPlaceholder": "Search by code or name...",
+        "manageExamTypes": "Manage Exam Types",
+        "quickSearch": "Quick Search",
+        "table": {
+            "code": "Subject Code",
+            "name": "Name",
+            "semester": "Semester",
+            "department": "Department",
+            "parts": "Exam Parts",
+            "actions": "Actions",
+            "noParts": "No parts defined",
+            "results": "subjects"
+        },
+        "dialog": {
+            "createTitle": "Add Subject",
+            "editTitle": "Edit Subject",
+            "code": "Subject Code",
+            "name": "Subject Name",
+            "semester": "Semester",
+            "department": "Department",
+            "parts": "Exam Components",
+            "addPart": "Add Component",
+            "duration": "Duration (min)",
+            "examType": "Exam Type",
+            "noParts": "No exam components added yet.",
+            "typeLabel": "Type"
+        }
     }
 }

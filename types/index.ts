@@ -79,3 +79,39 @@ export interface PaginationParams {
   order?: "asc" | "desc";
 }
 
+export interface ExamType {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface SubjectPart {
+  id: string;
+  subjectId: string;
+  examTypeId: string;
+  duration: number | null;
+  examType?: ExamType;
+}
+
+export interface Subject {
+  id: string;
+  code: string;
+  name: string | null;
+  semesterId: string | null;
+  semester?: Semester;
+  department: string | null;
+  parts: SubjectPart[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Semester {
+  id: string;
+  code: string;
+  name: string | null;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+}

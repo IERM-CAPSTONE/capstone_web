@@ -489,7 +489,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                         ) : (
                                             <>
                                                 <Import className="mr-2 h-4 w-4" />
-                                                Import Schedules + Students
+                                                Import Prepared Schedule
                                             </>
                                         )}
                                     </Button>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/store/ui-store";
 import { useAuthStore } from "@/store/auth-store";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Building2,
@@ -17,44 +18,46 @@ import {
   FileText,
   Settings,
   ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
 
-const adminMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_ADMIN },
-  { icon: Users, label: "Account Management", href: ROUTES.ADMIN_ACCOUNTS },
-  { icon: Building2, label: "Exam Room Management", href: ROUTES.ROOMS },
-  { icon: Users, label: "Device Management", href: ROUTES.ADMIN_DEVICES },
-];
-
-const examOfficerMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_EXAM_OFFICER },
-  { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
-  { icon: ClipboardList, label: "Proctor Applications", href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
-  { icon: Building2, label: "Exam Rooms", href: ROUTES.EXAM_OFFICER_ROOMS },
-  { icon: AlertCircle, label: "Monitoring", href: ROUTES.MONITORING },
-  { icon: FileText, label: "Reports", href: ROUTES.REPORTS },
-  { icon: Users, label: "Students", href: ROUTES.STUDENTS },
-];
-
-const proctorMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: ROUTES.DASHBOARD_PROCTOR },
-  { icon: ClipboardList, label: "My Applications", href: ROUTES.PROCTOR_APPLICATIONS },
-  { icon: Calendar, label: "Exam Schedules", href: ROUTES.EXAMS_SCHEDULE },
-];
-
 export function Sidebar() {
+  const t = useTranslations("Sidebar");
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user } = useAuthStore();
 
-  const menuItems = 
-    user?.role === "exam_officer" 
-      ? examOfficerMenuItems 
+  const adminMenuItems = [
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_ADMIN },
+    { icon: Users, label: t("accounts"), href: ROUTES.ADMIN_ACCOUNTS },
+    { icon: Building2, label: t("rooms"), href: ROUTES.ROOMS },
+    { icon: Users, label: t("devices"), href: ROUTES.ADMIN_DEVICES },
+    { icon: Calendar, label: t("semesters"), href: ROUTES.ADMIN_SEMESTERS },
+  ];
+
+  const examOfficerMenuItems = [
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_EXAM_OFFICER },
+    { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
+    { icon: ClipboardList, label: t("applications"), href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
+    { icon: Building2, label: t("rooms"), href: ROUTES.EXAM_OFFICER_ROOMS },
+    { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },
+    { icon: Calendar, label: t("semesters"), href: ROUTES.EXAM_OFFICER_SEMESTERS },
+  ];
+
+  const proctorMenuItems = [
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_PROCTOR },
+    { icon: ClipboardList, label: t("applications"), href: ROUTES.PROCTOR_APPLICATIONS },
+    { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
+  ];
+
+  const menuItems =
+    user?.role === "exam_officer"
+      ? examOfficerMenuItems
       : user?.role === "proctor"
-      ? proctorMenuItems
-      : adminMenuItems;
+        ? proctorMenuItems
+        : adminMenuItems;
 
   return (
     <>
