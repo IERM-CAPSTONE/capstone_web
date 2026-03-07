@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor";
+export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor" | "it_support" | "hall_invigilator";
 
 export type RoomStatus = "available" | "occupied" | "maintenance";
 

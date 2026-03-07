@@ -109,18 +109,6 @@ export const examSchedulesApi = {
     return response.data.data;
   },
 
-  // Update exam schedule
-  update: async (
-    id: string,
-    data: UpdateExamScheduleData
-  ): Promise<ExamSchedule> => {
-    const response = await apiClient.patch<{ data: ExamSchedule }>(
-      `/exam-sessions/${id}`,
-      data
-    );
-    return response.data.data;
-  },
-
   // Delete exam schedule
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/exam-sessions/${id}`);
@@ -175,6 +163,20 @@ export const examSchedulesApi = {
   importCodes: async (payload: { importType: string; codes: any[] }): Promise<any> => {
     const response = await apiClient.post("/exam-sessions/import-codes", payload);
     return response.data;
+  },
+
+  // Update exam session fields (e.g. proctorId, status, note)
+  update: async (id: string, data: Partial<{
+    proctorId: string | null;
+    hallInvigilatorId: string | null;
+    status: string;
+    note: string;
+    openCode: string;
+    examRoomId: string | null;
+    semesterId: string | null;
+  }>): Promise<ExamSchedule> => {
+    const response = await apiClient.patch<any>(`/exam-sessions/${id}`, data);
+    return response.data?.data ?? response.data;
   },
 };
 

@@ -1,503 +1,388 @@
 "use client";
 
+import { useMemo } from "react";
+import Link from "next/link";
+import { format, isToday, parseISO } from "date-fns";
+import { vi } from "date-fns/locale";
+import {
+  Calendar, Clock, Users, UserCheck, Building2, Ticket,
+  ClipboardList, ChevronRight, CheckCircle2, XCircle,
+  AlertCircle, BookOpen, Loader2, RefreshCw, Plus,
+  FileSpreadsheet, UserCog, Layers,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Building2,
-  Calendar,
-  Ticket,
-  ClipboardList,
-  Users,
-  GraduationCap,
-  UserCheck,
-  Clock,
-  MapPin,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  FileText,
-  TrendingUp,
-  Download
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { useExamSchedules } from "@/hooks/use-exam-schedules";
+import {
+  useProctorApplications,
+  useUpdateProctorApplicationStatus,
+} from "@/hooks/use-proctor-applications";
+import { ExamSchedule } from "@/lib/api/exam-schedules";
+import { toast } from "sonner";
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+function computeStatus(open: string | null, close: string | null) {
+  if (!open || !close) return "upcoming";
+  const now = new Date();
+  const o = new Date(open), c = new Date(close);
+  if (now < o) return "upcoming";
+  if (now <= c) return "ongoing";
+  return "completed";
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  upcoming: "Sắp diễn ra",
+  ongoing: "Đang diễn ra",
+  completed: "Đã kết thúc",
+};
+const STATUS_COLOR: Record<string, string> = {
+  upcoming: "bg-blue-100 text-blue-700",
+  ongoing: "bg-green-100 text-green-700",
+  completed: "bg-slate-100 text-slate-500",
+};
+const STATUS_DOT: Record<string, string> = {
+  upcoming: "bg-blue-500",
+  ongoing: "bg-green-500 animate-pulse",
+  completed: "bg-slate-400",
+};
+
+// ── Stat Card ─────────────────────────────────────────────────────────────────
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  sub?: string;
+}
+function StatCard({ label, value, icon: Icon, iconBg, iconColor, sub }: StatCardProps) {
+  return (
+    <Card className="border-none shadow-sm">
+      <CardContent className="p-5 flex items-center gap-4">
+        <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", iconBg)}>
+          <Icon className={cn("w-6 h-6", iconColor)} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
+          {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ExamOfficerDashboard() {
-  const [activeTab, setActiveTab] = useState<'today' | 'week'>('today');
+  // Real data: today's schedule
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const { data: scheduleResp, isLoading: schedLoading, refetch: refetchSched } = useExamSchedules({
+    fromDate: todayStr,
+    toDate: todayStr,
+    limit: 50,
+  });
 
-  // Mock data - sẽ thay thế bằng API calls sau
-  const stats = [
-    {
-      label: "Total Exam Rooms",
-      value: "24",
-      icon: Building2,
-      color: "blue",
-    },
-    {
-      label: "Total Exams Today",
-      value: "12",
-      icon: Calendar,
-      color: "orange",
-    },
-    {
-      label: "Total Students",
-      value: "1,847",
-      icon: GraduationCap,
-      color: "green",
-    },
-    {
-      label: "Active Proctors",
-      value: "18",
-      icon: UserCheck,
-      color: "purple",
-    },
-  ];
+  // Pending proctor applications
+  const { data: appsResp, isLoading: appsLoading, refetch: refetchApps } = useProctorApplications({
+    status: "PENDING",
+    limit: 10,
+  });
 
-  const examSchedules = [
-    {
-      id: "1",
-      name: "Advanced Algorithms",
-      status: "completed",
-      time: "08:00 - 10:00",
-      room: "Room A001",
-      students: 45,
-    },
-    {
-      id: "2",
-      name: "Database Management I",
-      status: "ongoing",
-      time: "10:30 - 12:30",
-      room: "Room B105",
-      students: 50,
-    },
-    {
-      id: "3",
-      name: "Software Engineering",
-      status: "upcoming",
-      time: "14:00 - 16:00",
-      room: "Room A003",
-      students: 52,
-    },
-    {
-      id: "4",
-      name: "Machine Learning",
-      status: "upcoming",
-      time: "14:30 - 16:30",
-      room: "Room C001",
-      students: 38,
-    },
-  ];
+  const { mutate: updateStatus } = useUpdateProctorApplicationStatus();
 
-  const invigilatorApplications = [
-    {
-      id: "1",
-      name: "Dr. Trần Minh Hiếu",
-      email: "hieu.tranminh.edu",
-      room: "Room A301",
-      date: "Jan 8, 2026",
-      status: "pending",
-    },
-    {
-      id: "2",
-      name: "Ms. Lê Thị Thu",
-      email: "thu.le@fpt.edu",
-      room: "Room B105",
-      date: "Jan 9, 2026",
-      status: "pending",
-    },
-    {
-      id: "3",
-      name: "Mr. Nguyễn Quang Dũng",
-      email: "dung.nguyenquang@fpt.edu",
-      room: "Room C302",
-      date: "Jan 10, 2026",
-      status: "pending",
-    },
-  ];
+  const schedules: ExamSchedule[] = scheduleResp?.data ?? [];
+  const applications = appsResp?.data ?? [];
 
-  const ticketAlerts = [
-    {
-      id: "1",
-      severity: "high",
-      room: "Room A308",
-      time: "10:45 AM",
-      label: "Ticket alert",
-    },
-    {
-      id: "2",
-      severity: "medium",
-      room: "Room B201",
-      time: "10:30 AM",
-      label: "Ticket alert",
-    },
-    {
-      id: "3",
-      severity: "low",
-      room: "Room C102",
-      time: "10:15 AM",
-      label: "Ticket alert",
-    },
-    {
-      id: "4",
-      severity: "high",
-      room: "Room A301",
-      time: "09:52 AM",
-      label: "Ticket alert",
-    },
-  ];
+  // Derive stats from real data
+  const stats = useMemo(() => {
+    const ongoing = schedules.filter(s => computeStatus(s.examOpenTime, s.examCloseTime) === "ongoing").length;
+    const upcoming = schedules.filter(s => computeStatus(s.examOpenTime, s.examCloseTime) === "upcoming").length;
+    const completed = schedules.filter(s => computeStatus(s.examOpenTime, s.examCloseTime) === "completed").length;
+    const assignedRooms = new Set(schedules.map(s => s.examRoomId).filter(Boolean)).size;
+    return { ongoing, upcoming, completed, total: schedules.length, pendingApps: applications.length, assignedRooms };
+  }, [schedules, applications]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "text-gray-600 bg-gray-100";
-      case "ongoing":
-        return "text-green-700 bg-green-100";
-      case "upcoming":
-        return "text-blue-700 bg-blue-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
+  const handleApprove = (id: string) => {
+    updateStatus({ id, data: { status: "APPROVED" } }, {
+      onSuccess: () => { toast.success("Đã duyệt đơn đăng ký"); refetchApps(); },
+      onError: () => toast.error("Không thể duyệt đơn này"),
+    });
   };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return "bg-red-50 border-red-200";
-      case "medium":
-        return "bg-yellow-50 border-yellow-200";
-      case "low":
-        return "bg-green-50 border-green-200";
-      default:
-        return "bg-gray-50 border-gray-200";
-    }
-  };
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return "bg-red-100 text-red-700";
-      case "medium":
-        return "bg-yellow-100 text-yellow-700";
-      case "low":
-        return "bg-green-100 text-green-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
+  const handleReject = (id: string) => {
+    updateStatus({ id, data: { status: "REJECTED" } }, {
+      onSuccess: () => { toast.success("Đã từ chối đơn đăng ký"); refetchApps(); },
+      onError: () => toast.error("Không thể từ chối đơn này"),
+    });
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Dashboard
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Overview of exam operations and monitoring
-        </p>
+    <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto">
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Bảng điều khiển Khảo thí</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {format(new Date(), "EEEE, dd/MM/yyyy", { locale: vi })} · Hệ thống quản lý phòng thi
+          </p>
+        </div>
+        <button
+          onClick={() => { refetchSched(); refetchApps(); }}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-orange-600 transition-colors mt-1"
+        >
+          <RefreshCw className="w-4 h-4" /> Làm mới
+        </button>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/vi/exam-officer/exam-rooms">
-              <Button
-                variant="outline"
-                className="w-full h-auto py-4 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white border-none"
-              >
-                <Building2 className="h-5 w-5" />
-                <span className="font-medium">View Exam Rooms</span>
-              </Button>
-            </Link>
-            <Link href="/vi/exam-officer/exam-schedules">
-              <Button
-                variant="outline"
-                className="w-full h-auto py-4 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white border-none"
-              >
-                <Calendar className="h-5 w-5" />
-                <span className="font-medium">View Schedules</span>
-              </Button>
-            </Link>
-            <Link href="/vi/exam-officer/tickets">
-              <Button
-                variant="outline"
-                className="w-full h-auto py-4 flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white border-none"
-              >
-                <Ticket className="h-5 w-5" />
-                <span className="font-medium">View Tickets</span>
-              </Button>
-            </Link>
-            <Link href="/vi/exam-officer/exam-schedules/create">
-              <Button
-                variant="outline"
-                className="w-full h-auto py-4 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white border-none"
-              >
-                <ClipboardList className="h-5 w-5" />
-                <span className="font-medium">Create Schedule</span>
-              </Button>
+      {/* ── Quick Actions ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { href: "/vi/exam-officer/exam-schedules/create", icon: Plus, label: "Tạo lịch thi", bg: "bg-orange-500 hover:bg-orange-600" },
+          { href: "/vi/exam-officer/exam-schedules", icon: Calendar, label: "Quản lý lịch thi", bg: "bg-blue-500 hover:bg-blue-600" },
+          { href: "/vi/exam-officer/proctor-applications", icon: UserCog, label: "Đơn giám thị", bg: "bg-purple-500 hover:bg-purple-600" },
+          { href: "/vi/exam-officer/rooms", icon: Building2, label: "Phòng thi", bg: "bg-slate-600 hover:bg-slate-700" },
+        ].map(({ href, icon: Icon, label, bg }) => (
+          <Link key={href} href={href}>
+            <button className={cn("w-full h-14 flex items-center justify-center gap-2 rounded-xl text-white text-sm font-semibold transition-colors", bg)}>
+              <Icon className="w-4 h-4" />{label}
+            </button>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── Stat Cards ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Ca thi hôm nay" value={stats.total} icon={Calendar}
+          iconBg="bg-orange-100" iconColor="text-orange-600"
+          sub={`${stats.ongoing} đang diễn ra`} />
+        <StatCard label="Đang thi" value={stats.ongoing} icon={Clock}
+          iconBg="bg-green-100" iconColor="text-green-600"
+          sub={`${stats.upcoming} sắp diễn ra`} />
+        <StatCard label="Phòng được sử dụng" value={stats.assignedRooms} icon={Building2}
+          iconBg="bg-blue-100" iconColor="text-blue-600"
+          sub="hôm nay" />
+        <StatCard label="Đơn chờ duyệt" value={stats.pendingApps} icon={UserCheck}
+          iconBg="bg-purple-100" iconColor="text-purple-600"
+          sub="đơn đăng ký giám thị" />
+      </div>
+
+      {/* ── Main Grid ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Today's Schedule (2 cols) */}
+        <Card className="lg:col-span-2 border-none shadow-sm">
+          <CardHeader className="pb-2 px-5 pt-5">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-orange-500" />
+                Lịch thi hôm nay
+                <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold">{schedules.length}</span>
+              </CardTitle>
+              <Link href="/vi/exam-officer/exam-schedules" className="text-xs text-orange-500 hover:text-orange-600 flex items-center gap-0.5">
+                Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
+            {schedLoading ? (
+              <div className="flex items-center justify-center py-12 text-slate-400 gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" /> <span className="text-sm">Đang tải...</span>
+              </div>
+            ) : schedules.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                <BookOpen className="w-10 h-10 opacity-30 mb-2" />
+                <p className="text-sm">Không có ca thi nào hôm nay</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {schedules.map((s) => {
+                  const status = computeStatus(s.examOpenTime, s.examCloseTime);
+                  const openTime = s.examOpenTime ? format(new Date(s.examOpenTime), "HH:mm") : "--";
+                  const closeTime = s.examCloseTime ? format(new Date(s.examCloseTime), "HH:mm") : "--";
+                  return (
+                    <Link key={s.id} href={`/vi/exam-officer/exam-schedules/${s.id}`}>
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50/40 transition-all cursor-pointer group">
+                        <div className="shrink-0 w-10 h-10 rounded-lg bg-slate-100 flex flex-col items-center justify-center text-center">
+                          <span className="text-[10px] text-slate-500 font-semibold leading-none">{openTime}</span>
+                          <div className="w-4 h-px bg-slate-300 my-0.5" />
+                          <span className="text-[10px] text-slate-400 leading-none">{closeTime}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-slate-900 text-sm truncate">{s.subjectCode || s.examCode || "—"}</span>
+                            {s.examCode && <span className="text-xs text-slate-400 font-mono">{s.examCode}</span>}
+                            <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold", STATUS_COLOR[status])}>
+                              <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_DOT[status])} />
+                              {STATUS_LABEL[status]}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                            {s.roomNumber && (
+                              <span className="flex items-center gap-0.5">
+                                <Building2 className="w-3 h-3" /> {s.roomNumber}
+                              </span>
+                            )}
+                            {s.proctorName && (
+                              <span className="flex items-center gap-0.5">
+                                <Users className="w-3 h-3" /> {s.proctorName}
+                              </span>
+                            )}
+                            {s.semester && <span className="text-slate-400">{s.semester}</span>}
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-400 shrink-0" />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sidebar: Status Summary + Quick Links */}
+        <div className="space-y-4">
+          {/* Status breakdown */}
+          <Card className="border-none shadow-sm">
+            <CardHeader className="pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-slate-400" /> Tổng quan hôm nay
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 space-y-2">
+              {[
+                { label: "Đang diễn ra", count: stats.ongoing, color: "bg-green-500" },
+                { label: "Sắp diễn ra", count: stats.upcoming, color: "bg-blue-500" },
+                { label: "Đã kết thúc", count: stats.completed, color: "bg-slate-300" },
+              ].map(({ label, count, color }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("w-2 h-2 rounded-full", color)} />
+                    <span className="text-sm text-slate-600">{label}</span>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">{count}</span>
+                </div>
+              ))}
+              <div className="pt-2 mt-1 border-t border-slate-100">
+                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden flex gap-0.5">
+                  {stats.total > 0 && <>
+                    <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${(stats.ongoing / stats.total) * 100}%` }} />
+                    <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${(stats.upcoming / stats.total) * 100}%` }} />
+                    <div className="bg-slate-300 h-1.5 rounded-full transition-all" style={{ width: `${(stats.completed / stats.total) * 100}%` }} />
+                  </>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick shortcuts */}
+          <Card className="border-none shadow-sm">
+            <CardHeader className="pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4 text-slate-400" /> Truy cập nhanh
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-5 pb-4 space-y-1.5">
+              {[
+                { href: "/vi/exam-officer/subjects", label: "Quản lý môn học", icon: BookOpen },
+                { href: "/vi/exam-officer/semesters", label: "Học kỳ", icon: Calendar },
+                { href: "/vi/exam-officer/students", label: "Sinh viên", icon: Users },
+                { href: "/vi/exam-officer/rooms", label: "Phòng thi", icon: Building2 },
+              ].map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href}>
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors group">
+                    <Icon className="w-4 h-4 text-slate-400 group-hover:text-orange-500" />
+                    <span className="text-sm text-slate-700 group-hover:text-slate-900">{label}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-400 ml-auto" />
+                  </div>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ── Proctor Applications ───────────────────────────────── */}
+      <Card className="border-none shadow-sm">
+        <CardHeader className="pb-2 px-5 pt-5">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-purple-500" />
+              Đơn đăng ký giám thị chờ duyệt
+              {applications.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">{applications.length}</span>
+              )}
+            </CardTitle>
+            <Link href="/vi/exam-officer/proctor-applications" className="text-xs text-orange-500 hover:text-orange-600 flex items-center gap-0.5">
+              Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+        </CardHeader>
+        <CardContent className="px-5 pb-5">
+          {appsLoading ? (
+            <div className="flex items-center gap-2 py-6 justify-center text-slate-400">
+              <Loader2 className="w-4 h-4 animate-spin" /> <span className="text-sm">Đang tải...</span>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-slate-400">
+              <CheckCircle2 className="w-8 h-8 opacity-30 mb-2" />
+              <p className="text-sm">Không có đơn nào chờ duyệt</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {/* Table header */}
+              <div className="grid grid-cols-12 gap-2 px-2 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                <div className="col-span-3">Giảng viên</div>
+                <div className="col-span-2">Mã giảng viên</div>
+                <div className="col-span-2">Ca ưu tiên</div>
+                <div className="col-span-2">Loại ưu tiên</div>
+                <div className="col-span-2">Ngày mong muốn</div>
+                <div className="col-span-1 text-center">Hành động</div>
+              </div>
+              {applications.map((app) => (
+                <div key={app.id} className="grid grid-cols-12 gap-2 px-2 py-3 items-center hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="col-span-3">
+                    <p className="font-semibold text-sm text-slate-900 truncate">{app.teacherName || "—"}</p>
+                  </div>
+                  <div className="col-span-2 text-xs text-slate-500 font-mono">{app.teacherCode || "—"}</div>
+                  <div className="col-span-2">
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold",
+                      app.preferredShift === "MORNING" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700")}>
+                      {app.preferredShift === "MORNING" ? "Sáng" : "Chiều"}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold",
+                      app.preferredType === "ROOM" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700")}>
+                      {app.preferredType === "ROOM" ? "Phòng thi" : "Hội trường"}
+                    </span>
+                  </div>
+                  <div className="col-span-2 text-xs text-slate-500">
+                    {app.preferredDate ? format(new Date(app.preferredDate), "dd/MM/yyyy") : "—"}
+                  </div>
+                  <div className="col-span-1 flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => handleApprove(app.id)}
+                      title="Duyệt"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleReject(app.id)}
+                      title="Từ chối"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Stats */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index} className="overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Icon className={cn("h-8 w-8 mb-2", {
-                      "text-blue-500": stat.color === "blue",
-                      "text-orange-500": stat.color === "orange",
-                      "text-green-500": stat.color === "green",
-                      "text-purple-500": stat.color === "purple",
-                    })} />
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {stat.label}
-                    </p>
-                    <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-                      {stat.value}
-                    </h2>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Exam Schedule Overview - Takes 2 columns */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Exam Schedule Overview</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={activeTab === 'today' ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('today')}
-                  className={activeTab === 'today' ? 'bg-orange-500 hover:bg-orange-600' : ''}
-                >
-                  Today
-                </Button>
-                <Button
-                  variant={activeTab === 'week' ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('week')}
-                >
-                  This Week
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {examSchedules.map((exam) => (
-                <div
-                  key={exam.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-white hover:bg-gray-50 transition-colors"
-                >
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-gray-900">{exam.name}</h3>
-                      <span className={cn("px-3 py-1 rounded-full text-xs font-medium capitalize", getStatusColor(exam.status))}>
-                        {exam.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{exam.time}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{exam.room}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        <span>{exam.students} students</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <Button variant="link" className="w-full text-orange-500 hover:text-orange-600">
-                View All Schedules
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Ticket Alerts */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                Ticket Alert
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {ticketAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className={cn(
-                    "p-4 rounded-lg border-l-4 transition-colors",
-                    getSeverityColor(alert.severity)
-                  )}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className={cn("h-4 w-4", {
-                        "text-red-600": alert.severity === "high",
-                        "text-yellow-600": alert.severity === "medium",
-                        "text-green-600": alert.severity === "low",
-                      })} />
-                      <span className="text-sm font-medium text-gray-900">{alert.label}</span>
-                    </div>
-                    <span className={cn(
-                      "px-2 py-1 rounded text-xs font-medium capitalize",
-                      getSeverityBadge(alert.severity)
-                    )}>
-                      {alert.severity}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-700 font-medium mb-1">{alert.room}</div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                    <Clock className="h-3 w-3" />
-                    {alert.time}
-                  </div>
-                </div>
-              ))}
-              <Button variant="link" className="w-full text-orange-500 hover:text-orange-600">
-                View All Alerts
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Invigilator Applications and Reports */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Invigilator Applications - Takes 2 columns */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Invigilator Applications
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-gray-600 border-b">
-                <div className="col-span-3">Applicant</div>
-                <div className="col-span-3">Exam Room</div>
-                <div className="col-span-2">Date</div>
-                <div className="col-span-2">Status</div>
-                <div className="col-span-2 text-center">Actions</div>
-              </div>
-              {invigilatorApplications.map((app) => (
-                <div
-                  key={app.id}
-                  className="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="col-span-3">
-                    <div className="font-medium text-gray-900">{app.name}</div>
-                    <div className="text-xs text-gray-500">{app.email}</div>
-                  </div>
-                  <div className="col-span-3 text-sm text-gray-700">{app.room}</div>
-                  <div className="col-span-2 text-sm text-gray-600">{app.date}</div>
-                  <div className="col-span-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 capitalize">
-                      {app.status}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex items-center justify-center gap-2">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50">
-                      <CheckCircle2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button variant="link" className="w-full text-orange-500 hover:text-orange-600 mt-2">
-                View All Applications
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reports & Analytics */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Reports & Analytics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <button className="w-full p-4 rounded-lg border bg-blue-50 hover:bg-blue-100 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 mb-1">Exam Reports</h4>
-                    <p className="text-xs text-gray-600">View detailed statistics</p>
-                  </div>
-                </div>
-              </button>
-
-              <button className="w-full p-4 rounded-lg border bg-green-50 hover:bg-green-100 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 mb-1">Performance Analytics</h4>
-                    <p className="text-xs text-gray-600">Students & proctor metrics</p>
-                  </div>
-                </div>
-              </button>
-
-              <button className="w-full p-4 rounded-lg border bg-purple-50 hover:bg-purple-100 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <Download className="h-5 w-5 text-purple-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 mb-1">Export Data</h4>
-                    <p className="text-xs text-gray-600">Download CSV/PDF reports</p>
-                  </div>
-                </div>
-              </button>
-
-              <button className="w-full p-4 rounded-lg border bg-orange-50 hover:bg-orange-100 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-orange-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 mb-1">Monthly Summary</h4>
-                    <p className="text-xs text-gray-600">188 exams completed this month</p>
-                  </div>
-                </div>
-              </button>
-
-              <Button variant="link" className="w-full text-orange-500 hover:text-orange-600">
-                View Full Report
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
