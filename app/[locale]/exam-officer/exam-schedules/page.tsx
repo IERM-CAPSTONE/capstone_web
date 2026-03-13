@@ -28,6 +28,7 @@ import {
   Users,
   Code,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ROUTES } from "@/lib/constants/routes";
@@ -102,14 +103,23 @@ export default function ExamOfficerDashboardPage() {
           <h1 className="text-3xl font-bold">{t("examOfficer.examSchedules")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("examOfficer.manageSchedules")}</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            className="gap-2 bg-white hover:bg-orange-50 border-orange-200 text-orange-600 hover:text-orange-700 transition-all font-medium"
+            onClick={() => toast.info("Tính năng tạo lịch tự động đang được phát triển")}
+          >
+            <Zap className="h-4 w-4" />
+            {t("examOfficer.actions.autoCreateSchedule") || "Auto Create Schedule"}
+          </Button>
+
           <Button
             variant="outline"
             className="gap-2 bg-white hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700 transition-all"
             onClick={() => setShowScheduleDialog(true)}
           >
             <Upload className="h-4 w-4" />
-            {t("examOfficer.actions.importSchedule") || "Import Schedule + Students"}
+            {t("examOfficer.actions.importSchedule") || "Import Prepared Schedule"}
           </Button>
 
           <Button
@@ -316,9 +326,9 @@ export default function ExamOfficerDashboardPage() {
                           const now = new Date();
                           const open = schedule.examOpenTime ? parseLocalDate(schedule.examOpenTime) : null;
                           const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
-                          
+
                           if (!open || !close) return schedule.status as any || "Scheduled";
-                          
+
                           if (now < open) return "Upcoming";
                           if (now >= open && now <= close) return "Ongoing";
                           return "Completed";

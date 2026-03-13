@@ -18,13 +18,13 @@ export default function DashboardRedirectPage() {
 
       if (user.role === "admin") {
         router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
-      } else if (user.role === "exam_officer") {
+      } else if (user.role === "exam_officer" || user.role === "proctor") {
         router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
       } else if (user.role === "proctor") {
         router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
       } else {
-        // For other roles like staff/student if they don't have a specific dashboard yet
-        router.replace(`/${locale}/auth/login`);
+        // Redirect to a default authenticated page for other roles
+        router.replace(`/${locale}${ROUTES.DASHBOARD}`);
       }
     } else if (!isLoading && !user) {
       // Not authenticated, redirect to login

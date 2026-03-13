@@ -31,6 +31,7 @@ export const ROUTES = {
   ADMIN_ACCOUNTS_EDIT: (id: string) => `/admin/accounts/edit/${id}`,
   ADMIN_ACCOUNTS_DETAIL: (id: string) => `/admin/accounts/${id}`,
   ADMIN_DEVICES: "/admin/devices",
+  ADMIN_SEMESTERS: "/admin/semesters",
 
   // Rooms routes
   ROOMS: "/admin/rooms",
@@ -38,8 +39,10 @@ export const ROUTES = {
   ROOMS_DETAIL: (id: string) => `/admin/rooms/${id}`,
   ROOMS_EDIT: (id: string) => `/admin/rooms/${id}/edit`,
 
-  // Exam Officer rooms
+  // Exam Officer routes
   EXAM_OFFICER_ROOMS: "/exam-officer/rooms",
+  EXAM_OFFICER_SEMESTERS: "/exam-officer/semesters",
+  SUBJECTS: "/exam-officer/subjects",
 
   // Exam Schedules
   EXAMS_SCHEDULE: "/exam-officer/exam-schedules",

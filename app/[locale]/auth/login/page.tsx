@@ -62,19 +62,6 @@ export default function LoginPage() {
             </svg>
             {t("loginButton")}
           </Button>
-
-          {/* Warning/Info Box */}
-          <div className="rounded-lg bg-[#fff7ed] border-l-4 border-[#f97316] p-4">
-            <div className="flex gap-3">
-              <div className="mt-0.5 shrink-0">
-              </div>
-              <div className="text-xs text-gray-600 space-y-1">
-                <p>
-                  {t("emailNote")}
-                </p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

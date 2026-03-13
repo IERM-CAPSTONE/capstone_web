@@ -106,7 +106,7 @@ export default function SeatingPlan({
     const handleSeatLockToggle = async (seat: ExamSeat) => {
         try {
             setActionError(null);
-            
+
             if (seat.status === 'Locked') {
                 const result = await unlockSeat(seat.id);
                 if (!result.success) {
@@ -153,9 +153,9 @@ export default function SeatingPlan({
         try {
             setIsFinalizingSeats(true);
             setActionError(null);
-            
+
             const result = await examSchedulesApi.finalizeSeats(examSessionId);
-            
+
             if (result.success) {
                 toast.success(`Successfully assigned ${result.data.studentsAssigned} students to seats`);
                 // Refresh all data
