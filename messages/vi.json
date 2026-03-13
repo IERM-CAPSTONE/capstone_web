@@ -473,6 +473,13 @@
             "available": "Trống",
             "locked": "Khoá"
         },
+        "studentStatus": {
+            "REGISTERED": "Đã đăng ký",
+            "CHECKEDIN": "Đã điểm danh",
+            "CHECKEDOUT": "Ra ngoài",
+            "MOVED": "Đổi chỗ",
+            "REMOVED": "Vắng mặt"
+        },
         "ticket": {
             "title": "Tạo ticket",
             "issueName": "Tên vụ việc",
@@ -539,5 +546,82 @@
         "statusUpcoming": "Sắp diễn ra",
         "statusInProgress": "Đang diễn ra",
         "statusCompleted": "Đã kết thúc"
+    },
+    "ExamOfficerTickets": {
+        "title": "Quản lý Ticket",
+        "subtitle": "Xử lý nhanh các sự cố từ giám thị phòng thi",
+        "newBadge": "+{count} mới",
+        "refresh": "Làm mới",
+        "loading": "Đang tải...",
+        "filterActive": "Đang mở ({count})",
+        "filterAssigned": "Đã giao ({count})",
+        "filterAll": "Tất cả",
+        "filterSolved": "Đã xử lý",
+        "filterAllTypes": "Tất cả loại",
+        "noTickets": "Không có ticket nào",
+        "selectAll": "Chọn tất cả",
+        "clearSelection": "Bỏ chọn",
+        "selected": "{count} đã chọn",
+        "groupSelected": "{count} chọn",
+        "selectGroup": "Chọn cả nhóm",
+        "deselectGroup": "Bỏ chọn nhóm",
+        "quickProcess": "Xử lý nhanh",
+        "selectHint": "Chọn ticket từ danh sách bên trái để bắt đầu xử lý hàng loạt",
+        "ticketsSelected": "{count} ticket đã chọn",
+        "mixedTypes": "Nhiều loại sự cố khác nhau",
+        "modeResolve": "Xử lý",
+        "modeAssign": "Giao việc",
+        "assignTo": "Giao cho",
+        "selectAssignee": "-- Chọn người --",
+        "noAssignees": "Không tìm thấy IT Support / Giám thị hành lang",
+        "note": "Ghi chú",
+        "notePlaceholderResolve": "VD: Hướng dẫn sinh viên nộp lại bài...",
+        "notePlaceholderAssign": "VD: IT đang xử lý (tuỳ chọn)",
+        "processing": "Đang xử lý...",
+        "resolveAll": "Xử lý tất cả ({count})",
+        "assignTickets": "Giao {count} ticket",
+        "resolveNotify": "Mỗi giám thị sẽ nhận thông báo riêng sau khi xử lý",
+        "assignNotify": "Người được giao sẽ nhận thông báo ngay",
+        "clearAll": "Bỏ chọn tất cả",
+        "assignedTo": "Giao cho: {name}",
+        "statNew": "Ticket mới",
+        "statInProgress": "Đang xử lý",
+        "statAssigned": "Đã giao",
+        "statResolved": "Đã xử lý",
+        "toastLoadError": "Không thể tải danh sách ticket",
+        "toastNoSelection": "Chưa chọn ticket nào",
+        "toastEnterNote": "Vui lòng nhập ghi chú xử lý",
+        "toastSelectAssignee": "Vui lòng chọn người được giao",
+        "toastResolved": "Đã xử lý {count} ticket{failed}",
+        "toastResolvedFailed": ", {count} thất bại",
+        "toastNotified": "Đã thông báo cho giám thị.",
+        "toastAssigned": "Đã giao {count} ticket cho {name}.",
+        "toastResolveFail": "Xử lý thất bại, thử lại",
+        "toastAssignFail": "Giao việc thất bại, thử lại",
+        "newTicketToast": "Ticket mới từ {reporter}: \"{name}\"",
+        "view": "Xem",
+        "status": {
+            "OPEN": "Mới",
+            "Open": "Mới",
+            "IN_PROGRESS": "Đang xử lý",
+            "SOLVED": "Đã xử lý",
+            "CLOSED": "Đã đóng"
+        },
+        "issueType": {
+            "Academic Violation": "Vi phạm học thuật",
+            "Technical Issue": "Sự cố kỹ thuật",
+            "Room Management": "Quản lý phòng",
+            "Face Mismatch": "Sai thông tin"
+        },
+        "priority": {
+            "Urgent": "Khẩn cấp",
+            "High": "Cao",
+            "Medium": "Trung bình",
+            "Low": "Thấp"
+        },
+        "role": {
+            "IT_SUPPORT": "IT Support",
+            "HALL_INVIGILATOR": "Giám thị hành lang"
+        }
     }
 }

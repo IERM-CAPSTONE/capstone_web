@@ -10,11 +10,12 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/constants/routes";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
 import { useTranslations } from "next-intl";
+import { parseLocalDate } from "@/app/[locale]/exam-officer/exam-schedules/utils";
 
 function getSessionStatus(session: ExamSchedule): "Upcoming" | "In Progress" | "Completed" {
   const now = new Date();
-  const open = session.examOpenTime ? new Date(session.examOpenTime) : null;
-  const close = session.examCloseTime ? new Date(session.examCloseTime) : null;
+  const open = session.examOpenTime ? parseLocalDate(session.examOpenTime) : null;
+  const close = session.examCloseTime ? parseLocalDate(session.examCloseTime) : null;
   if (!open) return "Upcoming";
   if (now < open) return "Upcoming";
   if (close && now > close) return "Completed";
@@ -41,19 +42,23 @@ function getStatusBadgeColor(status: string) {
 
 function formatTime(iso?: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  const d = parseLocalDate(iso);
+  if (!d) return "—";
+  return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 }
 
 function isToday(iso?: string | null) {
   if (!iso) return false;
-  const d = new Date(iso);
+  const d = parseLocalDate(iso);
+  if (!d) return false;
   const n = new Date();
   return d.getDate() === n.getDate() && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
 }
 
 function isSameWeek(iso?: string | null) {
   if (!iso) return false;
-  const d = new Date(iso);
+  const d = parseLocalDate(iso);
+  if (!d) return false;
   const n = new Date();
   // Week starts on Monday (1), not Sunday (0)
   const dayOfWeek = n.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat

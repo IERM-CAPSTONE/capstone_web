@@ -8,6 +8,7 @@ import { Ticket } from "lucide-react";
 import { useCheckAuth } from "@/hooks/use-check-auth";
 import { DashboardLoadingSkeleton } from "@/components/ui/page-loading";
 import { useSocket } from "@/hooks/use-socket";
+import { useAuthStore } from "@/store/auth-store";
 import { ROUTES } from "@/lib/constants/routes";
 import { toast } from "sonner";
 
@@ -71,9 +72,17 @@ function playTicketSound() {
 // ─── Main content with global ticket listener ────────────────────────────────
 function ExamOfficerContent({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const { socket } = useSocket();
+    const { socket, isConnected, joinRoom } = useSocket();
+    const user = useAuthStore((s) => s.user);
     const params = useParams();
     const locale = (params?.locale as string) || "vi";
+
+    // Join socket room so backend can sendToUser(userId, ...)
+    useEffect(() => {
+        if (isConnected && user?.id) {
+            joinRoom(user.id);
+        }
+    }, [isConnected, user?.id, joinRoom]);
 
     const navigateToTickets = useCallback(() => {
         router.push(`/${locale}${ROUTES.EXAM_OFFICER_TICKETS}`);

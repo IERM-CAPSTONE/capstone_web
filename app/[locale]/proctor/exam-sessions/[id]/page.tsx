@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils/cn";
 import { toast } from "sonner";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
-type ExamStatus = "Upcoming" | "Ongoing" | "Completed";
+type ExamStatus = "Upcoming" | "PreExam" | "Ongoing" | "GracePeriod" | "Completed";
 type ViewMode = "seating" | "list";
 
 interface IncidentConfig {
@@ -87,12 +87,28 @@ const STATUS_DOT: Record<string, string> = {
     REMOVED: "bg-red-400",
 };
 
+const GRACE_PERIOD_MS = 30 * 60 * 1000; // 30 minutes
+const PRE_EXAM_MS = 15 * 60 * 1000;    // 15 minutes before start
+
 function computeStatus(open: Date | null, close: Date | null): ExamStatus {
     const now = new Date();
     if (!open || !close) return "Upcoming";
-    if (now < open) return "Upcoming";
+    if (now < new Date(open.getTime() - PRE_EXAM_MS)) return "Upcoming";
+    if (now < open) return "PreExam";
     if (now <= close) return "Ongoing";
+    if (now.getTime() - close.getTime() <= GRACE_PERIOD_MS) return "GracePeriod";
     return "Completed";
+}
+
+function getGraceMinutesLeft(close: Date | null): number {
+    if (!close) return 0;
+    const remaining = GRACE_PERIOD_MS - (Date.now() - close.getTime());
+    return Math.max(0, Math.ceil(remaining / 60000));
+}
+
+function getPreExamMinutesLeft(open: Date | null): number {
+    if (!open) return 0;
+    return Math.max(0, Math.ceil((open.getTime() - Date.now()) / 60000));
 }
 
 // ─── Create Ticket Dialog ─────────────────────────────────────────────────────
@@ -353,7 +369,7 @@ function StudentPanel({ student, seat, isSelected, onToggleSelect, onClose, onCr
                 <p className="text-xs text-slate-400 mt-1 font-mono">{student.studentCode}</p>
                 <span className={cn("inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border mt-2", statusColor)}>
                     <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_DOT[student.status] ?? "bg-slate-400")} />
-                    {student.status}
+                    {t(`studentStatus.${student.status}` as any) ?? student.status}
                 </span>
             </div>
 
@@ -546,7 +562,7 @@ function StudentListView({ students, selectedIds, onToggle, onStudentClick, acti
                             <p className="text-xs text-slate-400">{s.studentCode} · Desk {s.seatNumber || "N/A"}</p>
                         </div>
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold border uppercase", statusColor)}>
-                            {s.status}
+                            {t(`studentStatus.${s.status}` as any) ?? s.status}
                         </span>
                     </div>
                 );
@@ -619,9 +635,15 @@ export default function ProctorExamSessionDetailPage() {
     const close = schedule.examCloseTime ? parseLocalDate(schedule.examCloseTime) : null;
     const status = computeStatus(open, close);
 
+    const canCreateTicket = status === "PreExam" || status === "Ongoing" || status === "GracePeriod";
+    const graceMinutes = status === "GracePeriod" ? getGraceMinutesLeft(close) : 0;
+    const preExamMinutes = status === "PreExam" ? getPreExamMinutesLeft(open) : 0;
+
     const STATUS_CFG = {
         Upcoming: { color: "bg-blue-100 text-blue-700 border-blue-200", dot: "bg-blue-500", label: t("status.upcoming") },
+        PreExam: { color: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-500 animate-pulse", label: `Sắp thi (${preExamMinutes}m)` },
         Ongoing: { color: "bg-green-100 text-green-700 border-green-200", dot: "bg-green-500 animate-pulse", label: t("status.ongoing") },
+        GracePeriod: { color: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-500 animate-pulse", label: `Grace Period (${graceMinutes}m left)` },
         Completed: { color: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-400", label: t("status.completed") },
     };
     const sc = STATUS_CFG[status];
@@ -663,14 +685,20 @@ export default function ProctorExamSessionDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                    {selectedIds.size > 0 && (
+                    {canCreateTicket && selectedIds.size > 0 && (
                         <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2 text-sm" onClick={() => setShowTicketDialog(true)}>
                             <Ticket className="h-4 w-4" />{t("ticketFor")} ({selectedIds.size})
                         </Button>
                     )}
-                    <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm" onClick={() => { setSelectedIds(new Set()); setActiveStudent(null); setShowTicketDialog(true); }}>
-                        <Ticket className="h-4 w-4" />{t("createTicket")}
-                    </Button>
+                    {canCreateTicket ? (
+                        <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm" onClick={() => { setSelectedIds(new Set()); setActiveStudent(null); setShowTicketDialog(true); }}>
+                            <Ticket className="h-4 w-4" />{t("createTicket")}
+                        </Button>
+                    ) : (
+                        <Button variant="outline" className="gap-2 border-slate-200 text-slate-400 cursor-not-allowed text-sm" disabled>
+                            <Ticket className="h-4 w-4" />{t("createTicket")}
+                        </Button>
+                    )}
                     {selectedIds.size > 0 && (
                         <button onClick={() => setSelectedIds(new Set())} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1">
                             <X className="w-3 h-3" />{t("clearSelection")}

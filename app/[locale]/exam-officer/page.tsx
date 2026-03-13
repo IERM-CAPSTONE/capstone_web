@@ -20,12 +20,14 @@ import {
 } from "@/hooks/use-proctor-applications";
 import { ExamSchedule } from "@/lib/api/exam-schedules";
 import { toast } from "sonner";
+import { parseLocalDate } from "@/app/[locale]/exam-officer/exam-schedules/utils";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function computeStatus(open: string | null, close: string | null) {
   if (!open || !close) return "upcoming";
   const now = new Date();
-  const o = new Date(open), c = new Date(close);
+  const o = parseLocalDate(open), c = parseLocalDate(close);
+  if (!o || !c) return "upcoming";
   if (now < o) return "upcoming";
   if (now <= c) return "ongoing";
   return "completed";
@@ -198,8 +200,8 @@ export default function ExamOfficerDashboard() {
               <div className="space-y-2.5">
                 {schedules.map((s) => {
                   const status = computeStatus(s.examOpenTime, s.examCloseTime);
-                  const openTime = s.examOpenTime ? format(new Date(s.examOpenTime), "HH:mm") : "--";
-                  const closeTime = s.examCloseTime ? format(new Date(s.examCloseTime), "HH:mm") : "--";
+                  const openTime = s.examOpenTime ? (() => { const d = parseLocalDate(s.examOpenTime); return d ? format(d, "HH:mm") : "--"; })() : "--";
+                  const closeTime = s.examCloseTime ? (() => { const d = parseLocalDate(s.examCloseTime); return d ? format(d, "HH:mm") : "--"; })() : "--";
                   return (
                     <Link key={s.id} href={`/vi/exam-officer/exam-schedules/${s.id}`}>
                       <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50/40 transition-all cursor-pointer group">

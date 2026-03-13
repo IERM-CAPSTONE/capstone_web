@@ -473,6 +473,13 @@
             "available": "Available",
             "locked": "Locked"
         },
+        "studentStatus": {
+            "REGISTERED": "Registered",
+            "CHECKEDIN": "Checked In",
+            "CHECKEDOUT": "Checked Out",
+            "MOVED": "Moved",
+            "REMOVED": "Absent"
+        },
         "ticket": {
             "title": "Create Ticket",
             "issueName": "Issue Name",
@@ -539,5 +546,82 @@
         "statusUpcoming": "Upcoming",
         "statusInProgress": "In Progress",
         "statusCompleted": "Completed"
+    },
+    "ExamOfficerTickets": {
+        "title": "Ticket Management",
+        "subtitle": "Quickly handle incidents reported by room proctors",
+        "newBadge": "+{count} new",
+        "refresh": "Refresh",
+        "loading": "Loading...",
+        "filterActive": "Open ({count})",
+        "filterAssigned": "Assigned ({count})",
+        "filterAll": "All",
+        "filterSolved": "Resolved",
+        "filterAllTypes": "All Types",
+        "noTickets": "No tickets found",
+        "selectAll": "Select all",
+        "clearSelection": "Clear",
+        "selected": "{count} selected",
+        "groupSelected": "{count} selected",
+        "selectGroup": "Select group",
+        "deselectGroup": "Deselect group",
+        "quickProcess": "Quick Process",
+        "selectHint": "Select tickets from the list to start bulk processing",
+        "ticketsSelected": "{count} tickets selected",
+        "mixedTypes": "Multiple issue types selected",
+        "modeResolve": "Resolve",
+        "modeAssign": "Assign",
+        "assignTo": "Assign to",
+        "selectAssignee": "-- Select person --",
+        "noAssignees": "No IT Support / Hall Invigilator found",
+        "note": "Note",
+        "notePlaceholderResolve": "e.g. Guided student to resubmit...",
+        "notePlaceholderAssign": "e.g. IT handling (optional)",
+        "processing": "Processing...",
+        "resolveAll": "Resolve all ({count})",
+        "assignTickets": "Assign {count} ticket(s)",
+        "resolveNotify": "Each proctor will receive a notification after processing",
+        "assignNotify": "The assignee will be notified immediately",
+        "clearAll": "Clear all selections",
+        "assignedTo": "Assigned to: {name}",
+        "statNew": "New",
+        "statInProgress": "In Progress",
+        "statAssigned": "Assigned",
+        "statResolved": "Resolved",
+        "toastLoadError": "Failed to load tickets",
+        "toastNoSelection": "No tickets selected",
+        "toastEnterNote": "Please enter a resolve note",
+        "toastSelectAssignee": "Please select an assignee",
+        "toastResolved": "Resolved {count} ticket(s){failed}",
+        "toastResolvedFailed": ", {count} failed",
+        "toastNotified": "Proctors have been notified.",
+        "toastAssigned": "Assigned {count} ticket(s) to {name}.",
+        "toastResolveFail": "Processing failed, please try again",
+        "toastAssignFail": "Assignment failed, please try again",
+        "newTicketToast": "New ticket from {reporter}: \"{name}\"",
+        "view": "View",
+        "status": {
+            "OPEN": "New",
+            "Open": "New",
+            "IN_PROGRESS": "In Progress",
+            "SOLVED": "Resolved",
+            "CLOSED": "Closed"
+        },
+        "issueType": {
+            "Academic Violation": "Academic Violation",
+            "Technical Issue": "Technical Issue",
+            "Room Management": "Room Management",
+            "Face Mismatch": "Face Mismatch"
+        },
+        "priority": {
+            "Urgent": "Urgent",
+            "High": "High",
+            "Medium": "Medium",
+            "Low": "Low"
+        },
+        "role": {
+            "IT_SUPPORT": "IT Support",
+            "HALL_INVIGILATOR": "Hall Invigilator"
+        }
     }
 }

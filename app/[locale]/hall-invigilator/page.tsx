@@ -13,11 +13,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/app/[locale]/exam-officer/exam-schedules/utils";
 
 function getSessionStatus(s: ExamSchedule): "Upcoming" | "In Progress" | "Completed" {
     const now = new Date();
-    const open = s.examOpenTime ? new Date(s.examOpenTime) : null;
-    const close = s.examCloseTime ? new Date(s.examCloseTime) : null;
+    const open = s.examOpenTime ? parseLocalDate(s.examOpenTime) : null;
+    const close = s.examCloseTime ? parseLocalDate(s.examCloseTime) : null;
     if (!open || now < open) return "Upcoming";
     if (close && now > close) return "Completed";
     return "In Progress";
@@ -72,7 +73,8 @@ export default function HallInvigilatorDashboard() {
 
     const todaySessions = sessions.filter(s => {
         if (!s.examOpenTime) return false;
-        const d = new Date(s.examOpenTime);
+        const d = parseLocalDate(s.examOpenTime);
+        if (!d) return false;
         const n = new Date();
         return d.getDate() === n.getDate() && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
     });
@@ -127,7 +129,7 @@ export default function HallInvigilatorDashboard() {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-slate-800 truncate">{s.subjectCode ?? "—"}</p>
                                         <p className="text-xs text-slate-400">
-                                            {s.examOpenTime ? format(new Date(s.examOpenTime), "HH:mm") : "—"}–{s.examCloseTime ? format(new Date(s.examCloseTime), "HH:mm") : "—"}
+                                            {(() => { const d = parseLocalDate(s.examOpenTime); return d ? format(d, "HH:mm") : "—"; })()}–{(() => { const d = parseLocalDate(s.examCloseTime); return d ? format(d, "HH:mm") : "—"; })()}
                                             {s.roomNumber && <> · <span className="text-blue-500 font-semibold">P.{s.roomNumber}</span></>}
                                         </p>
                                     </div>
