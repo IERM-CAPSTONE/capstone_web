@@ -1,10 +1,24 @@
 
-// Parse date strings as local time
+// Parse date strings as Vietnam local time (UTC+7).
+// DB may return "2026-03-12 08:30:00.000", "2026-03-12T08:30:00.000Z",
+// or "2026-03-12T01:30:00.000Z" (UTC equivalent). We strip any timezone
+// info and interpret the raw digits as Vietnam local time.
 export const parseLocalDate = (dateStr: string | null): Date | null => {
     if (!dateStr) return null;
-    const date = new Date(dateStr);
+    // Remove trailing Z or timezone offset (e.g. +07:00, +0700)
+    let cleaned = dateStr.replace(/Z$/i, "").replace(/[+-]\d{2}:?\d{2}$/, "");
+    // Normalize separator
+    cleaned = cleaned.replace("T", " ").trim();
+    // Parse: "2026-03-12 08:30:00.000"
+    const match = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?/);
+    if (!match) return null;
+    const [, y, mo, d, h, mi, s] = match;
+    // Create date using local Date constructor (no UTC conversion)
+    const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s || 0));
     return isNaN(date.getTime()) ? null : date;
 };
+
+
 
 // Helper function to extract all exam parts from format like "(S:...)(L:...)(R:...)" -> "S, L, R"
 export const extractExamPart = (value: string): string => {

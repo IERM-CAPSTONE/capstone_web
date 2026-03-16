@@ -30,6 +30,8 @@ export const normalizeRole = (roleValue?: string | null): UserRole => {
     if (value === "admin") return "admin";
     if (value === "exam_officer") return "exam_officer";
     if (value === "proctor") return "proctor";
+    if (value === "it_support") return "it_support";
+    if (value === "hall_invigilator") return "hall_invigilator";
     return "student";
 };
 
@@ -53,7 +55,7 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
 
     const checkAuth = useCallback(async () => {
         try {
-            const response = await apiClient.get("/users/me");
+            const response = await apiClient.get("/auth/me");
             const data = (response.data as { data?: any })?.data || response.data;
 
             if (data && data.email) {
@@ -81,7 +83,13 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                     if (userObj.role === "admin") {
                         router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
                     } else if (userObj.role === "exam_officer") {
-                        router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
+                    } else if (userObj.role === "proctor") {
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+                    } else if (userObj.role === "hall_invigilator") {
+                        router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
+                    } else if (userObj.role === "it_support") {
+                        router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
                     } else {
                         router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                     }
@@ -128,7 +136,13 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                 if (user.role === "admin") {
                     router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
                 } else if (user.role === "exam_officer") {
-                    router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
+                } else if (user.role === "proctor") {
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+                } else if (user.role === "hall_invigilator") {
+                    router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
+                } else if (user.role === "it_support") {
+                    router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
                 } else {
                     router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                 }

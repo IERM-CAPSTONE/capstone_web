@@ -19,6 +19,7 @@ import {
   Settings,
   ClipboardList,
   BookOpen,
+  Ticket,
 } from "lucide-react";
 import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ export function Sidebar() {
   const { user } = useAuthStore();
 
   const adminMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_ADMIN },
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_ADMIN, exact: true },
     { icon: Users, label: t("accounts"), href: ROUTES.ADMIN_ACCOUNTS },
     { icon: Building2, label: t("rooms"), href: ROUTES.ROOMS },
     { icon: Users, label: t("devices"), href: ROUTES.ADMIN_DEVICES },
@@ -38,8 +39,9 @@ export function Sidebar() {
   ];
 
   const examOfficerMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_EXAM_OFFICER },
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_EXAM_OFFICER, exact: true },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
+    { icon: Ticket, label: t("tickets"), href: ROUTES.EXAM_OFFICER_TICKETS },
     { icon: ClipboardList, label: t("applications"), href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
     { icon: Building2, label: t("rooms"), href: ROUTES.EXAM_OFFICER_ROOMS },
     { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },
@@ -47,9 +49,22 @@ export function Sidebar() {
   ];
 
   const proctorMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_PROCTOR },
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_PROCTOR, exact: true },
     { icon: ClipboardList, label: t("applications"), href: ROUTES.PROCTOR_APPLICATIONS },
+    { icon: Ticket, label: "Ticket của tôi", href: ROUTES.PROCTOR_TICKETS },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
+  ];
+
+  const hallInvigilatorMenuItems = [
+    { icon: LayoutDashboard, label: "Tổng quan", href: ROUTES.HALL_INVIGILATOR, exact: true },
+    { icon: ClipboardList, label: "Đơn đăng ký", href: ROUTES.HALL_INVIGILATOR_APPLICATIONS },
+    { icon: Ticket, label: "Ticket được giao", href: ROUTES.HALL_INVIGILATOR_TICKETS },
+    { icon: Calendar, label: "Lịch thi", href: ROUTES.EXAMS_SCHEDULE },
+  ];
+
+  const itSupportMenuItems = [
+    { icon: LayoutDashboard, label: "Tổng quan", href: ROUTES.IT_SUPPORT, exact: true },
+    { icon: Ticket, label: "Ticket kỹ thuật", href: ROUTES.IT_SUPPORT_TICKETS },
   ];
 
   const menuItems =
@@ -57,7 +72,11 @@ export function Sidebar() {
       ? examOfficerMenuItems
       : user?.role === "proctor"
         ? proctorMenuItems
-        : adminMenuItems;
+        : user?.role === "hall_invigilator"
+          ? hallInvigilatorMenuItems
+          : user?.role === "it_support"
+            ? itSupportMenuItems
+            : adminMenuItems;
 
   return (
     <>
@@ -97,8 +116,9 @@ export function Sidebar() {
               const pathnameWithoutLocale = pathname.replace(/^\/(en|vi)/, "") || "/";
 
               const itemHref = item.href as string;
-              const isActive =
-                itemHref === "/"
+              const isActive = (item as any).exact
+                ? pathnameWithoutLocale === itemHref
+                : itemHref === "/"
                   ? pathnameWithoutLocale === itemHref
                   : pathnameWithoutLocale === itemHref || pathnameWithoutLocale.startsWith(itemHref + "/");
 

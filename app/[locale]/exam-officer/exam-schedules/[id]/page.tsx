@@ -20,15 +20,18 @@ import {
   Loader2,
   MoreVertical,
   Users,
+  UserCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useExamScheduleById, useArchiveExamSchedule } from "@/hooks/use-exam-schedules";
 import SeatingPlan from "../components/SeatingPlan";
+import { AssignProctorDialog } from "../components/AssignProctorDialog";
 import { ROUTES } from "@/lib/constants/routes";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
 import { parseLocalDate } from "../utils";
 import { toast } from "sonner";
+import { examSchedulesApi } from "@/lib/api/exam-schedules";
 
 export default function ExamScheduleDetailPage() {
   const router = useRouter();
@@ -38,8 +41,9 @@ export default function ExamScheduleDetailPage() {
   const t = useTranslations("Dashboard");
   const commonT = useTranslations("Common");
 
-  const { data: schedule, isLoading, error } = useExamScheduleById(scheduleId);
+  const { data: schedule, isLoading, error, refetch } = useExamScheduleById(scheduleId);
   const archiveMutation = useArchiveExamSchedule();
+  const [showAssignProctor, setShowAssignProctor] = useState(false);
 
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
 
@@ -110,6 +114,13 @@ export default function ExamScheduleDetailPage() {
   };
 
   const status = getStatusDisplay(computedStatus);
+
+  const handleAssignProctor = async (proctorId: string | null) => {
+    await examSchedulesApi.update(scheduleId, { proctorId });
+    toast.success(proctorId ? "Proctor assigned successfully!" : "Proctor unassigned.");
+    if (typeof refetch === 'function') refetch();
+    else window.location.reload();
+  };
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto p-6 bg-slate-50/50 min-h-screen">
@@ -217,7 +228,15 @@ export default function ExamScheduleDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.invigilator")}</p>
-                  <p className="font-semibold text-slate-900">{schedule.proctorId || "N/A"}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-900">{schedule.proctorName || schedule.proctorId || "N/A"}</p>
+                    <button
+                      onClick={() => setShowAssignProctor(true)}
+                      className="text-xs text-orange-500 hover:text-orange-700 underline ml-1"
+                    >
+                      {schedule.proctorId ? "Change" : "Assign"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -323,6 +342,14 @@ export default function ExamScheduleDetailPage() {
               </Button>
               <Button
                 variant="outline"
+                className="w-full gap-2 justify-center border-orange-200 bg-white hover:bg-orange-50 text-orange-700 font-semibold"
+                onClick={() => setShowAssignProctor(true)}
+              >
+                <UserCheck className="h-4 w-4" />
+                {schedule.proctorId ? "Change Proctor" : "Assign Proctor"}
+              </Button>
+              <Button
+                variant="outline"
                 className="w-full gap-2 justify-center border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold"
                 onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_STUDENTS(schedule.id)}`)}
               >
@@ -355,6 +382,15 @@ export default function ExamScheduleDetailPage() {
           </Card>
         </div>
       </div>
-    </div >
+
+      {/* Assign Proctor Dialog */}
+      <AssignProctorDialog
+        isOpen={showAssignProctor}
+        onClose={() => setShowAssignProctor(false)}
+        currentProctorId={schedule.proctorId}
+        currentProctorName={schedule.proctorName}
+        onConfirm={handleAssignProctor}
+      />
+    </div>
   );
 }
