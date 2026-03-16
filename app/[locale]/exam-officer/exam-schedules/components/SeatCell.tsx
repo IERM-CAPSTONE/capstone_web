@@ -29,6 +29,7 @@ export function SeatCell({
   isEditing = false,
   userRole = 'GUEST',
 }: SeatCellProps) {
+  const normalizedRole = (userRole || '').toLowerCase();
   const seatId = `${row}-${col}`;
   const label = `R${row}C${col}`;
 
@@ -72,8 +73,8 @@ export function SeatCell({
     statusText = "Available";
   }
 
-  const canSwap = isSwapMode && seat && seat.status !== 'Locked' && ['admin', 'exam_officer', 'proctor'].includes(userRole);
-  const canManage = isEditing && ['admin', 'exam_officer', 'proctor'].includes(userRole);
+  const canSwap = isSwapMode && seat && seat.status !== 'Locked' && ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
+  const canManage = isEditing && ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
   const canLock = canManage && seat && (seat.status === 'Available' || seat.status === 'Locked');
 
   return (

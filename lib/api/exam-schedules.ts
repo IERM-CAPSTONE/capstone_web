@@ -80,6 +80,31 @@ export interface UpdateExamScheduleData {
   examCloseTime?: string;
 }
 
+function normalizeExamType(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function normalizeExamSchedule(schedule: ExamSchedule): ExamSchedule {
+  return {
+    ...schedule,
+    examType: normalizeExamType(schedule.examType),
+  };
+}
+
 export const examSchedulesApi = {
   // List exam schedules
   list: async (
@@ -89,7 +114,10 @@ export const examSchedulesApi = {
       "/exam-sessions",
       { params }
     );
-    return response.data;
+    return {
+      ...response.data,
+      data: (response.data.data || []).map(normalizeExamSchedule),
+    };
   },
 
   // Get exam schedule by ID
@@ -97,7 +125,7 @@ export const examSchedulesApi = {
     const response = await apiClient.get<{ data: ExamSchedule }>(
       `/exam-sessions/${id}`
     );
-    return response.data.data;
+    return normalizeExamSchedule(response.data.data);
   },
 
   // Create exam schedule
@@ -106,7 +134,7 @@ export const examSchedulesApi = {
       "/exam-sessions",
       data
     );
-    return response.data.data;
+    return normalizeExamSchedule(response.data.data);
   },
 
   // Update exam schedule
@@ -118,7 +146,7 @@ export const examSchedulesApi = {
       `/exam-sessions/${id}`,
       data
     );
-    return response.data.data;
+    return normalizeExamSchedule(response.data.data);
   },
 
   // Delete exam schedule
@@ -131,7 +159,7 @@ export const examSchedulesApi = {
     const response = await apiClient.patch<{ data: ExamSchedule }>(
       `/exam-sessions/${id}/archive`
     );
-    return response.data.data;
+    return normalizeExamSchedule(response.data.data);
   },
 
   // Finalize seat assignments for a session
@@ -188,6 +216,7 @@ export interface ScheduleItem {
   endTime: string;
   room: string;
   examSession: string;
+  examPart?: string | null;
 }
 
 export interface StudentItem {

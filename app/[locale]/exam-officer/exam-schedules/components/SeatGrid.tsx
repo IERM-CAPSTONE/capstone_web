@@ -6,6 +6,7 @@ import { StudentExam } from "@/lib/api/student-exams";
 interface SeatGridProps {
   rows: number;
   cols: number;
+  totalSeats?: number;
   seats: ExamSeat[];
   students: StudentExam[];
   onSeatSelect: (seat: ExamSeat | undefined) => void;
@@ -19,6 +20,7 @@ interface SeatGridProps {
 export function SeatGrid({
   rows,
   cols,
+  totalSeats,
   seats,
   students,
   onSeatSelect,
@@ -28,6 +30,7 @@ export function SeatGrid({
   isSwapMode = false,
   swapSourceSeat = null,
 }: SeatGridProps) {
+  const effectiveTotalSeats = totalSeats ?? rows * cols;
   // Map students to seats by seatPosition (seat ID) for finalized layouts
   const studentBySeatId = new Map<string, StudentExam>();
   students.forEach(st => {
@@ -67,9 +70,13 @@ export function SeatGrid({
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`
         }}
       >
-        {Array.from({ length: rows }).map((_, r) => (
-          Array.from({ length: cols }).map((_, c) => renderSeat(r + 1, c + 1))
-        ))}
+        {Array.from({ length: rows }).map((_, r) =>
+          Array.from({ length: cols }).map((_, c) => {
+            const seatNumber = r * cols + c + 1;
+            if (seatNumber > effectiveTotalSeats) return null;
+            return renderSeat(r + 1, c + 1);
+          })
+        )}
       </div>
 
       {/* Legend: Teacher Desk Indicator */}

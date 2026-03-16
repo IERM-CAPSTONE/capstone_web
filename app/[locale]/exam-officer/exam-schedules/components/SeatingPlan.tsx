@@ -51,9 +51,11 @@ export default function SeatingPlan({
     const students = studentsResponse?.data || [];
     const rows = maxRows || 5;
     const cols = maxColumns || 6;
-    const hasAssignedStudents = students.some(s => !!s.seatPosition);
+    const effectiveTotalSeats = totalSeats ?? rows * cols;
+    const isStudentAssigned = (student: any) => Boolean(student.seatPosition || student.seatNumber);
+    const hasAssignedStudents = students.some(isStudentAssigned);
     const hasStudentsImported = scheduleData?.hasStudentsImported ?? hasAssignedStudents;
-    const unassignedStudentsCount = students.filter(s => !s.seatPosition).length;
+    const unassignedStudentsCount = students.filter(s => !isStudentAssigned(s)).length;
     const isLoading = studentsLoading || seatsLoading;
     
     // Auto-enable swap mode when finalized and not editing
@@ -195,6 +197,7 @@ export default function SeatingPlan({
                 userRole={user?.role}
                 error={actionError || seatsError}
                 hasStudentsImported={hasStudentsImported}
+                hasStudents={students.length > 0}
                 hasUnassignedStudents={unassignedStudentsCount > 0}
                 isFinalizingSeats={isFinalizingSeats}
             />
@@ -213,7 +216,7 @@ export default function SeatingPlan({
                 <div className="space-y-4">
                     <Skeleton className="h-64 w-full rounded-xl" />
                     <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-                        {Array.from({ length: rows * cols }).map((_, i) => (
+                        {Array.from({ length: effectiveTotalSeats }).map((_, i) => (
                             <Skeleton key={i} className="aspect-[4/3] rounded-lg" />
                         ))}
                     </div>
@@ -222,6 +225,7 @@ export default function SeatingPlan({
                 <SeatGrid
                     rows={rows}
                     cols={cols}
+                    totalSeats={effectiveTotalSeats}
                     seats={seats}
                     students={students}
                     onSeatSelect={handleSeatSelect}

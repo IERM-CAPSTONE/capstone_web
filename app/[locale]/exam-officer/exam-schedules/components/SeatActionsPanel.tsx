@@ -9,6 +9,7 @@ interface SeatActionsPanelProps {
   userRole?: string;
   error?: string | null;
   hasStudentsImported?: boolean;
+  hasStudents?: boolean;
   hasUnassignedStudents?: boolean;
   isFinalizingSeats?: boolean;
 }
@@ -21,16 +22,18 @@ export function SeatActionsPanel({
   userRole = 'GUEST',
   error,
   hasStudentsImported = false,
+  hasStudents = false,
   hasUnassignedStudents = false,
   isFinalizingSeats = false,
 }: SeatActionsPanelProps) {
-  const canEdit = ['admin', 'exam_officer', 'proctor'].includes(userRole);
+  const normalizedRole = (userRole || '').toLowerCase();
+  const canEdit = ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
 
   if (!canEdit) {
     return null;
   }
 
-  const showFinalizeButton = !hasStudentsImported && hasUnassignedStudents && !isEditing;
+  const showFinalizeButton = !hasStudentsImported && hasStudents && !isEditing;
 
   return (
     <div className="space-y-4 mb-6">
@@ -115,7 +118,7 @@ export function SeatActionsPanel({
       )}
 
       {/* Help text when students are unassigned */}
-      {showFinalizeButton && (
+      {showFinalizeButton && hasUnassignedStudents && (
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-[12px] text-yellow-700 font-medium">
             ⚠️ Students have been imported but not assigned to seats yet. Lock unwanted seats, then click "Assign Students to Seats" to finalize the layout.
