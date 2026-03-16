@@ -6,8 +6,8 @@ interface SeatCellProps {
   seat?: ExamSeat;
   row: number;
   col: number;
+  stt?: number | null;
   studentCode?: string;
-  studentStatus?: string;
   onSelect: (seat: ExamSeat | undefined) => void;
   onLockToggle?: (seat: ExamSeat) => void;
   isEditing?: boolean;
@@ -18,15 +18,15 @@ export function SeatCell({
   seat,
   row,
   col,
+  stt,
   studentCode,
-  studentStatus,
   onSelect,
   onLockToggle,
   isEditing = false,
   userRole = 'GUEST',
 }: SeatCellProps) {
   const seatId = `${row}-${col}`;
-  const label = `R${row}C${col}`;
+  const label = stt ? `#${stt}` : `R${row}C${col}`;
 
   // Determine seat styling based on status
   let seatStyles = "bg-[#F8FAFC] border-slate-100";
@@ -36,10 +36,10 @@ export function SeatCell({
   let statusIcon = null;
 
   if (seat?.status === 'Locked') {
-    // Locked seat - Faded/Disabled look
-    seatStyles = "bg-slate-100 border-slate-200 opacity-50";
-    textStyles = "text-slate-400";
-    labelStyles = "text-slate-300";
+    // Locked seat - Indigo/Slate Blue
+    seatStyles = "bg-indigo-50 border-indigo-100 opacity-70";
+    textStyles = "text-indigo-400";
+    labelStyles = "text-indigo-300";
     statusText = "LOCKED";
     statusIcon = <Lock className="h-3 w-3" />;
   } else if (seat?.status === 'Assigned') {
@@ -47,25 +47,30 @@ export function SeatCell({
     seatStyles = "bg-orange-50 border-orange-200 shadow-sm";
     textStyles = "text-orange-700";
     labelStyles = "text-orange-800";
-    statusText = studentCode || "ASSIGNED";
+    statusText = "ASSIGNED";
   } else if (seat?.status === 'Present') {
-    // Present seat - Blue
-    seatStyles = "bg-blue-50 border-blue-200 shadow-sm";
-    textStyles = "text-blue-700";
-    labelStyles = "text-blue-800";
-    statusText = studentCode || "PRESENT";
+    // Present seat - Green (xanh lá)
+    seatStyles = "bg-green-50 border-green-200 shadow-sm";
+    textStyles = "text-green-700";
+    labelStyles = "text-green-800";
+    statusText = "PRESENT";
   } else if (seat?.status === 'Absent') {
     // Absent seat - Red
     seatStyles = "bg-red-50 border-red-200 shadow-sm";
     textStyles = "text-red-700";
     labelStyles = "text-red-800";
-    statusText = studentCode || "ABSENT";
+    statusText = "ABSENT";
   } else if (seat?.status === 'Available') {
-    // Available seat - Green
-    seatStyles = "bg-green-50 border-green-200 shadow-sm";
-    textStyles = "text-green-700";
-    labelStyles = "text-green-800";
+    // Available seat - Neutral
+    seatStyles = "bg-[#F8FAFC] border-slate-100";
+    textStyles = "text-slate-400";
+    labelStyles = "text-slate-300";
     statusText = "Available";
+  }
+
+  // Override text if student is assigned
+  if (studentCode) {
+    statusText = studentCode;
   }
 
   const canManage = isEditing && ['admin', 'exam_officer', 'proctor'].includes(userRole);

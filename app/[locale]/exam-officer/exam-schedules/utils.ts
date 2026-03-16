@@ -131,7 +131,7 @@ export const processImportData = (headers: string[], data: any[]) => {
             const parts = sessionPartsMap.get(s.examSession);
             return {
                 ...s,
-                examType: parts ? Array.from(parts).join(', ') : ""
+                examPart: parts ? Array.from(parts).join(', ') : ""
             };
         });
 

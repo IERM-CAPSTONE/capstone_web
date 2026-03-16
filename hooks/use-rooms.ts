@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { roomsApi } from "@/lib/api/rooms";
 import { Room, PaginationParams } from "@/types";
-import { PAGINATION } from "@/lib/constants";
 
-export function useRooms(params?: PaginationParams) {
+export function useRooms(params?: PaginationParams & { campus?: string | string[]; roomNumber?: string }) {
   return useQuery({
     queryKey: ["rooms", params],
     queryFn: () => roomsApi.getAll(params),
@@ -53,11 +52,35 @@ export function useDeleteRoom() {
   });
 }
 
-export function useAvailableRooms(params?: PaginationParams) {
+export function useAvailableRooms(params?: PaginationParams & { campus?: string | string[]; roomNumber?: string }) {
   return useQuery({
     queryKey: ["rooms", "available", params],
     queryFn: () => roomsApi.getAvailable(params),
   });
 }
+
+export function useImportRooms() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, campus }: { file: File; campus?: string }) =>
+      roomsApi.import(file, campus),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    },
+  });
+}
+
+export function useDeleteBulkRooms() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params?: { roomNumber?: string; campus?: string }) => roomsApi.deleteBulk(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    },
+  });
+}
+
 
 

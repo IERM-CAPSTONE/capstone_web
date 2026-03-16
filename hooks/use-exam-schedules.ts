@@ -7,9 +7,32 @@ import {
   UpdateExamScheduleData,
   PaginatedExamScheduleResponse,
   ImportScheduleData,
+  AutoGenerateScheduleData,
 } from "@/lib/api/exam-schedules";
 
 const EXAM_SCHEDULES_QUERY_KEY = ["exam-schedules"];
+
+export function useAutoGenerateSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: AutoGenerateScheduleData) => examSchedulesApi.autoGenerate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
+
+export function usePublishExamSessions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { sessionIds?: string[]; semesterId?: string; campus?: string }) => examSchedulesApi.publish(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
 
 export function useExamSchedules(params?: ListExamSchedulesParams) {
   return useQuery({

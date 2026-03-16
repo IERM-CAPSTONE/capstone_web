@@ -3,7 +3,7 @@ import { Semester, PaginatedResponse, PaginationParams } from "@/types";
 
 export const semestersApi = {
     // Get all semesters
-    getAll: async (params?: PaginationParams & { search?: string }): Promise<PaginatedResponse<Semester>> => {
+    getAll: async (params?: PaginationParams & { search?: string, fromDate?: string, toDate?: string }): Promise<PaginatedResponse<Semester>> => {
         try {
             const response = await apiClient.get<any>("/semesters", {
                 params,

@@ -68,9 +68,12 @@ export const subjectsApi = {
     },
 
     // Import subjects from Excel
-    import: async (file: File): Promise<{ message: string }> => {
+    import: async (file: File, semesterId?: string): Promise<{ message: string }> => {
         const formData = new FormData();
         formData.append("file", file);
+        if (semesterId) {
+            formData.append("semesterId", semesterId);
+        }
         const response = await apiClient.post<{ message: string }>("/subjects/import", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",

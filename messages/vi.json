@@ -1,5 +1,6 @@
 {
     "Common": {
+        "selected": "Đã chọn",
         "welcome": "Chào mừng trở lại",
         "loading": "Đang tải...",
         "refresh": "Làm mới",
@@ -12,14 +13,42 @@
         "processing": "Đang xử lý...",
         "logout": "Đăng xuất",
         "error": "Đã có lỗi xảy ra",
-        "noResults": "Không tìm thấy kết quả",
-        "showing": "Hiển thị",
-        "to": "đến",
+        "items": "mục",
         "of": "trên",
+        "showing": "Hiển thị",
+        "noResults": "Không tìm thấy kết quả",
+        "to": "đến",
         "page": "Trang",
         "previous": "Trước",
         "next": "Sau",
-        "actions": "Thao tác"
+        "actions": "Thao tác",
+        "clickToUpload": "Nhấn để tải lên hoặc kéo thả",
+        "success": {
+            "update": "Cập nhật thành công",
+            "create": "Tạo thành công",
+            "delete": "Xóa thành công"
+        },
+        "errors": {
+            "updateFailed": "Cập nhật thất bại",
+            "createFailed": "Tạo thất bại",
+            "deleteFailed": "Xóa thất bại"
+        },
+        "days": {
+            "monday": "Thứ Hai",
+            "tuesday": "Thứ Ba",
+            "wednesday": "Thứ Tư",
+            "thursday": "Thứ Năm",
+            "friday": "Thứ Sáu",
+            "saturday": "Thứ Bảy",
+            "sunday": "Chủ Nhật"
+        },
+        "statuses": {
+            "Draft": "Bản nháp",
+            "Scheduled": "Đã xếp lịch",
+            "Published": "Đã công bố",
+            "Ongoing": "Đang diễn ra",
+            "Completed": "Đã hoàn thành"
+        }
     },
     "Login": {
         "title": "Chào mừng bạn",
@@ -76,6 +105,7 @@
         "examOfficer": {
             "examSchedules": "Lịch thi",
             "manageSchedules": "Quản lý lịch thi và sinh viên",
+            "failedLoad": "Không thể tải lịch thi",
             "createSchedule": {
                 "title": "Tạo lịch thi",
                 "description": "Xác định chi tiết lịch thi, tạo mã lịch thi duy nhất và chỉ định thông tin thời gian và phòng. Bạn có thể cập nhật các giám thị và phòng thi sau này.",
@@ -88,7 +118,7 @@
                 "semesterPlaceholder": "ví dụ: Fall 2025",
                 "subjectCode": "Môn học / Tên khóa học",
                 "subjectCodePlaceholder": "ví dụ: CHEM201",
-                "examType": "Loại kỳ thi",
+                "examPart": "Loại kỳ thi",
                 "examDate": "Ngày thi",
                 "examDateHelper": "Phải là ngày mai hoặc sau này",
                 "duration": "Thời lượng",
@@ -125,7 +155,7 @@
                 "openCode": "Mã mở đề",
                 "subjectCode": "Môn học / Tên khóa học",
                 "semester": "Học kỳ",
-                "examType": "Loại kỳ thi",
+                "examPart": "Loại kỳ thi",
                 "examDate": "Ngày thi",
                 "duration": "Thời lượng",
                 "startTime": "Giờ bắt đầu",
@@ -150,7 +180,7 @@
                 "scheduleDetail": "Chi tiết lịch thi",
                 "scheduleOverview": "Tổng quan lịch thi",
                 "semester": "Học kỳ",
-                "examType": "Loại kỳ thi",
+                "examPart": "Loại kỳ thi",
                 "examDate": "Ngày thi",
                 "duration": "Thời lượng",
                 "room": "Phòng",
@@ -183,7 +213,8 @@
                 "importExamCodes": "Nhập Mã đề thi",
                 "viewDetails": "Xem chi tiết",
                 "update": "Cập nhật lịch thi",
-                "archive": "Lưu trữ lịch thi"
+                "archive": "Lưu trữ lịch thi",
+                "export": "Xuất báo cáo"
             },
             "scheduleOverview": "Tổng quan lịch thi",
             "noSchedules": "Không có lịch thi",
@@ -214,7 +245,7 @@
             "archiveSuccess": "Lưu trữ thành công",
             "archiveFailed": "Lưu trữ thất bại",
             "archiving": "Đang lưu trữ...",
-            "searchPlaceholder": "Tìm kiếm theo mã đề hoặc tên môn...",
+            "searchPlaceholder": "Tìm kiếm theo tên môn...",
             "allSubjects": "Tất cả môn học",
             "advancedFilters": "Bộ lọc nâng cao",
             "allStatuses": "Tất cả trạng thái",
@@ -223,6 +254,7 @@
             "proctorId": "Mã giám thị",
             "schedules": "lịch thi",
             "table": {
+                "campus": "Cơ sở",
                 "examCode": "Mã đề",
                 "openCode": "Mã mở đề",
                 "subject": "Môn học",
@@ -232,6 +264,53 @@
                 "room": "Phòng thi",
                 "proctor": "Giám thị",
                 "status": "Trạng thái"
+            },
+            "schedulesPage": {
+                "missionControl": "HỆ THỐNG ĐIỀU HÀNH THI",
+                "stats": {
+                    "examsThisBatch": "Ca thi đợt này",
+                    "totalStudents": "Tổng số sinh viên",
+                    "availableRooms": "Phòng thi khả dụng",
+                    "activeCampuses": "Cơ sở vận hành"
+                },
+                "smartFilter": {
+                    "title": "Bộ lọc thông minh",
+                    "subtitle": "Hệ thống tìm kiếm đa tầng",
+                    "clear": "Xoá bộ lọc"
+                },
+                "filters": {
+                    "subject": "Môn học",
+                    "room": "Phòng thi",
+                    "proctor": "Giám thị",
+                    "status": "Trạng thái",
+                    "campus": "Cơ sở",
+                    "fromDate": "Từ ngày",
+                    "toDate": "Đến ngày",
+                    "startTime": "Bắt đầu từ",
+                    "endTime": "Kết thúc lúc",
+                    "examCode": "Mã đề (Tìm kiếm)",
+                    "examCodePlaceholder": "Nhập mã đề..."
+                },
+                "allOptions": {
+                    "allSubjects": "Tất cả môn học",
+                    "allRooms": "Tất cả phòng",
+                    "allProctors": "Tất cả giám thị",
+                    "allStatuses": "Tất cả trạng thái",
+                    "allCampuses": "Tất cả cơ sở"
+                },
+                "campusLabel": "Cơ sở {campus}",
+                "board": {
+                    "prevWeek": "TUẦN TRƯỚC",
+                    "nextWeek": "TUẦN TIẾP",
+                    "allCampus": "TẤT CẢ CƠ SỞ",
+                    "reset": "ĐẶT LẠI",
+                    "boardView": "BẢNG",
+                    "listView": "DANH SÁCH",
+                    "startTime": "BẮT ĐẦU",
+                    "ready": "SẴN SÀNG",
+                    "roomsSuffix": "PHÒNG",
+                    "studentSuffix": "SV"
+                }
             }
         },
         "pagination": {
@@ -244,8 +323,14 @@
     "Rooms": {
         "detailTitle": "Chi tiết phòng thi",
         "listTitle": "Quản lý phòng thi",
+        "subtitle": "Hệ thống quản lý và cấu hình danh sách phòng thi",
         "createRoom": "Tạo phòng mới",
+        "totalDisplay": "Đang hiển thị",
+        "roomTotal": "Tổng số phòng",
+        "roomNumber": "Số phòng",
+        "campus": "Cơ sở",
         "roomCount": "phòng",
+        "allCampuses": "Tất cả cơ sở",
         "searchPlaceholder": "Tìm kiếm theo tên hoặc vị trí...",
         "basicInfo": "Thông tin cơ bản",
         "additionalInfo": "Thông tin bổ sung",
@@ -266,6 +351,30 @@
             "back": "Quay lại",
             "edit": "Chỉnh sửa",
             "delete": "Xóa"
+        },
+        "importRooms": "Nhập phòng thi",
+        "importDescription": "Nhập danh sách phòng từ tệp CSV/Excel",
+        "selectCampus": "Chọn cơ sở",
+        "chooseCampus": "Chọn cơ sở để nhập phòng thi",
+        "uploadHint": "Tải lên tệp CSV hoặc Excel (Room.csv)",
+        "importSuccess": "Yêu cầu nhập dữ liệu đã được gửi thành công",
+        "deleteAll": "Xóa tất cả (theo bộ lọc)",
+        "confirmDeleteAll": "BẠN CÓ CHẮC CHẮN? Hành động này sẽ xóa",
+        "deleteAllTitle": "Xác nhận xóa danh sách phòng",
+        "deleteConfirmTitle": "Xác nhận xóa phòng",
+        "matching": "khớp với",
+        "all": "TẤT CẢ",
+        "cannotUndo": "Hành động này KHÔNG THỂ hoàn tác.",
+        "deleteBulkSuccess": "Đã xóa thành công",
+        "deleteBulkError": "Xóa danh sách phòng thất bại",
+        "deleteSuccess": "Xóa phòng thành công",
+        "deleteError": "Xóa phòng thất bại",
+        "campuses": {
+            "HCM": "TP. Hồ Chí Minh",
+            "HN": "Hà Nội",
+            "DN": "Đà Nẵng",
+            "QN": "Quy Nhơn",
+            "CT": "Cần Thơ"
         }
     },
     "ProctorApplications": {
@@ -396,13 +505,21 @@
         "addSubject": "Thêm môn học",
         "importSubjects": "Nhập môn học",
         "searchPlaceholder": "Tìm kiếm theo mã, tên hoặc bộ môn...",
-        "manageExamTypes": "Quản lý loại thi",
+        "manageExamParts": "Quản lý loại thi",
+        "totalSubjects": "Tổng số môn học",
+        "coreSubjects": "Môn học chính",
+        "departments": "Bộ môn",
+        "blueprints": "Cấu trúc đề thi",
         "quickSearch": "Tìm kiếm nhanh",
+        "previewImportData": "Xem trước dữ liệu nhập",
+        "previewDescription": "Kiểm tra dữ liệu trên {count} trang tính trước khi nhập.",
+        "confirmImportAll": "Xác nhận nhập tất cả các trang",
         "table": {
             "code": "Mã môn học",
             "name": "Tên môn học",
             "semester": "Học kỳ",
             "department": "Bộ môn",
+            "block": "Block",
             "parts": "Thành phần thi",
             "actions": "Thao tác",
             "noParts": "Chưa định nghĩa thành phần",
@@ -418,8 +535,42 @@
             "parts": "Thành phần thi",
             "addPart": "Thêm thành phần",
             "duration": "Thời lượng (phút)",
-            "examType": "Loại thi",
+            "examPart": "Loại thi",
             "noParts": "Chưa có thành phần thi nào được thêm.",
             "typeLabel": "Loại"
         }
-    }}
+    },
+    "AutoGenerate": {
+        "title": "Tạo lịch thi tự động",
+        "description": "Tự động tạo các phiên thi cho toàn bộ học kỳ",
+        "semester": "Học kỳ",
+        "selectSemester": "Chọn học kỳ",
+        "campus": "Cơ sở",
+        "uploadFile": "Tệp đăng ký sinh viên (CSV)",
+        "uploadPlaceholder": "Tải lên danh sách đăng ký thi",
+        "uploadHint": "Chấp nhận file .csv hoặc .xlsx (StudSub.csv)",
+        "clickToChange": "Nhấp để thay đổi tệp",
+        "finalWeek": "Tuần thi Final",
+        "retakeWeek": "Tuần thi Retake",
+        "example": "Ví dụ",
+        "maxWeeks": "(tối đa: {count})",
+        "selectRooms": "Chọn phòng thi ({count})",
+        "searchRoom": "Tìm số phòng...",
+        "noRooms": "Không tìm thấy phòng cho cơ sở này",
+        "selectAll": "Chọn tất cả",
+        "deselectAll": "Bỏ chọn tất cả",
+        "cancel": "Hủy",
+        "generate": "Tạo tự động",
+        "generating": "Đang tạo...",
+        "success": "Yêu cầu tạo lịch tự động đã được gửi",
+        "success_completed": "Đã tạo thành công {count} phiên thi!",
+        "errors": {
+            "selectSemester": "Vui lòng chọn học kỳ",
+            "uploadFile": "Vui lòng tải lên tệp đăng ký sinh viên (CSV/Excel)",
+            "selectRoom": "Vui lòng chọn ít nhất một phòng",
+            "finalWeekInvalid": "Tuần thi Final phải từ 1 đến {max}",
+            "retakeWeekInvalid": "Tuần thi Retake phải từ 1 đến {max}",
+            "failed": "Tạo lịch thi thất bại"
+        }
+    }
+}

@@ -56,7 +56,7 @@ export function useImportSubjects() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (file: File) => subjectsApi.import(file),
+        mutationFn: ({ file, semesterId }: { file: File; semesterId?: string }) => subjectsApi.import(file, semesterId),
         onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ["subjects"] });
         },

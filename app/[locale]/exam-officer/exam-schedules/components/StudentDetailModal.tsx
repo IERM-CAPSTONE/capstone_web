@@ -9,15 +9,21 @@ import {
   X,
   CheckCircle2,
   Clock,
+  Loader2,
+  ArrowRightCircle,
+  AlertCircle,
 } from "lucide-react";
 import { ExamSeat } from "@/hooks/use-seat-management";
 import { StudentExam } from "@/lib/api/student-exams";
+import { useUpdateStudentExamPart } from "@/hooks/use-student-exams";
+import { toast } from "sonner";
 
 interface StudentDetailModalProps {
   student: StudentExam | null;
   seat: ExamSeat | null;
   isOpen: boolean;
   onClose: () => void;
+  selectedPart?: string | null;
 }
 
 export function StudentDetailModal({
@@ -25,10 +31,39 @@ export function StudentDetailModal({
   seat,
   isOpen,
   onClose,
+  selectedPart = null,
 }: StudentDetailModalProps) {
+  const updatePartMutation = useUpdateStudentExamPart();
+
   if (!isOpen || !student || typeof document === 'undefined') {
     return null;
   }
+
+  // Find the specific part data
+  const partData = selectedPart
+    ? student.parts?.find((p: any) => p.examPartCode === selectedPart)
+    : null;
+
+  const handleToggleAttendance = async () => {
+    if (!partData) return;
+
+    try {
+      const isCheckingIn = !partData.isCheckedIn;
+      await updatePartMutation.mutateAsync({
+        id: partData.id,
+        data: {
+          isCheckedIn: isCheckingIn,
+          checkInTime: isCheckingIn ? new Date().toISOString() : null,
+        }
+      });
+      toast.success(`${student.studentName} is now ${isCheckingIn ? 'PRESENT' : 'ABSENT'} for part ${selectedPart}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update attendance");
+    }
+  };
+
+  const isPresent = partData ? partData.isCheckedIn : student.status === 'CHECKEDIN';
+  const displayStatus = partData ? (isPresent ? 'PRESENT' : 'ABSENT') : student.status;
 
   return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
@@ -88,19 +123,39 @@ export function StudentDetailModal({
                   {student.email || "student@fpt.edu.vn"}
                 </p>
                 <div className="flex items-center justify-end gap-1.5">
-                  {student.status === 'CHECKEDIN' ? (
+                  {isPresent ? (
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                   ) : (
                     <Clock className="h-4 w-4 text-slate-400" />
                   )}
-                  <span className={`font-bold uppercase text-[10px] ${
-                    student.status === 'CHECKEDIN' ? 'text-green-600' : 'text-slate-500'
-                  }`}>
-                    {student.status}
+                  <span className={`font-bold uppercase text-[10px] ${isPresent ? 'text-green-600' : 'text-slate-500'
+                    }`}>
+                    {displayStatus}
                   </span>
                 </div>
               </div>
             </div>
+
+            {selectedPart && (
+              <div className="mt-4 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+                <div className="flex items-start gap-3">
+                  <ArrowRightCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Attendance Mode: {selectedPart}</h5>
+                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                      You are viewing and managing attendance specifically for the <span className="font-bold text-orange-600">{selectedPart}</span> portion of this exam.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!partData && selectedPart && (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <p className="text-[11px] text-red-600 font-medium">Student is not registered for this part.</p>
+              </div>
+            )}
 
             {seat && seat.status === 'Locked' && (
               <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
@@ -111,13 +166,39 @@ export function StudentDetailModal({
             )}
           </div>
 
-          <div className="mt-8">
+          <div className="mt-8 grid grid-cols-2 gap-3">
             <Button
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 text-sm font-bold uppercase tracking-wider"
+              variant="outline"
+              className="border-slate-200 text-slate-600 font-bold py-6 uppercase tracking-wider text-xs"
               onClick={onClose}
             >
-              Close Detail
+              Cancel
             </Button>
+            {selectedPart && partData ? (
+              <Button
+                className={`text-white py-6 text-xs font-black uppercase tracking-widest shadow-lg transition-all duration-300 ${isPresent
+                    ? "bg-slate-400 hover:bg-slate-500"
+                    : "bg-green-600 hover:bg-green-700 active:scale-95"
+                  }`}
+                onClick={handleToggleAttendance}
+                disabled={updatePartMutation.isPending}
+              >
+                {updatePartMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isPresent ? (
+                  "Mark Absent"
+                ) : (
+                  "Mark Present"
+                )}
+              </Button>
+            ) : (
+              <Button
+                className="bg-slate-900 hover:bg-slate-800 text-white py-6 text-xs font-black uppercase tracking-widest"
+                onClick={onClose}
+              >
+                Ok
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

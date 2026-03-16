@@ -4,6 +4,7 @@ export interface ExamSchedule {
   id: string;
   examCode?: string | null;
   semester?: string | null;
+  semesterName?: string | null;
   openCode?: string | null;
   note?: string | null;
   examRoomId: string | null;
@@ -17,13 +18,16 @@ export interface ExamSchedule {
   examCloseTime: string | null;
   status?: string | null;
   isArchived?: boolean | null;
-  examType?: string[];
+  examPart?: string[];
   hasStudentsImported?: boolean;
   createdAt: string;
   updatedAt: string;
   maxRows?: number | null;
   maxColumns?: number | null;
   totalSeats?: number | null;
+  campus?: string | null;
+  examType?: string | null; // PE | FE | TE | RE
+  studentCount: number;
 }
 
 export interface PaginatedExamScheduleResponse {
@@ -50,12 +54,14 @@ export interface ListExamSchedulesParams {
   endTime?: string;
   examRoomId?: string;
   proctorId?: string;
+  campus?: string;
+  examType?: string; // PE | FE | TE | RE
 }
 
 export interface CreateExamScheduleData {
   examCode?: string;
   semester?: string;
-  examType?: string[];
+  examPart?: string[];
   openCode?: string;
   note?: string;
   examRoomId?: string;
@@ -69,7 +75,7 @@ export interface CreateExamScheduleData {
 export interface UpdateExamScheduleData {
   examCode?: string;
   semester?: string;
-  examType?: string;
+  examPart?: string;
   openCode?: string;
   note?: string;
   examRoomId?: string;
@@ -78,6 +84,18 @@ export interface UpdateExamScheduleData {
   subjectCode?: string;
   examOpenTime?: string;
   examCloseTime?: string;
+}
+
+export interface AutoGenerateScheduleData {
+  semesterId: string;
+  campus: string[];
+  finalWeek?: number;
+  retakeWeek?: number;
+  practicalWeek?: number;
+  courseraWeek?: number;
+  courseraRetakeWeek?: number;
+  roomIds: string[];
+  fileData: string;
 }
 
 export const examSchedulesApi = {
@@ -109,6 +127,12 @@ export const examSchedulesApi = {
     return response.data.data;
   },
 
+  // Auto-generate exam schedule
+  autoGenerate: async (data: AutoGenerateScheduleData): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post("/exam-sessions/auto-generate", data);
+    return response.data;
+  },
+
   // Update exam schedule
   update: async (
     id: string,
@@ -124,6 +148,12 @@ export const examSchedulesApi = {
   // Delete exam schedule
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/exam-sessions/${id}`);
+  },
+
+  // Publish exam schedules
+  publish: async (data: { sessionIds?: string[]; semesterId?: string; campus?: string }): Promise<{ success: boolean; count: number }> => {
+    const response = await apiClient.post("/exam-sessions/publish", data);
+    return response.data;
   },
 
   // Archive exam schedule (only for completed exams)
@@ -174,6 +204,15 @@ export const examSchedulesApi = {
   // Import Exam Codes (JSON)
   importCodes: async (payload: { importType: string; codes: any[] }): Promise<any> => {
     const response = await apiClient.post("/exam-sessions/import-codes", payload);
+    return response.data;
+  },
+
+  // Export Exam Sessions to Excel
+  export: async (params: any): Promise<Blob> => {
+    const response = await apiClient.get("/exam-sessions/export", {
+      params,
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

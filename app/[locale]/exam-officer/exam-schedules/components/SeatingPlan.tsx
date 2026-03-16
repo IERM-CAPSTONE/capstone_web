@@ -11,25 +11,52 @@ import { SeatGrid } from "./SeatGrid";
 import { SeatActionsPanel } from "./SeatActionsPanel";
 import { StudentDetailModal } from "./StudentDetailModal";
 import { examSchedulesApi } from "@/lib/api/exam-schedules";
+import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
+import { CheckCircle2 } from "lucide-react";
 
 interface SeatingPlanProps {
     examSessionId: string;
     maxRows: number | null;
     maxColumns: number | null;
     totalSeats: number | null;
+    selectedPart?: string | null;
 }
 
 export default function SeatingPlan({
     examSessionId,
     maxRows = 5,
     maxColumns = 6,
-    totalSeats = 30
+    totalSeats = 30,
+    selectedPart = null
 }: SeatingPlanProps) {
     // Auth and data hooks
     const { user } = useAuth();
     const { data: scheduleData, refetch: refetchSchedule } = useExamScheduleById(examSessionId);
     const { data: studentsResponse, isLoading: studentsLoading, refetch: refetchStudents } = useStudentExamsBySession(examSessionId);
+    const { on: onSocket } = useSocket();
+
+    // Listen for real-time face authentication events
+    useEffect(() => {
+        if (!onSocket) return;
+
+        const cleanup = onSocket('face_authenticated', (data: any) => {
+            // Refresh data to show the new check-in status
+            refetchStudents();
+
+            // Show a nice notification
+            toast.success(`${data.studentName} is PRESENT`, {
+                description: `Face recognition successful (${data.studentCode})`,
+                icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+                duration: 5000,
+            });
+
+            console.log(`[Socket] Face authenticated: ${data.studentCode}`);
+        });
+
+        return cleanup;
+    }, [onSocket, refetchStudents]);
+
     const {
         seats,
         loading: seatsLoading,
@@ -49,8 +76,12 @@ export default function SeatingPlan({
     const students = studentsResponse?.data || [];
     const rows = maxRows || 5;
     const cols = maxColumns || 6;
-    const hasStudentsImported = scheduleData?.hasStudentsImported || false;
     const unassignedStudentsCount = students.filter(s => !s.seatPosition).length;
+
+    // Compute check-in count based on selected part
+    const checkedInCount = selectedPart
+        ? students.filter(s => s.parts?.some((p: any) => p.examPartCode === selectedPart && p.isCheckedIn)).length
+        : students.filter(s => s.status === 'CHECKEDIN').length;
 
     // Fetch seats on mount
     useEffect(() => {
@@ -121,13 +152,26 @@ export default function SeatingPlan({
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 rounded-xl">
-                    <Users className="h-5 w-5 text-slate-500" />
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 rounded-xl">
+                        <Users className="h-5 w-5 text-slate-500" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                            Seating Plan ({checkedInCount}/{totalSeats || rows * cols})
+                        </h3>
+                        {selectedPart && (
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                Attendance for Part: <span className="text-orange-500">{selectedPart}</span>
+                            </p>
+                        )}
+                    </div>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                    Seating Plan ({students.filter(s => s.status === 'CHECKEDIN').length}/{totalSeats || rows * cols})
-                </h3>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${selectedPart ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    {selectedPart ? 'Part Mode Active' : 'Session Review'}
+                </div>
             </div>
 
             {/* Actions Panel */}
@@ -138,17 +182,16 @@ export default function SeatingPlan({
                 onFinalize={handleFinalizeSeats}
                 userRole={user?.role}
                 error={actionError || seatsError}
-                hasStudentsImported={hasStudentsImported}
+                hasStudentsImported={false}
                 hasUnassignedStudents={unassignedStudentsCount > 0}
                 isFinalizingSeats={isFinalizingSeats}
             />
 
             {/* Legend */}
             <div className="flex flex-wrap items-center gap-3">
-                <LegendItem color="bg-green-50 border-green-200" label="AVAILABLE" dotColor="bg-green-500" textColor="text-green-600" />
-                <LegendItem color="bg-gray-100 border-gray-300" label="LOCKED" dotColor="bg-gray-500" textColor="text-gray-600" />
+                <LegendItem color="bg-indigo-50 border-indigo-200" label="LOCKED" dotColor="bg-indigo-500" textColor="text-indigo-600" />
                 <LegendItem color="bg-orange-50 border-orange-200" label="ASSIGNED" dotColor="bg-orange-500" textColor="text-orange-600" />
-                <LegendItem color="bg-blue-50 border-blue-200" label="PRESENT" dotColor="bg-blue-500" textColor="text-blue-600" />
+                <LegendItem color="bg-green-50 border-green-200" label="PRESENT" dotColor="bg-green-500" textColor="text-green-600" />
                 <LegendItem color="bg-red-50 border-red-200" label="ABSENT" dotColor="bg-red-500" textColor="text-red-600" />
             </div>
 
@@ -172,6 +215,7 @@ export default function SeatingPlan({
                     onSeatLockToggle={handleSeatLockToggle}
                     isEditing={isEditing}
                     userRole={user?.role}
+                    selectedPart={selectedPart}
                 />
             )}
 
@@ -184,6 +228,7 @@ export default function SeatingPlan({
                     setSelectedStudent(null);
                     setSelectedSeat(null);
                 }}
+                selectedPart={selectedPart}
             />
         </div>
     );

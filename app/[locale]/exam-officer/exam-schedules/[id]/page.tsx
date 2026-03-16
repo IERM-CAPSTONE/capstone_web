@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,15 @@ export default function ExamScheduleDetailPage() {
 
   const { data: schedule, isLoading, error } = useExamScheduleById(scheduleId);
   const archiveMutation = useArchiveExamSchedule();
+
+  const [selectedPart, setSelectedPart] = useState<string | null>(null);
+
+  // Initialize selected part from schedule data
+  useEffect(() => {
+    if (schedule?.examPart && schedule.examPart.length > 0 && !selectedPart) {
+      setSelectedPart(schedule.examPart[0]);
+    }
+  }, [schedule, selectedPart]);
 
   if (isLoading) {
     return (
@@ -172,13 +181,13 @@ export default function ExamScheduleDetailPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.semester")}</p>
-                  <p className="font-semibold text-slate-900">{schedule.semester || "N/A"}</p>
+                  <p className="font-semibold text-slate-900">{schedule.semesterName || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.examType")}</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{t("examOfficer.detailSchedule.examPart")}</p>
                   <div className="flex flex-wrap gap-1">
-                    {schedule.examType && schedule.examType.length > 0 ? (
-                      schedule.examType.map((type) => (
+                    {schedule.examPart && schedule.examPart.length > 0 ? (
+                      schedule.examPart.map((type) => (
                         <span key={type} className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-500 border border-red-100">
                           {type}
                         </span>
@@ -239,13 +248,45 @@ export default function ExamScheduleDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Visual Seating Plan */}
-          <SeatingPlan
-            examSessionId={schedule.id}
-            maxRows={schedule.maxRows ?? null}
-            maxColumns={schedule.maxColumns ?? null}
-            totalSeats={schedule.totalSeats ?? null}
-          />
+          {/* Exam Part Selection */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-orange-100 rounded-lg">
+                  <BookOpen className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Select Active Exam Part</h3>
+              </div>
+              <div className="flex gap-2">
+                {schedule.examPart && schedule.examPart.length > 0 ? (
+                  schedule.examPart.map((part) => (
+                    <Button
+                      key={part}
+                      onClick={() => setSelectedPart(part)}
+                      variant={selectedPart === part ? "primary" : "outline"}
+                      className={`font-black uppercase tracking-widest text-[10px] h-9 px-4 rounded-xl transition-all duration-300 ${selectedPart === part
+                        ? "bg-slate-900 text-white shadow-lg scale-105"
+                        : "bg-white text-slate-500 hover:text-slate-900 border-slate-200"
+                        }`}
+                    >
+                      {part}
+                    </Button>
+                  ))
+                ) : (
+                  <span className="text-sm text-slate-400 font-medium">No parts defined for this session</span>
+                )}
+              </div>
+            </div>
+
+            {/* Visual Seating Plan */}
+            <SeatingPlan
+              examSessionId={schedule.id}
+              maxRows={schedule.maxRows ?? null}
+              maxColumns={schedule.maxColumns ?? null}
+              totalSeats={schedule.totalSeats ?? null}
+              selectedPart={selectedPart}
+            />
+          </div>
         </div>
 
         {/* Right Column - Quick Actions */}
@@ -288,7 +329,7 @@ export default function ExamScheduleDetailPage() {
                 <Users className="h-4 w-4 text-blue-500" />
                 {t("examOfficer.detailSchedule.viewStudents")}
               </Button>
-              {computedStatus === "Completed" && !schedule.isArchived && (
+              {computedStatus === "Completed" && (
                 <Button
                   variant="outline"
                   className="w-full gap-2 justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 bg-white"

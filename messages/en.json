@@ -1,5 +1,6 @@
 {
     "Common": {
+        "selected": "Selected",
         "welcome": "Welcome back",
         "loading": "Loading...",
         "refresh": "Refresh",
@@ -12,6 +13,7 @@
         "processing": "Processing...",
         "logout": "Logout",
         "error": "An error occurred",
+        "items": "items",
         "noResults": "No results found",
         "showing": "Showing",
         "to": "to",
@@ -19,7 +21,34 @@
         "page": "Page",
         "previous": "Previous",
         "next": "Next",
-        "actions": "Actions"
+        "actions": "Actions",
+        "clickToUpload": "Click to upload or drag and drop",
+        "success": {
+            "update": "Updated successfully",
+            "create": "Created successfully",
+            "delete": "Deleted successfully"
+        },
+        "errors": {
+            "updateFailed": "Update failed",
+            "createFailed": "Creation failed",
+            "deleteFailed": "Deletion failed"
+        },
+        "days": {
+            "monday": "Monday",
+            "tuesday": "Tuesday",
+            "wednesday": "Wednesday",
+            "thursday": "Thursday",
+            "friday": "Friday",
+            "saturday": "Saturday",
+            "sunday": "Sunday"
+        },
+        "statuses": {
+            "Draft": "Draft",
+            "Scheduled": "Scheduled",
+            "Published": "Published",
+            "Ongoing": "Ongoing",
+            "Completed": "Completed"
+        }
     },
     "Login": {
         "title": "Welcome Back",
@@ -76,6 +105,7 @@
         "examOfficer": {
             "examSchedules": "Exam Schedules",
             "manageSchedules": "Manage exam schedules and segments",
+            "failedLoad": "Failed to load exam schedules",
             "createSchedule": {
                 "title": "Create exam schedule",
                 "description": "Define schedule details, generate a unique schedule code, and assign time and room information. You can update proctoring and room assignments later.",
@@ -88,7 +118,7 @@
                 "semesterPlaceholder": "e.g. Fall 2025",
                 "subjectCode": "Subject / Course Name",
                 "subjectCodePlaceholder": "e.g. CHEM201",
-                "examType": "Exam Type",
+                "examPart": "Exam Type",
                 "examDate": "Exam Date",
                 "examDateHelper": "Must be tomorrow or later",
                 "duration": "Duration",
@@ -125,7 +155,7 @@
                 "openCode": "Open Code",
                 "subjectCode": "Subject / Course Name",
                 "semester": "Semester",
-                "examType": "Exam Type",
+                "examPart": "Exam Type",
                 "examDate": "Exam Date",
                 "duration": "Duration",
                 "startTime": "Start Time",
@@ -150,7 +180,7 @@
                 "scheduleDetail": "Schedule Detail",
                 "scheduleOverview": "Schedule Overview",
                 "semester": "Semester",
-                "examType": "Exam Type",
+                "examPart": "Exam Type",
                 "examDate": "Exam Date",
                 "duration": "Duration",
                 "room": "Room",
@@ -183,7 +213,8 @@
                 "importExamCodes": "Import Exam Codes",
                 "viewDetails": "View Details",
                 "update": "Update Schedule",
-                "archive": "Archive Schedule"
+                "archive": "Archive Schedule",
+                "export": "Export Report"
             },
             "scheduleOverview": "Exam Schedule Overview",
             "noSchedules": "No exam schedules",
@@ -214,7 +245,7 @@
             "archiveSuccess": "Archived successfully",
             "archiveFailed": "Archive failed",
             "archiving": "Archiving...",
-            "searchPlaceholder": "Search by exam code or subject name...",
+            "searchPlaceholder": "Search by subject name...",
             "allSubjects": "All Subjects",
             "advancedFilters": "Advanced Filters",
             "allStatuses": "All",
@@ -223,6 +254,7 @@
             "proctorId": "Proctor ID",
             "schedules": "exam schedules",
             "table": {
+                "campus": "Campus",
                 "examCode": "Exam Code",
                 "openCode": "Open Code",
                 "subject": "Subject",
@@ -232,6 +264,53 @@
                 "room": "Room",
                 "proctor": "Proctor",
                 "status": "Status"
+            },
+            "schedulesPage": {
+                "missionControl": "MISSION CONTROL SYSTEM",
+                "stats": {
+                    "examsThisBatch": "Exams this batch",
+                    "totalStudents": "Total students",
+                    "availableRooms": "Available rooms",
+                    "activeCampuses": "Active campuses"
+                },
+                "smartFilter": {
+                    "title": "Smart Filter",
+                    "subtitle": "Multi-tier search system",
+                    "clear": "Clear filters"
+                },
+                "filters": {
+                    "subject": "Subject",
+                    "room": "Exam Room",
+                    "proctor": "Proctor",
+                    "status": "Status",
+                    "campus": "Campus",
+                    "fromDate": "From Date",
+                    "toDate": "To Date",
+                    "startTime": "Start Time",
+                    "endTime": "End Time",
+                    "examCode": "Exam Code (Search)",
+                    "examCodePlaceholder": "Enter exam code..."
+                },
+                "allOptions": {
+                    "allSubjects": "All Subjects",
+                    "allRooms": "All Rooms",
+                    "allProctors": "All Proctors",
+                    "allStatuses": "All Statuses",
+                    "allCampuses": "All Campuses"
+                },
+                "campusLabel": "{campus} Campus",
+                "board": {
+                    "prevWeek": "PREV WEEK",
+                    "nextWeek": "NEXT WEEK",
+                    "allCampus": "ALL CAMPUSES",
+                    "reset": "RESET",
+                    "boardView": "BOARD",
+                    "listView": "LIST",
+                    "startTime": "START",
+                    "ready": "READY",
+                    "roomsSuffix": "ROOMS",
+                    "studentSuffix": "STU"
+                }
             }
         },
         "pagination": {
@@ -244,8 +323,14 @@
     "Rooms": {
         "detailTitle": "Room Detail",
         "listTitle": "Room Management",
+        "subtitle": "Manage and configure exam room settings",
         "createRoom": "Create New Room",
+        "totalDisplay": "Visible",
+        "roomTotal": "Total Rooms",
+        "roomNumber": "Room Number",
+        "campus": "Campus",
         "roomCount": "rooms",
+        "allCampuses": "All Campuses",
         "searchPlaceholder": "Search by name or location...",
         "basicInfo": "Basic Information",
         "additionalInfo": "Additional Information",
@@ -266,6 +351,30 @@
             "back": "Back",
             "edit": "Edit",
             "delete": "Delete"
+        },
+        "importRooms": "Import Exam Rooms",
+        "importDescription": "Import room list from CSV/Excel file",
+        "selectCampus": "Select Campus",
+        "chooseCampus": "Choose campus to import rooms into",
+        "uploadHint": "Upload CSV or Excel file (Room.csv)",
+        "importSuccess": "Import request sent successfully",
+        "deleteAll": "Delete All (Filter)",
+        "confirmDeleteAll": "ARE YOU SURE? This will delete",
+        "deleteAllTitle": "Confirm bulk deletion",
+        "deleteConfirmTitle": "Confirm deletion",
+        "matching": "matching",
+        "all": "ALL",
+        "cannotUndo": "This action CANNOT be undone.",
+        "deleteBulkSuccess": "Successfully deleted",
+        "deleteBulkError": "Failed to delete rooms",
+        "deleteSuccess": "Room deleted successfully",
+        "deleteError": "Failed to delete room",
+        "campuses": {
+            "HCM": "Ho Chi Minh",
+            "HN": "Ha Noi",
+            "DN": "Da Nang",
+            "QN": "Quy Nhon",
+            "CT": "Can Tho"
         }
     },
     "ProctorApplications": {
@@ -396,13 +505,21 @@
         "addSubject": "Add Subject",
         "importSubjects": "Import Subjects",
         "searchPlaceholder": "Search by code or name...",
-        "manageExamTypes": "Manage Exam Types",
+        "manageExamParts": "Manage Exam Types",
+        "totalSubjects": "Total Subjects",
+        "coreSubjects": "Core Courses",
+        "departments": "Departments",
+        "blueprints": "Examination Blueprints",
         "quickSearch": "Quick Search",
+        "previewImportData": "Preview Import Data",
+        "previewDescription": "Review data across {count} sheets before importing.",
+        "confirmImportAll": "Confirm Import All Sheets",
         "table": {
             "code": "Subject Code",
             "name": "Name",
             "semester": "Semester",
             "department": "Department",
+            "block": "Block",
             "parts": "Exam Parts",
             "actions": "Actions",
             "noParts": "No parts defined",
@@ -418,9 +535,42 @@
             "parts": "Exam Components",
             "addPart": "Add Component",
             "duration": "Duration (min)",
-            "examType": "Exam Type",
+            "examPart": "Exam Type",
             "noParts": "No exam components added yet.",
             "typeLabel": "Type"
+        }
+    },
+    "AutoGenerate": {
+        "title": "Auto Generate Exam Schedule",
+        "description": "Automatically create sessions for the entire semester",
+        "semester": "Semester",
+        "selectSemester": "Select Semester",
+        "campus": "Campus",
+        "uploadFile": "Student Registration File (CSV)",
+        "uploadPlaceholder": "Upload student registration list",
+        "uploadHint": "Accepts .csv or .xlsx (StudSub.csv)",
+        "clickToChange": "Click to change file",
+        "finalWeek": "Final Exam Week",
+        "retakeWeek": "Retake Exam Week",
+        "example": "Example",
+        "maxWeeks": "(max: {count})",
+        "selectRooms": "Select Exam Rooms ({count})",
+        "searchRoom": "Search room number...",
+        "noRooms": "No rooms found for this campus",
+        "selectAll": "Select All",
+        "deselectAll": "Deselect All",
+        "cancel": "Cancel",
+        "generate": "Auto Generate",
+        "generating": "Generating...",
+        "success": "Auto generation request has been sent",
+        "success_completed": "Successfully generated {count} exam sessions!",
+        "errors": {
+            "selectSemester": "Please select a semester",
+            "uploadFile": "Please upload student registration file (CSV/Excel)",
+            "selectRoom": "Please select at least one room",
+            "finalWeekInvalid": "Final Exam Week must be between 1 and {max}",
+            "retakeWeekInvalid": "Retake Exam Week must be between 1 and {max}",
+            "failed": "Failed to generate schedule"
         }
     }
 }
