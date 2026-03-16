@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Check, AlertCircle } from "lucide-react";
+import { FileUp, Loader2, Check, AlertCircle, CalendarDays } from "lucide-react";
 import { useImportSubjects } from "@/hooks/use-subjects";
+import { useSemesters } from "@/hooks/use-semesters";
+import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
 import * as xlsx from "xlsx";
 import {
@@ -49,6 +51,29 @@ export function ImportSubjectButton() {
     const [currentSheetIdx, setCurrentSheetIdx] = useState(0);
     const [showPreview, setShowPreview] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
+    const [isProcessingInQueue, setIsProcessingInQueue] = useState(false);
+
+    const { data: semestersData } = useSemesters({ limit: 100 });
+    const semesters = semestersData?.data || [];
+    const { on } = useSocket();
+
+    // Listen for import completion via socket
+    useEffect(() => {
+        if (!on) return;
+
+        const cleanup = on("IMPORT_COMPLETED", (data: any) => {
+            if (data.action === "subjects") {
+                setIsProcessingInQueue(false);
+                toast.success(data.message || "Subjects imported successfully!", {
+                    icon: <Check className="h-4 w-4 text-emerald-500" />,
+                    description: `Success: ${data.successCount}, Error: ${data.errorCount}`,
+                });
+            }
+        });
+
+        return cleanup;
+    }, [on]);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -111,9 +136,13 @@ export function ImportSubjectButton() {
         try {
             setIsUploading(true);
             setShowPreview(false);
-            const result = await importSubjects.mutateAsync(selectedFile);
-            toast.success(result.message || "File uploaded successfully. Processing in background.", {
-                icon: <Check className="h-4 w-4 text-emerald-500" />
+            const result = await importSubjects.mutateAsync({
+                file: selectedFile,
+                semesterId: selectedSemesterId
+            });
+            setIsProcessingInQueue(true);
+            toast.info(result.message || "File uploaded. Processing subjects...", {
+                icon: <Loader2 className="h-4 w-4 animate-spin" />
             });
         } catch (error: any) {
             console.error("Import failed:", error);
@@ -143,31 +172,76 @@ export function ImportSubjectButton() {
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
             />
+
+            {/* Loading Overlay */}
+            {isProcessingInQueue && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 max-w-sm text-center">
+                        <div className="relative">
+                            <div className="h-16 w-16 border-4 border-orange-100 border-t-orange-600 rounded-full animate-spin"></div>
+                            <FileUp className="h-6 w-6 text-orange-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Processing Subjects</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                We are analyzing and importing subjects into the system. Please do not close this window.
+                            </p>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-orange-600 h-full w-2/3 animate-pulse rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Button
                 variant="outline"
-                size="sm"
                 onClick={handleClick}
                 disabled={isUploading}
-                className="rounded-full shadow-sm hover:bg-slate-50 dark:hover:bg-slate-900 border-dashed"
+                className="h-14 px-8 border-slate-200 bg-white hover:bg-slate-50 hover:border-orange-200 text-slate-700 rounded-2xl transition-all active:scale-95 shadow-sm group"
             >
                 {isUploading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                 ) : (
-                    <FileUp className="h-4 w-4 mr-2 text-emerald-600" />
+                    <FileUp className="mr-3 h-5 w-5 text-orange-500 group-hover:-translate-y-0.5 transition-transform" />
                 )}
-                {t("importSubjects")}
+                <span className="font-bold text-base">{t("importSubjects")}</span>
             </Button>
 
             <Dialog open={showPreview} onOpenChange={setShowPreview}>
                 <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
                     <DialogHeader className="p-6 pb-2">
                         <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <FileUp className="h-5 w-5 text-emerald-600" />
-                            {t("previewImportData") || "Preview Import Data"}
+                            <FileUp className="h-5 w-5 text-orange-600" />
+                            {t("previewImportData")}
                         </DialogTitle>
                         <DialogDescription>
-                            {t("previewDescription", { count: allPreviewData.length }) || `Review data across ${allPreviewData.length} sheets before importing.`}
+                            {t("previewDescription", { count: allPreviewData.length })}
                         </DialogDescription>
+
+                        <div className="mt-4 p-4 bg-orange-50 border border-orange-100 rounded-xl flex items-center gap-4">
+                            <div className="flex-1 space-y-1">
+                                <label className="text-xs font-bold text-orange-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    Target Semester
+                                </label>
+                                <select
+                                    className="w-full h-10 px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                                    value={selectedSemesterId}
+                                    onChange={(e) => setSelectedSemesterId(e.target.value)}
+                                >
+                                    <option value="">Select semester to import into</option>
+                                    {semesters.map((sem) => (
+                                        <option key={sem.id} value={sem.id}>
+                                            {sem.name} ({sem.code})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="text-[10px] text-orange-600 max-w-[200px] italic">
+                                * Existing subjects in this semester will be updated, new ones will be created.
+                            </div>
+                        </div>
                     </DialogHeader>
 
                     {allPreviewData.length > 1 && (
@@ -179,7 +253,7 @@ export function ImportSubjectButton() {
                                     className={cn(
                                         "px-3 py-1 text-sm rounded-md whitespace-nowrap transition-colors",
                                         currentSheetIdx === idx
-                                            ? "bg-emerald-100 text-emerald-700 font-medium"
+                                            ? "bg-orange-100 text-orange-700 font-medium"
                                             : "text-slate-500 hover:bg-slate-100"
                                     )}
                                 >
@@ -196,7 +270,7 @@ export function ImportSubjectButton() {
                                     <TableRow>
                                         <TableHead className="w-[100px] font-bold text-slate-900">{t("table.code")}</TableHead>
                                         <TableHead className="font-bold text-slate-900">{t("table.name")}</TableHead>
-                                        <TableHead className="w-[100px] font-bold text-slate-900">Block</TableHead>
+                                        <TableHead className="w-[100px] font-bold text-slate-900">{t("table.block")}</TableHead>
                                         <TableHead className="w-[100px] font-bold text-slate-900">{t("dialog.duration")}</TableHead>
                                         <TableHead className="w-[120px] font-bold text-slate-900">{t("table.department")}</TableHead>
                                         <TableHead className="font-bold text-slate-900">{t("dialog.parts")}</TableHead>
@@ -233,11 +307,11 @@ export function ImportSubjectButton() {
                             {tCommon("cancel")}
                         </Button>
                         <Button
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                            className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
                             onClick={confirmImport}
-                            disabled={allPreviewData.length === 0}
+                            disabled={allPreviewData.length === 0 || !selectedSemesterId}
                         >
-                            {t("confirmImportAll") || "Confirm Import All Sheets"}
+                            {t("confirmImportAll")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

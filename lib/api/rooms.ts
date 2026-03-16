@@ -4,10 +4,34 @@ import { Room, ApiResponse, PaginatedResponse, PaginationParams } from "@/types"
 export const roomsApi = {
   // Get all rooms
   getAll: async (params?: PaginationParams): Promise<PaginatedResponse<Room>> => {
-    const response = await apiClient.get<PaginatedResponse<Room>>("/exam-rooms", {
+    const response = await apiClient.get<any>("/exam-rooms", {
       params,
     });
-    return response.data;
+
+    // Handle the common ApiResponse format with TransformInterceptor
+    if (response.data && response.data.success && response.data.meta) {
+      return {
+        success: true,
+        data: response.data.data || [],
+        pagination: {
+          total: response.data.meta.total || 0,
+          page: response.data.meta.page || 1,
+          limit: response.data.meta.limit || 10,
+          totalPages: response.data.meta.totalPages || 0,
+        }
+      };
+    }
+
+    return {
+      success: true,
+      data: response.data?.data || [],
+      pagination: {
+        total: response.data?.total || 0,
+        page: response.data?.page || 1,
+        limit: response.data?.limit || 10,
+        totalPages: response.data?.totalPages || 0,
+      }
+    };
   },
 
   // Get room by ID
@@ -44,10 +68,62 @@ export const roomsApi = {
 
   // Get available rooms
   getAvailable: async (params?: PaginationParams): Promise<PaginatedResponse<Room>> => {
-    const response = await apiClient.get<PaginatedResponse<Room>>("/exam-rooms/available", {
+    const response = await apiClient.get<any>("/exam-rooms/available", {
       params,
     });
+
+    if (response.data && response.data.success && response.data.meta) {
+      return {
+        success: true,
+        data: response.data.data || [],
+        pagination: {
+          total: response.data.meta.total || 0,
+          page: response.data.meta.page || 1,
+          limit: response.data.meta.limit || 10,
+          totalPages: response.data.meta.totalPages || 0,
+        }
+      };
+    }
+
+    return {
+      success: true,
+      data: response.data?.data || [],
+      pagination: {
+        total: response.data?.total || 0,
+        page: response.data?.page || 1,
+        limit: response.data?.limit || 10,
+        totalPages: response.data?.totalPages || 0,
+      }
+    };
+  },
+
+  // Import rooms from file
+  import: async (file: File, campus?: string): Promise<{ message: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (campus) {
+      formData.append("campus", campus);
+    }
+
+    const response = await apiClient.post<{ message: string }>(
+      "/exam-rooms/import",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
     return response.data;
+  },
+
+  // Delete multiple rooms
+  deleteBulk: async (params?: { roomNumber?: string; campus?: string }): Promise<{ deletedCount: number }> => {
+    const response = await apiClient.delete<any>("/exam-rooms/bulk", {
+      params,
+    });
+    return response.data.data || { deletedCount: 0 };
   },
 };
 

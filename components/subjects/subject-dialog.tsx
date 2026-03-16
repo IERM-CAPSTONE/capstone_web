@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Plus, Trash2, Clock, BookOpen } from "lucide-react";
-import { Subject, ExamType, SubjectPart } from "@/types";
+import { Subject, ExamPart, SubjectPart } from "@/types";
 import { useCreateSubject, useUpdateSubject } from "@/hooks/use-subjects";
-import { useExamTypes } from "@/hooks/use-exam-types";
+import { useExamParts } from "@/hooks/use-exam-parts";
 
 interface SubjectDialogProps {
     subject?: Subject | null;
@@ -22,7 +22,7 @@ export function SubjectDialog({ subject, onClose }: SubjectDialogProps) {
     const t = useTranslations("Subjects.dialog");
     const tCommon = useTranslations("Common");
     const isEdit = !!subject;
-    const { data: examTypes = [] } = useExamTypes();
+    const { data: examParts = [] } = useExamParts();
     const { data: semestersResponse } = useSemesters({ limit: 100 });
     const semesters = semestersResponse?.data || [];
 
@@ -35,9 +35,9 @@ export function SubjectDialog({ subject, onClose }: SubjectDialogProps) {
         semesterId: subject?.semesterId || "",
         department: subject?.department || "",
         parts: subject?.parts.map(p => ({
-            examTypeId: p.examTypeId,
+            examPartId: p.examPartId,
             duration: p.duration || 0,
-        })) || [] as { examTypeId: string; duration: number }[],
+        })) || [] as { examPartId: string; duration: number }[],
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,7 +50,7 @@ export function SubjectDialog({ subject, onClose }: SubjectDialogProps) {
                 semesterId: subject.semesterId || "",
                 department: subject.department || "",
                 parts: subject.parts.map(p => ({
-                    examTypeId: p.examTypeId,
+                    examPartId: p.examPartId,
                     duration: p.duration || 0,
                 })),
             });
@@ -64,7 +64,7 @@ export function SubjectDialog({ subject, onClose }: SubjectDialogProps) {
         if (formData.parts.length === 0) newErrors.parts = "At least one exam part is required";
 
         formData.parts.forEach((part, index) => {
-            if (!part.examTypeId) newErrors[`part_${index}_type`] = "Type is required";
+            if (!part.examPartId) newErrors[`part_${index}_type`] = "Type is required";
             if (!part.duration || part.duration <= 0) newErrors[`part_${index}_duration`] = "Invalid duration";
         });
 
@@ -75,7 +75,7 @@ export function SubjectDialog({ subject, onClose }: SubjectDialogProps) {
     const addPart = () => {
         setFormData({
             ...formData,
-            parts: [...formData.parts, { examTypeId: examTypes[0]?.id || "", duration: 60 }],
+            parts: [...formData.parts, { examPartId: examParts[0]?.id || "", duration: 60 }],
         });
     };
 
@@ -218,11 +218,11 @@ export function SubjectDialog({ subject, onClose }: SubjectDialogProps) {
                                         <div className="flex-1 space-y-2">
                                             <label className="text-[11px] font-bold text-slate-500 uppercase">{t("typeLabel") || "Type"}</label>
                                             <select
-                                                value={part.examTypeId}
-                                                onChange={(e) => updatePart(index, "examTypeId", e.target.value)}
+                                                value={part.examPartId}
+                                                onChange={(e) => updatePart(index, "examPartId", e.target.value)}
                                                 className="w-full h-9 px-3 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm transition-all focus:ring-2 focus:ring-orange-500 outline-none"
                                             >
-                                                {Array.isArray(examTypes) && examTypes.map((type) => (
+                                                {Array.isArray(examParts) && examParts.map((type) => (
                                                     <option key={type.id} value={type.id}>
                                                         {type.name} ({type.code})
                                                     </option>

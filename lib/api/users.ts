@@ -167,7 +167,7 @@ export const usersApi = {
     return response.data.success ? response.data.data : { message: "Failed to start import" };
   },
 
-  // Get only proctors (accessible by Admin, Exam Officer, Proctor)
+  // Get hall invigilators (accessible by Admin, Exam Officer)
   getProctors: async (params?: Omit<ListUsersParams, 'role'>): Promise<PaginatedUserResponse> => {
     try {
       const queryParams: any = {};
@@ -203,6 +203,23 @@ export const usersApi = {
     } catch (error: any) {
       console.error("Error fetching proctors:", error);
       throw error;
+    }
+  },
+
+  // Get assignable users (IT Support + Hall Invigilator) for ticket assignment
+  // Accessible by EXAM_OFFICER and ADMIN
+  getAssignees: async (): Promise<User[]> => {
+    try {
+      const response = await apiClient.get("/users/assignees");
+      const raw = response.data as any;
+      // TransformInterceptor wraps: { success, statusCode, data: [...] }
+      if (raw?.data && Array.isArray(raw.data)) return raw.data;
+      // Fallback: direct array
+      if (Array.isArray(raw)) return raw;
+      return [];
+    } catch (error: any) {
+      console.error("Error fetching assignees:", error?.response?.status, error?.response?.data);
+      return [];
     }
   },
 };

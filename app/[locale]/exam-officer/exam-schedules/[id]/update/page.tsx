@@ -29,6 +29,7 @@ export default function UpdateExamSchedulePage() {
     const scheduleId = params.id as string;
     const locale = getCurrentLocale();
     const t = useTranslations("Dashboard");
+    const tCommon = useTranslations("Common");
 
     const { data: schedule, isLoading: isLoadingSchedule } = useExamScheduleById(scheduleId);
     const updateMutation = useUpdateExamSchedule();
@@ -64,7 +65,7 @@ export default function UpdateExamSchedulePage() {
 
     const validateForm = () => {
         if (!formData.examCode.trim()) {
-            setError(t("examOfficer.updateSchedule.examCode") + " " + t("Common.error"));
+            setError(t("examOfficer.updateSchedule.examCode") + " " + tCommon("error"));
             return false;
         }
         setError("");
@@ -100,7 +101,7 @@ export default function UpdateExamSchedulePage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-                    <p className="text-slate-600">{t("Common.loading")}</p>
+                    <p className="text-slate-600">{tCommon("loading")}</p>
                 </div>
             </div>
         );
@@ -236,11 +237,11 @@ export default function UpdateExamSchedulePage() {
                                 {/* Exam Type */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        {t("examOfficer.updateSchedule.examType")}
+                                        {t("examOfficer.updateSchedule.examPart")}
                                     </label>
                                     <input
                                         type="text"
-                                        value={schedule.examType || ""}
+                                        value={schedule.examPart || ""}
                                         disabled
                                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-not-allowed"
                                     />

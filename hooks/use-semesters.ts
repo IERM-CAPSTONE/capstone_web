@@ -3,7 +3,7 @@ import { semestersApi } from "@/lib/api/semesters";
 import { PaginationParams } from "@/types";
 import { toast } from "sonner";
 
-export const useSemesters = (params?: PaginationParams & { search?: string }) => {
+export const useSemesters = (params?: PaginationParams & { search?: string, fromDate?: string, toDate?: string }) => {
     return useQuery({
         queryKey: ["semesters", params],
         queryFn: () => semestersApi.getAll(params),

@@ -1,24 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useCallback } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
-import { CheckCircle2, Info, X } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { Ticket } from "lucide-react";
 import { useCheckAuth } from "@/hooks/use-check-auth";
 import { DashboardLoadingSkeleton } from "@/components/ui/page-loading";
+import { useSocket } from "@/hooks/use-socket";
+import { useAuthStore } from "@/store/auth-store";
+import { ROUTES } from "@/lib/constants/routes";
+import { toast } from "sonner";
 
 export default function ExamOfficerLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    // Sử dụng hook để kiểm tra auth, redirect về login nếu chưa đăng nhập
     const { isLoading, isAuthenticated, user } = useCheckAuth({
         redirectIfNotAuthenticated: true
     });
 
-    const allowedRoles = ["admin", "exam_officer"]; // Only admin and exam_officer should access this area
+    const allowedRoles = ["admin", "exam_officer"];
 
     if (isLoading || !isAuthenticated || (user && !allowedRoles.includes(user.role))) {
         return <DashboardLoadingSkeleton />;
@@ -29,8 +32,109 @@ export default function ExamOfficerLayout({
     );
 }
 
+// ─── Notification sound (Web Audio API) ─────────────────────────────────────
+function makeBeepWav(freqs: number[], durationSec = 0.14, sampleRate = 22050): string {
+    const chunkSamples = Math.floor(sampleRate * durationSec);
+    const numSamples = chunkSamples * freqs.length;
+    const buf = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buf);
+    const write = (off: number, val: number, bytes: number) => {
+        for (let i = 0; i < bytes; i++) view.setUint8(off + i, (val >> (8 * i)) & 0xff);
+    };
+    [0x52, 0x49, 0x46, 0x46].forEach((b, i) => view.setUint8(i, b));
+    write(4, 36 + numSamples * 2, 4);
+    [0x57, 0x41, 0x56, 0x45, 0x66, 0x6d, 0x74, 0x20].forEach((b, i) => view.setUint8(8 + i, b));
+    write(16, 16, 4); write(20, 1, 2); write(22, 1, 2);
+    write(24, sampleRate, 4); write(28, sampleRate * 2, 4); write(32, 2, 2); write(34, 16, 2);
+    [0x64, 0x61, 0x74, 0x61].forEach((b, i) => view.setUint8(36 + i, b));
+    write(40, numSamples * 2, 4);
+    freqs.forEach((freq, fi) => {
+        for (let i = 0; i < chunkSamples; i++) {
+            const t = i / sampleRate;
+            const s = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 8) * 0.4 * 32767;
+            view.setInt16(44 + (fi * chunkSamples + i) * 2, s, true);
+        }
+    });
+    const bytes = new Uint8Array(buf); let bin = '';
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    return 'data:audio/wav;base64,' + btoa(bin);
+}
+let _ticketSound: string | null = null;
+function playTicketSound() {
+    try {
+        if (!_ticketSound) _ticketSound = makeBeepWav([880, 1100]);
+        const audio = new Audio(_ticketSound);
+        audio.volume = 0.5;
+        audio.play().catch(() => { });
+    } catch { }
+}
+
+// ─── Main content with global ticket listener ────────────────────────────────
 function ExamOfficerContent({ children }: { children: React.ReactNode }) {
-    const [notification, setNotification] = useState<{ message: string, type: 'success' | 'info' } | null>(null);
+    const router = useRouter();
+    const { socket, isConnected, joinRoom } = useSocket();
+    const user = useAuthStore((s) => s.user);
+    const params = useParams();
+    const locale = (params?.locale as string) || "vi";
+
+    // Join socket room so backend can sendToUser(userId, ...)
+    useEffect(() => {
+        if (isConnected && user?.id) {
+            joinRoom(user.id);
+        }
+    }, [isConnected, user?.id, joinRoom]);
+
+    const navigateToTickets = useCallback(() => {
+        router.push(`/${locale}${ROUTES.EXAM_OFFICER_TICKETS}`);
+    }, [router, locale]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewTicket = (payload: { ticket: any; reporter?: any }) => {
+            // 1. Play alert sound
+            playTicketSound();
+
+            // 2. Show persistent clickable toast
+            const reporterName = payload.reporter?.fullName ?? "Giám thị";
+            const issueName = payload.ticket?.issueName ?? "Ticket mới";
+            const studentCode = payload.ticket?.studentCode;
+            const roomNumber = payload.ticket?.session?.examRoom?.roomNumber
+                ?? payload.ticket?.session?.roomNumber;
+
+            toast(
+                <div className="flex items-start gap-3 cursor-pointer w-full" onClick={navigateToTickets}>
+                    <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                        <Ticket className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900">🎫 Ticket mới từ {reporterName}</p>
+                        <p className="text-xs text-slate-600 truncate mt-0.5">{issueName}</p>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                            {studentCode && <span className="font-mono font-bold text-orange-600">{studentCode}</span>}
+                            {roomNumber && <span className="text-blue-600">📍 {roomNumber}</span>}
+                        </div>
+                        <p className="text-[11px] text-orange-500 font-semibold mt-1">Nhấn để xử lý →</p>
+                    </div>
+                </div>,
+                {
+                    duration: 12000,
+                    style: {
+                        padding: "12px",
+                        borderLeft: "4px solid #f97316",
+                        cursor: "pointer",
+                    },
+                    action: {
+                        label: "Xử lý ngay",
+                        onClick: navigateToTickets,
+                    },
+                }
+            );
+        };
+
+        socket.on("ticket:created", handleNewTicket);
+        return () => { socket.off("ticket:created", handleNewTicket); };
+    }, [socket, navigateToTickets]);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
@@ -41,21 +145,6 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
                     <div className="flex-1 overflow-y-auto p-0 md:p-6">
                         {children}
                     </div>
-
-                    {/* Global Notification */}
-                    {notification && (
-                        <div className={cn(
-                            "fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-right-4 duration-300",
-                            "flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border",
-                            notification.type === 'success' ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-blue-50 border-blue-100 text-blue-800"
-                        )}>
-                            {notification.type === 'success' ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Info className="h-5 w-5 text-blue-600" />}
-                            <span className="text-sm font-semibold">{notification.message}</span>
-                            <button onClick={() => setNotification(null)} className="ml-2 hover:opacity-70">
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                    )}
 
                     {/* Footer */}
                     <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">

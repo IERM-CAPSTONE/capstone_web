@@ -24,12 +24,12 @@ export default function CreateExamSchedulePage() {
   const locale = getCurrentLocale();
   const t = useTranslations("Dashboard");
 
-  type ExamType = "Final_Exam" | "Theory_Exam" | "Retake" | "Practical" | "Multiple_choice" | "Speaking" | "Listening" | "Reading" | "Writing";
+  type ExamPart = "Final_Exam" | "Theory_Exam" | "Retake" | "Practical" | "Multiple_choice" | "Speaking" | "Listening" | "Reading" | "Writing";
   const [formData, setFormData] = useState({
     examCode: "",
     semester: "",
     subjectCode: "",
-    examType: "Final_Exam" as ExamType,
+    examPart: "Final_Exam" as ExamPart,
     examDate: "",
     startTime: "",
     endTime: "",
@@ -43,7 +43,7 @@ export default function CreateExamSchedulePage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const examTypeMap: Record<ExamType, string> = {
+  const examPartMap: Record<ExamPart, string> = {
     Final_Exam: "FE",
     Theory_Exam: "TE",
     Retake: "RE",
@@ -84,13 +84,13 @@ export default function CreateExamSchedulePage() {
       return;
     }
 
-    const examTypeCode = examTypeMap[formData.examType];
+    const examPartCode = examPartMap[formData.examPart];
     const semesterCode = formData.semester
       ? generateSemesterAbbr(formData.semester)
       : "XXXX";
     const randomCode = generateRandomCode();
 
-    const generatedCode = `${formData.subjectCode.toUpperCase()}_${examTypeCode}_${semesterCode}_${randomCode}`;
+    const generatedCode = `${formData.subjectCode.toUpperCase()}_${examPartCode}_${semesterCode}_${randomCode}`;
 
     setFormData((prev) => ({
       ...prev,
@@ -190,7 +190,7 @@ export default function CreateExamSchedulePage() {
         openCode: formData.openCode || undefined,
         semester: formData.semester || undefined,
         note: formData.note || undefined,
-        examType: examTypeMap[formData.examType] ? [examTypeMap[formData.examType]] : [],
+        examPart: examPartMap[formData.examPart] ? [examPartMap[formData.examPart]] : [],
         subjectCode: formData.subjectCode,
         examOpenTime: (() => {
           if (!formData.examDate || !formData.startTime) return undefined;
@@ -330,15 +330,15 @@ export default function CreateExamSchedulePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    {t("examOfficer.createSchedule.examType")} <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.examPart")} <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-3">
-                    {Object.entries(examTypeMap).map(([key, label]) => (
+                    {Object.entries(examPartMap).map(([key, label]) => (
                       <button
                         key={key}
                         type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, examType: key as ExamType }))}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${formData.examType === key
+                        onClick={() => setFormData((prev) => ({ ...prev, examPart: key as ExamPart }))}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${formData.examPart === key
                           ? "bg-orange-50 text-orange-600 border-orange-300"
                           : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
                           }`}

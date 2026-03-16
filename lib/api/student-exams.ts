@@ -17,6 +17,9 @@ export interface StudentExam {
     updatedAt: string;
     studentName?: string | null;
     studentCode?: string | null;
+    stt?: number | null;
+    parts?: any[];
+    email?: string | null;
 }
 
 export interface PaginatedStudentExamResponse {
@@ -53,5 +56,11 @@ export const studentExamsApi = {
             `/student-exams/${id}`
         );
         return response.data.data;
+    },
+
+    // Update attendance/submission for a specific part
+    updatePart: async (id: string, data: { isCheckedIn?: boolean; checkInTime?: string | null; isSubmit?: boolean; isSign?: boolean }) => {
+        const response = await apiClient.patch(`/student-exam-parts/${id}`, data);
+        return response.data;
     },
 };

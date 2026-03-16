@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor";
+export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor" | "it_support" | "hall_invigilator";
 
 export type RoomStatus = "available" | "occupied" | "maintenance";
 
@@ -20,9 +20,10 @@ export interface Room {
   roomNumber: string;
   capacity: number | null;
   status: string;
-  maxRows?: number;
-  maxColumns?: number;
-  totalSeats?: number;
+  campus?: string | null;
+  max_rows?: number;
+  max_columns?: number;
+  total_seats?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,7 +80,7 @@ export interface PaginationParams {
   order?: "asc" | "desc";
 }
 
-export interface ExamType {
+export interface ExamPart {
   id: string;
   code: string;
   name: string;
@@ -89,9 +90,9 @@ export interface ExamType {
 export interface SubjectPart {
   id: string;
   subjectId: string;
-  examTypeId: string;
+  examPartId: string;
   duration: number | null;
-  examType?: ExamType;
+  examPart?: ExamPart;
 }
 
 export interface Subject {
@@ -101,6 +102,7 @@ export interface Subject {
   semesterId: string | null;
   semester?: Semester;
   department: string | null;
+  isCoursera: boolean;
   parts: SubjectPart[];
   createdAt: string;
   updatedAt: string;

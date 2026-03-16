@@ -13,6 +13,7 @@ interface SeatGridProps {
   onSeatLockToggle?: (seat: ExamSeat) => void;
   isEditing?: boolean;
   userRole?: string;
+  selectedPart?: string | null;
   isSwapMode?: boolean;
   swapSourceSeat?: ExamSeat | null;
 }
@@ -27,6 +28,7 @@ export function SeatGrid({
   onSeatLockToggle,
   isEditing = false,
   userRole = 'GUEST',
+  selectedPart = null,
   isSwapMode = false,
   swapSourceSeat = null,
 }: SeatGridProps) {
@@ -40,18 +42,35 @@ export function SeatGrid({
   });
 
   const renderSeat = (row: number, col: number) => {
+    const seatIdx = (row - 1) * cols + col;
+    const seatRC = `R${row}C${col}`;
+
     const seat = seats.find(s => s.row === row && s.col === col);
-    const student = seat ? studentBySeatId.get(seat.id) : undefined;
-    const isSwapSource = isSwapMode && swapSourceSeat?.id === seat?.id;
+
+    // Find student by index string, R-C string, or matching seatPosition ID
+    const student = studentMap.get(seatIdx.toString()) ||
+      studentMap.get(seatRC) ||
+      students.find(s => s.seatPosition === seat?.id);
+
+    // Compute status based on selected part
+    let computedStatus = seat?.status;
+    if (student && selectedPart && seat?.status !== 'Locked') {
+      const part = student.parts?.find(p => p.examPartCode === selectedPart);
+      if (part?.isCheckedIn) {
+        computedStatus = 'Present';
+      } else {
+        computedStatus = 'Assigned';
+      }
+    }
 
     return (
       <SeatCell
         key={`${row}-${col}`}
-        seat={seat}
+        seat={seat ? { ...seat, status: computedStatus as any } : undefined}
         row={row}
         col={col}
-        studentCode={student?.studentCode}
-        studentStatus={student?.status}
+        stt={student?.stt}
+        studentCode={student?.studentCode || undefined}
         onSelect={onSeatSelect}
         onLockToggle={onSeatLockToggle}
         isEditing={isEditing}

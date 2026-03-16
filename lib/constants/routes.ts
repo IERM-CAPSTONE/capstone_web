@@ -22,7 +22,7 @@ export const ROUTES = {
   // Dashboard
   DASHBOARD: "/dashboard",
   DASHBOARD_ADMIN: "/admin",
-  DASHBOARD_EXAM_OFFICER: "/exam-officer/exam-schedules",
+  DASHBOARD_EXAM_OFFICER: "/exam-officer",
   DASHBOARD_PROCTOR: "/proctor",
 
   // Admin routes
@@ -42,6 +42,7 @@ export const ROUTES = {
   // Exam Officer routes
   EXAM_OFFICER_ROOMS: "/exam-officer/rooms",
   EXAM_OFFICER_SEMESTERS: "/exam-officer/semesters",
+  EXAM_OFFICER_TICKETS: "/exam-officer/tickets",
   SUBJECTS: "/exam-officer/subjects",
 
   // Exam Schedules
@@ -53,7 +54,18 @@ export const ROUTES = {
 
   // Proctor Applications
   PROCTOR_APPLICATIONS: "/proctor/applications",
+  PROCTOR_TICKETS: "/proctor/tickets",
+  PROCTOR_EXAM_SESSION_DETAIL: (id: string) => `/proctor/exam-sessions/${id}`,
   EXAM_OFFICER_PROCTOR_APPLICATIONS: "/exam-officer/proctor-applications",
+
+  // Hall Invigilator routes
+  HALL_INVIGILATOR: "/hall-invigilator",
+  HALL_INVIGILATOR_TICKETS: "/hall-invigilator/tickets",
+  HALL_INVIGILATOR_APPLICATIONS: "/hall-invigilator/applications",
+
+  // IT Support routes
+  IT_SUPPORT: "/it-support",
+  IT_SUPPORT_TICKETS: "/it-support/tickets",
 
   // Các routes khác sẽ được thêm sau khi cần
   STUDENTS: "/students",

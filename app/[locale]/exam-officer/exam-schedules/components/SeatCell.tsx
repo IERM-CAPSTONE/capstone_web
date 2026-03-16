@@ -6,8 +6,8 @@ interface SeatCellProps {
   seat?: ExamSeat;
   row: number;
   col: number;
+  stt?: number | null;
   studentCode?: string;
-  studentStatus?: string;
   onSelect: (seat: ExamSeat | undefined) => void;
   onLockToggle?: (seat: ExamSeat) => void;
   isEditing?: boolean;
@@ -20,8 +20,8 @@ export function SeatCell({
   seat,
   row,
   col,
+  stt,
   studentCode,
-  studentStatus,
   onSelect,
   onLockToggle,
   isSwapMode = false,
@@ -31,7 +31,7 @@ export function SeatCell({
 }: SeatCellProps) {
   const normalizedRole = (userRole || '').toLowerCase();
   const seatId = `${row}-${col}`;
-  const label = `R${row}C${col}`;
+  const label = stt ? `#${stt}` : `R${row}C${col}`;
 
   // Determine seat styling based on status
   let seatStyles = "bg-[#F8FAFC] border-slate-100";
@@ -41,10 +41,10 @@ export function SeatCell({
   let statusIcon = null;
 
   if (seat?.status === 'Locked') {
-    // Locked seat - Faded/Disabled look
-    seatStyles = "bg-slate-100 border-slate-200 opacity-50";
-    textStyles = "text-slate-400";
-    labelStyles = "text-slate-300";
+    // Locked seat - Indigo/Slate Blue
+    seatStyles = "bg-indigo-50 border-indigo-100 opacity-70";
+    textStyles = "text-indigo-400";
+    labelStyles = "text-indigo-300";
     statusText = "LOCKED";
     statusIcon = <Lock className="h-3 w-3" />;
   } else if (seat?.status === 'Assigned') {
@@ -71,6 +71,11 @@ export function SeatCell({
     textStyles = "text-green-700";
     labelStyles = "text-green-500";
     statusText = "Available";
+  }
+
+  // Override text if student is assigned
+  if (studentCode) {
+    statusText = studentCode;
   }
 
   const canSwap = isSwapMode && seat && seat.status !== 'Locked' && ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);

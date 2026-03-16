@@ -19,24 +19,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    useExamTypes,
-    useCreateExamType,
-    useUpdateExamType,
-    useDeleteExamType
-} from "@/hooks/use-exam-types";
-import { ExamType } from "@/types";
+    useExamParts,
+    useCreateExamPart,
+    useUpdateExamPart,
+    useDeleteExamPart
+} from "@/hooks/use-exam-parts";
+import { ExamPart } from "@/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 
-interface ExamTypeManagementDialogProps {
+interface ExamPartManagementDialogProps {
     onClose: () => void;
 }
 
-export function ExamTypeManagementDialog({ onClose }: ExamTypeManagementDialogProps) {
-    const { data: examTypes = [], isLoading, refetch } = useExamTypes();
-    const createExamType = useCreateExamType();
-    const updateExamType = useUpdateExamType();
-    const deleteExamType = useDeleteExamType();
+export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogProps) {
+    const { data: examParts = [], isLoading, refetch } = useExamParts();
+    const createExamPart = useCreateExamPart();
+    const updateExamPart = useUpdateExamPart();
+    const deleteExamPart = useDeleteExamPart();
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export function ExamTypeManagementDialog({ onClose }: ExamTypeManagementDialogPr
         setEditingId(null);
     };
 
-    const handleStartEdit = (type: ExamType) => {
+    const handleStartEdit = (type: ExamPart) => {
         setEditingId(type.id);
         setFormData({
             code: type.code,
@@ -72,13 +72,13 @@ export function ExamTypeManagementDialog({ onClose }: ExamTypeManagementDialogPr
 
         try {
             if (editingId) {
-                await updateExamType.mutateAsync({
+                await updateExamPart.mutateAsync({
                     id: editingId,
                     data: formData
                 });
                 toast.success("Exam type updated successfully");
             } else {
-                await createExamType.mutateAsync(formData);
+                await createExamPart.mutateAsync(formData);
                 toast.success("Exam type created successfully");
             }
             handleResetForm();
@@ -96,7 +96,7 @@ export function ExamTypeManagementDialog({ onClose }: ExamTypeManagementDialogPr
         }
 
         try {
-            await deleteExamType.mutateAsync(id);
+            await deleteExamPart.mutateAsync(id);
             toast.success("Exam type deleted successfully");
             refetch();
         } catch (error: any) {
@@ -179,9 +179,9 @@ export function ExamTypeManagementDialog({ onClose }: ExamTypeManagementDialogPr
                                     <Button
                                         type="submit"
                                         className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white px-6"
-                                        disabled={createExamType.isPending || updateExamType.isPending}
+                                        disabled={createExamPart.isPending || updateExamPart.isPending}
                                     >
-                                        {(createExamType.isPending || updateExamType.isPending) ? "Saving..." : (editingId ? "Save Changes" : "Create Type")}
+                                        {(createExamPart.isPending || updateExamPart.isPending) ? "Saving..." : (editingId ? "Save Changes" : "Create Type")}
                                     </Button>
                                 </div>
                             </form>
@@ -203,14 +203,14 @@ export function ExamTypeManagementDialog({ onClose }: ExamTypeManagementDialogPr
                         <div className="space-y-3">
                             {isLoading ? (
                                 <div className="py-8 text-center text-slate-400">Loading exam types...</div>
-                            ) : examTypes.length === 0 ? (
+                            ) : examParts.length === 0 ? (
                                 <div className="py-12 text-center rounded-3xl border-2 border-dashed border-slate-100">
                                     <AlertCircle className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                                     <p className="text-slate-400 font-medium">No exam types found</p>
                                 </div>
                             ) : (
                                 <div className="grid gap-3">
-                                    {examTypes.map((type: ExamType) => (
+                                    {examParts.map((type: ExamPart) => (
                                         <div
                                             key={type.id}
                                             className={cn(

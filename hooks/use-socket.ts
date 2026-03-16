@@ -41,10 +41,20 @@ export const useSocket = () => {
         }
     }, [socket]);
 
+    /**
+     * Join the socket room for this user so backend can sendToUser(userId, ...)
+     */
+    const joinRoom = useCallback((userId: string) => {
+        if (socket && userId) {
+            socket.emit('join_room', userId);
+        }
+    }, [socket]);
+
     return {
         socket,
         isConnected,
         emit,
         on,
+        joinRoom,
     };
 };
