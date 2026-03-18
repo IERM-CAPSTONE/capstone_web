@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Import, Trash2, LayoutGrid, CheckCircle, Clock, Construction } from "lucide-react";
+import { Plus, Search, Import, Trash2, LayoutGrid, CheckCircle, Clock, Construction, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants/routes";
 import { useRooms, useDeleteRoom, useDeleteBulkRooms } from "@/hooks/use-rooms";
@@ -20,7 +20,7 @@ export default function RoomsPage() {
   const [selectedCampus, setSelectedCampus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  
+
   // Confirmation states
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -31,7 +31,7 @@ export default function RoomsPage() {
   }>({
     title: "",
     description: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
     isLoading: false,
   });
 
@@ -40,7 +40,7 @@ export default function RoomsPage() {
   const locale = getCurrentLocale();
 
   // ✅ SỬ DỤNG HOOK để fetch data
-  const { data, isLoading } = useRooms({
+  const { data, isLoading, refetch, isRefetching } = useRooms({
     page,
     limit: 10,
     campus: selectedCampus === "all" ? undefined : selectedCampus,
@@ -115,7 +115,7 @@ export default function RoomsPage() {
         {/* Soft Background Accents */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/[0.03] rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-500/[0.02] rounded-full blur-[80px] pointer-events-none" />
-        
+
         <div className="relative p-8 lg:p-14">
           <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-10 mb-14">
             <div className="space-y-4">
@@ -130,8 +130,17 @@ export default function RoomsPage() {
                 {t("subtitle") || "Advanced configuration and monitoring for campus examination environments."}
               </p>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                disabled={isLoading || isRefetching}
+                className="h-14 px-8 border-slate-200 bg-white hover:bg-slate-50 hover:border-orange-200 text-slate-700 rounded-2xl transition-all active:scale-95 shadow-sm flex items-center gap-3 group"
+              >
+                <RotateCw className={`h-5 w-5 text-orange-500 transition-transform duration-500 ${isRefetching ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                <span className="font-bold text-base">{commonT("refresh") || "Refresh"}</span>
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setIsImportDialogOpen(true)}
@@ -162,9 +171,9 @@ export default function RoomsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { label: t("roomTotal"), value: data?.pagination?.total || 0, icon: LayoutGrid, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-              { label: t("statusAvailable"), value: "482", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-              { label: t("statusOccupied"), value: "112", icon: Clock, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
-              { label: t("statusMaintenance"), value: "12", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
+              { label: t("statusAvailable"), value: "0", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+              { label: t("statusOccupied"), value: "0", icon: Clock, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+              { label: t("statusMaintenance"), value: "0", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
             ].map((stat, idx) => (
               <div key={idx} className={`relative group p-7 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden`}>
                 <div className="flex flex-col gap-4">
@@ -194,7 +203,7 @@ export default function RoomsPage() {
               className="w-full h-16 pl-16 pr-8 bg-white border-slate-100 focus-visible:ring-4 focus-visible:ring-orange-500/10 rounded-[1.5rem] text-lg font-semibold shadow-sm hover:shadow-md transition-all placeholder:text-slate-400"
             />
           </div>
-          
+
           <div className="w-full lg:w-72 relative group h-16">
             <select
               value={selectedCampus}
@@ -209,7 +218,7 @@ export default function RoomsPage() {
               ))}
             </select>
             <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-orange-500 transition-colors">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
             </div>
           </div>
 
@@ -237,7 +246,7 @@ export default function RoomsPage() {
                 <span>{commonT("of")}</span>
                 <span className="text-orange-600 font-black px-2 py-0.5 bg-orange-50 rounded-md tabular-nums">{data.pagination.total}</span>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -247,7 +256,7 @@ export default function RoomsPage() {
                 >
                   <svg className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                 </Button>
-                
+
                 <div className="flex items-center gap-3 px-8 h-14 bg-white border border-slate-100 rounded-2xl shadow-sm text-lg font-black tracking-tight">
                   <span className="text-orange-600 px-3 py-1 bg-orange-50 rounded-lg">{page}</span>
                   <span className="opacity-20 font-light text-2xl">/</span>

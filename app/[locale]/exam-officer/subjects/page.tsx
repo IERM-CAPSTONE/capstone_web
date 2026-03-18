@@ -118,9 +118,9 @@ export default function SubjectManagementPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {[
                             { label: t("totalSubjects") || "Total Subjects", value: data?.pagination?.total || 0, icon: BookOpen, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-                            { label: t("coreSubjects") || "Core Courses", value: "142", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-                            { label: t("departments") || "Departments", value: "12", icon: LayoutGrid, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
-                            { label: t("blueprints") || "Examination Blueprints", value: "48", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
+                            { label: t("coreSubjects") || "Core Courses", value: "0", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+                            { label: t("departments") || "Departments", value: "0", icon: LayoutGrid, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+                            { label: t("blueprints") || "Examination Blueprints", value: "0", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
                         ].map((stat, idx) => (
                             <div key={idx} className={`relative group p-7 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden`}>
                                 <div className="flex flex-col gap-4">

@@ -43,6 +43,7 @@ export default function AutoGenerateScheduleDialog({
         campus: ["HCM"] as string[],
         selectedType: "FE" as "FE" | "RE" | "PE" | "COURSERA_FE" | "COURSERA_RE",
         targetWeek: "" as string,
+        examDays: "6",
         selectedRooms: [] as string[],
         campusFiles: {} as Record<string, { fileData: string; fileName: string }>,
         classScheduleFiles: {} as Record<string, { fileData: string; fileName: string }>,
@@ -50,15 +51,28 @@ export default function AutoGenerateScheduleDialog({
 
     const { on: onSocket } = useSocket();
 
+    const [failedItems, setFailedItems] = useState<any[]>([]);
+
     useEffect(() => {
-        const cleanup = onSocket?.("AUTO_GENERATE_COMPLETED", (data: any) => {
-            toast.success(t("success_completed", { count: data.sessionCount }));
-            // Optional: refresh query if needed
+        const cleanupCalc = onSocket?.("AUTO_GENERATE_CALCULATED", (data: any) => {
+            if (data.failedCount > 0) {
+                toast.warning(`Schedule generated with ${data.failedCount} incomplete pools.`);
+            }
+            // Auto close this dialog because AutoGenerateReportDialog will open
+            if (isOpen) {
+                handleClose();
+            }
         });
+
+        const cleanupComp = onSocket?.("AUTO_GENERATE_COMPLETED", (data: any) => {
+            toast.success(t("success_completed", { count: data.sessionCount }));
+        });
+
         return () => {
-            if (cleanup) cleanup();
+            if (cleanupCalc) cleanupCalc();
+            if (cleanupComp) cleanupComp();
         };
-    }, [onSocket, t]);
+    }, [onSocket, t, isOpen]);
 
     const [roomPage, setRoomPage] = useState(1);
     const roomsPerPage = 20;
@@ -74,7 +88,7 @@ export default function AutoGenerateScheduleDialog({
 
     const { data: semestersData } = useSemesters(semestersParams);
     const { data: roomsData, isLoading: isLoadingRooms } = useRooms({
-        limit: 1000, // Fetch more to allow client-side filtering/pagination
+        limit: 99999, // Fetch all available rooms for multi-campus selection
         campus: formData.campus
     });
 
@@ -234,6 +248,7 @@ export default function AutoGenerateScheduleDialog({
                 fileData: campusFilesArray[0]?.fileData,
                 campusFiles: campusFilesArray,
                 classScheduleFiles: classScheduleFilesArray,
+                examDays: parseInt(formData.examDays),
             };
 
             // Map selectedType to specific week field
@@ -265,10 +280,12 @@ export default function AutoGenerateScheduleDialog({
             campus: ["HCM"],
             selectedType: "FE",
             targetWeek: "",
+            examDays: "6",
             selectedRooms: [],
             campusFiles: {},
             classScheduleFiles: {},
         });
+        setFailedItems([]);
         setRoomPage(1);
         setRoomFilter("");
         onClose();
@@ -471,7 +488,7 @@ export default function AutoGenerateScheduleDialog({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                                         <Zap className="h-4 w-4 text-slate-400" />
@@ -516,6 +533,26 @@ export default function AutoGenerateScheduleDialog({
                                             <p className="text-[10px] text-orange-600 font-bold">{getWeekRange(formData.targetWeek)}</p>
                                         )}
                                     </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                        <CalendarDays className="h-4 w-4 text-slate-400" />
+                                        Exam Days / Week
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                                        value={formData.examDays}
+                                        onChange={(e) => setFormData({ ...formData, examDays: e.target.value })}
+                                    >
+                                        <option value="1">1 Day</option>
+                                        <option value="2">2 Days (Mon - Tue)</option>
+                                        <option value="3">3 Days (Mon - Wed)</option>
+                                        <option value="4">4 Days (Mon - Thu)</option>
+                                        <option value="5">5 Days (Mon - Fri)</option>
+                                        <option value="6">6 Days (Mon - Sat)</option>
+                                        <option value="7">7 Days (Mon - Sun)</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -631,7 +668,7 @@ export default function AutoGenerateScheduleDialog({
                             </div>
                         </div>
                     ) : (
-                        <div className="flex-1 p-12 text-center space-y-4">
+                        <div className="flex-1 p-6 text-center space-y-4 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
                             <div className="flex justify-center">
                                 <div className="p-4 bg-green-50 rounded-full">
                                     <CheckCircle className="h-16 w-16 text-green-500" />
@@ -639,14 +676,16 @@ export default function AutoGenerateScheduleDialog({
                             </div>
                             <h4 className="text-xl font-bold text-slate-900">{t("success")}</h4>
                             <p className="text-slate-600 max-w-sm mx-auto">
-                                {t("description")}
+                                The exam schedules generation is running and processing in the background. Please wait.
                             </p>
-                            <Button
-                                onClick={handleClose}
-                                className="bg-orange-500 hover:bg-orange-600 text-white min-w-[200px]"
-                            >
-                                {tDashboard("detailSchedule.back")}
-                            </Button>
+                            <div className="mt-6 pt-6">
+                                <Button
+                                    onClick={handleClose}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white min-w-[200px]"
+                                >
+                                    {tDashboard("detailSchedule.back")}
+                                </Button>
+                            </div>
                         </div>
                     )}
 

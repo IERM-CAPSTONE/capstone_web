@@ -34,7 +34,7 @@ export function usePublishExamSessions() {
   });
 }
 
-export function useExamSchedules(params?: ListExamSchedulesParams) {
+export function useExamSchedules(params?: ListExamSchedulesParams, queryOptions?: Record<string, any>) {
   return useQuery({
     queryKey: [...EXAM_SCHEDULES_QUERY_KEY, params],
     queryFn: () =>
@@ -43,8 +43,9 @@ export function useExamSchedules(params?: ListExamSchedulesParams) {
         limit: 10,
         ...params,
       }),
-    staleTime: 0, // Always refetch
-    gcTime: 0, // Don't cache
+    staleTime: 0,
+    gcTime: 0,
+    ...queryOptions,
   });
 }
 

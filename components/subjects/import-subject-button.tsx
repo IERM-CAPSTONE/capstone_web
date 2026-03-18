@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils/cn";
 
 interface PreviewData {
     sheetName: string;
+    totalRows: number;
     rows: {
         code: string;
         name: string;
@@ -79,6 +80,11 @@ export function ImportSubjectButton() {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        // Clear previous state to avoid stale data
+        setAllPreviewData([]);
+        setSelectedSemesterId("");
+        setSelectedFile(null);
+
         const validExtensions = [".xlsx", ".xls", ".csv"];
         const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
 
@@ -92,30 +98,49 @@ export function ImportSubjectButton() {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                const workbook = xlsx.read(data, { type: "array" });
+                const workbook = xlsx.read(data, { type: "array", cellDates: true });
 
                 const allSheetsData: PreviewData[] = workbook.SheetNames.map(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
-                    const json = xlsx.utils.sheet_to_json(worksheet) as any[];
+                    const json = xlsx.utils.sheet_to_json(worksheet, { defval: "" }) as any[];
 
-                    const rows = json.slice(0, 50).map((row: any) => {
+                    const rows = json.slice(0, 100).map((row: any) => {
                         const keys = Object.keys(row);
-                        const findValue = (keywords: string[]) => {
-                            const foundKey = keys.find(k => keywords.some(kw => k.toUpperCase().includes(kw.toUpperCase())));
-                            return foundKey ? row[foundKey] : null;
+                        
+                        // Strict helper to find value by keywords, avoiding duplicates
+                        const getVal = (keywords: string[]) => {
+                            const foundKey = keys.find(k => 
+                                keywords.map(kw => kw.toUpperCase()).includes(String(k).toUpperCase().trim())
+                            );
+                            if (foundKey) return row[foundKey];
+                            
+                            // Try partial match if no exact match
+                            const partialKey = keys.find(k => 
+                                keywords.some(kw => String(k).toUpperCase().includes(kw.toUpperCase()))
+                            );
+                            return partialKey ? row[partialKey] : null;
                         };
 
+                        const code = getVal(["MÃ MÔN", "CODE", "SUBCODE", "SUB CODE", "SUB_CODE"]);
+                        const name = getVal(["TÊN MÔN", "NAME", "SUBJECT NAME", "SUBJECTNAME", "TITLE"]);
+                        const duration = getVal(["THỜI LƯỢNG", "DURATION", "PHÚT", "EXAMDURATION", "EXAM DURATION"]);
+                        const block = getVal(["BLOCK", "HỌC KỲ", "HOCKY"]);
+                        const dept = getVal(["BỘ MÔN", "DEPARTMENT", "FACULTY", "DEPT"]);
+                        
+                        // Only map exam parts if specific columns exist, matching backend logic
+                        const examPart = getVal(["EXAMPART", "PHẦN THI", "PHANTHI", "PARTS", "EXTRAPARTS", "CHI TIẾT", "DETAILS", "DETAIL"]);
+                        
                         return {
-                            code: findValue(["MÃ MÔN", "CODE"]) || Object.values(row)[1],
-                            name: findValue(["TÊN MÔN", "NAME"]) || Object.values(row)[2],
-                            block: findValue(["BLOCK"]) || "-",
-                            duration: findValue(["THỜI LƯỢNG", "DURATION", "PHÚT"]) || "-",
-                            description: findValue(["CHI TIẾT", "DETAILS", "THÔNG TIN"]) || "-",
-                            department: findValue(["BỘ MÔN", "DEPARTMENT", "FACULTY"]) || "-",
+                            code: String(code || Object.values(row)[0] || "-"),
+                            name: String(name || "-"),
+                            block: String(block || "-"),
+                            duration: String(duration || "-"),
+                            department: String(dept || "-"),
+                            description: examPart ? String(examPart) : "MC",
                         };
                     });
 
-                    return { sheetName, rows };
+                    return { sheetName, rows, totalRows: json.length };
                 });
 
                 setAllPreviewData(allSheetsData);
@@ -161,7 +186,9 @@ export function ImportSubjectButton() {
         fileInputRef.current?.click();
     };
 
-    const currentData = allPreviewData[currentSheetIdx]?.rows || [];
+    const currentSheetData = allPreviewData[currentSheetIdx];
+    const currentData = currentSheetData?.rows || [];
+    const totalRows = currentSheetData?.totalRows || 0;
 
     return (
         <>
@@ -211,10 +238,19 @@ export function ImportSubjectButton() {
             <Dialog open={showPreview} onOpenChange={setShowPreview}>
                 <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
                     <DialogHeader className="p-6 pb-2">
-                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <FileUp className="h-5 w-5 text-orange-600" />
-                            {t("previewImportData")}
-                        </DialogTitle>
+                        <div className="flex items-center justify-between pr-8">
+                            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                                <FileUp className="h-5 w-5 text-orange-600" />
+                                {t("previewImportData")}
+                            </DialogTitle>
+                            
+                            {totalRows > 0 && (
+                                <div className="px-4 py-1.5 bg-orange-50 border border-orange-100 rounded-full flex items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 opacity-60">Total Items</span>
+                                    <span className="text-sm font-black text-orange-700">{totalRows}</span>
+                                </div>
+                            )}
+                        </div>
                         <DialogDescription>
                             {t("previewDescription", { count: allPreviewData.length })}
                         </DialogDescription>
@@ -257,14 +293,17 @@ export function ImportSubjectButton() {
                                             : "text-slate-500 hover:bg-slate-100"
                                     )}
                                 >
-                                    {sheet.sheetName} ({sheet.rows.length})
+                                    {sheet.sheetName} ({sheet.totalRows})
                                 </button>
                             ))}
                         </div>
                     )}
 
                     <div className="flex-1 overflow-hidden px-6">
-                        <ScrollArea className="h-[60vh] border rounded-md">
+                        <div className="mb-2 text-[11px] text-slate-400 font-medium">
+                            {currentData.length < totalRows ? `* Showing first ${currentData.length} items for preview` : `* Showing all ${totalRows} items`}
+                        </div>
+                        <ScrollArea className="h-[55vh] border rounded-md">
                             <Table className="min-w-[800px]">
                                 <TableHeader className="bg-slate-50 sticky top-0 z-10">
                                     <TableRow>
@@ -302,12 +341,12 @@ export function ImportSubjectButton() {
                         </ScrollArea>
                     </div>
 
-                    <DialogFooter className="p-6 pt-4 bg-slate-50 border-t">
+                    <DialogFooter className="p-6 pt-4 bg-slate-50 border-t mt-auto">
                         <Button variant="ghost" onClick={() => setShowPreview(false)}>
                             {tCommon("cancel")}
                         </Button>
                         <Button
-                            className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
+                            className="bg-orange-600 hover:bg-orange-700 text-white gap-2 font-bold"
                             onClick={confirmImport}
                             disabled={allPreviewData.length === 0 || !selectedSemesterId}
                         >

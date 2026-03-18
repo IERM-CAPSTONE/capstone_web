@@ -127,7 +127,7 @@ function ITSupportContent({ children }: { children: React.ReactNode }) {
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar />
                 <main className="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
-                    <div className="flex-1 overflow-y-auto p-0 md:p-6">
+                    <div className="flex-1 overflow-y-auto p-0 md:p-5">
                         {children}
                     </div>
                     <footer className="border-t border-gray-200 bg-white px-6 py-4 text-center text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">

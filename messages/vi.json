@@ -376,7 +376,8 @@
             "DN": "Đà Nẵng",
             "QN": "Quy Nhơn",
             "CT": "Cần Thơ"
-        }
+        },
+        "tableHint": "Xác nhận dữ liệu trước khi nhập"
     },
     "ProctorApplications": {
         "title": "Đơn đăng ký giám thị",

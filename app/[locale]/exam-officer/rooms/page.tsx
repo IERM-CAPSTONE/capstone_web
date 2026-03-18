@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, LayoutGrid, CheckCircle, Clock, Construction } from "lucide-react";
+import { Search, LayoutGrid, CheckCircle, Clock, Construction, RotateCw } from "lucide-react";
 import { useRooms } from "@/hooks/use-rooms";
 import { RoomTable } from "@/components/rooms/room-table";
 import { useTranslations } from "next-intl";
@@ -16,7 +16,7 @@ export default function ExamOfficerRoomsPage() {
   const [selectedCampus, setSelectedCampus] = useState<string>("all");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useRooms({
+  const { data, isLoading, refetch, isRefetching } = useRooms({
     page,
     limit: 10,
     campus: selectedCampus === "all" ? undefined : selectedCampus,
@@ -46,16 +46,27 @@ export default function ExamOfficerRoomsPage() {
               <p className="max-w-xl text-slate-500 font-semibold text-xl leading-relaxed opacity-80">
                 {t("subtitle") || "Monitor and coordinate available examination environments across all campuses."}
               </p>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                disabled={isLoading || isRefetching}
+                className="h-14 px-8 border-slate-200 bg-white hover:bg-slate-50 hover:border-orange-200 text-slate-700 rounded-2xl transition-all active:scale-95 shadow-sm flex items-center gap-3 group"
+              >
+                <RotateCw className={`h-5 w-5 text-orange-500 transition-transform duration-500 ${isRefetching ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                <span className="font-bold text-base">{commonT("refresh") || "Refresh"}</span>
+              </Button>
             </div>
           </div>
+        </div>
 
           {/* Minimalist Stats Divider */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { label: t("roomTotal"), value: data?.pagination?.total || 0, icon: LayoutGrid, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
-              { label: t("statusAvailable"), value: "482", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-              { label: t("statusOccupied"), value: "112", icon: Clock, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
-              { label: t("statusMaintenance"), value: "12", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
+              { label: t("statusAvailable"), value: "0", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+              { label: t("statusOccupied"), value: "0", icon: Clock, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+              { label: t("statusMaintenance"), value: "0", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
             ].map((stat, idx) => (
               <div key={idx} className={`relative group p-7 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden`}>
                 <div className="flex flex-col gap-4">

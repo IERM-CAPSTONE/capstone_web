@@ -91,7 +91,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 dark:bg-gray-900 lg:static lg:translate-x-0 lg:shadow-none lg:border-r border-gray-200 dark:border-gray-800",
+          "fixed inset-y-0 left-0 z-50 w-60 transform bg-white shadow-lg transition-transform duration-300 dark:bg-gray-900 lg:static lg:translate-x-0 lg:shadow-none lg:border-r border-gray-200 dark:border-gray-800",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

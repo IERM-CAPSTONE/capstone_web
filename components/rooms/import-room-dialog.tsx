@@ -13,12 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTranslations } from "next-intl";
 import { useImportRooms } from "@/hooks/use-rooms";
-import { 
-  Upload, 
-  Loader2, 
-  Table as TableIcon, 
-  X, 
-  AlertCircle, 
+import {
+  Upload,
+  Loader2,
+  Table as TableIcon,
+  X,
+  AlertCircle,
   CheckCircle2,
   Trash2,
   Search
@@ -44,7 +44,7 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
   const [isParsing, setIsParsing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const importRooms = useImportRooms();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,20 +99,20 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
     setPreviewData(prev => prev.filter(r => r !== rowToRemove));
   };
 
-  const filteredPreviewData = previewData.filter(row => 
-    Object.values(row).some(val => 
+  const filteredPreviewData = previewData.filter(row =>
+    Object.values(row).some(val =>
       String(val).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] bg-white">
+      <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] bg-white">
         {/* Soft Background Accents */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/[0.02] rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-20 left-10 w-64 h-64 bg-blue-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
 
-        <DialogHeader className="relative p-8 lg:p-10 pb-4">
+        <DialogHeader className="relative p-6 lg:p-8 pb-4 flex-shrink-0">
           <div className="flex items-center gap-4 mb-2">
             <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100 shadow-inner">
               <TableIcon className="h-6 w-6 text-orange-500" />
@@ -128,10 +128,10 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
           </div>
         </DialogHeader>
 
-        <div className="relative flex-1 overflow-hidden flex flex-col px-8 lg:px-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col px-8 lg:px-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 flex-shrink-0">
             {/* Campus Selection */}
-            <div className="space-y-3">
+            <div className="space-y-3 flex-shrink-0">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 pl-1">
                 {t("selectCampus")} <span className="text-orange-500">*</span>
               </label>
@@ -149,23 +149,22 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
                   ))}
                 </select>
                 <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                 </div>
               </div>
             </div>
 
             {/* File Dropzone */}
-            <div className="space-y-3">
+            <div className="space-y-3 flex-shrink-0">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 pl-1">
                 {t("uploadHint") || "DATA SOURCE (CSV/EXCEL)"}
               </label>
-              <div 
+              <div
                 onClick={() => !isParsing && fileInputRef.current?.click()}
-                className={`relative h-14 flex items-center gap-4 px-5 rounded-2xl cursor-pointer transition-all border-2 border-dashed ${
-                  selectedFile 
-                    ? 'border-orange-500 bg-orange-50 shadow-[0_0_20px_-5px_rgba(249,115,22,0.1)]' 
-                    : 'border-slate-200 bg-slate-50 hover:border-orange-400 hover:bg-slate-100'
-                }`}
+                className={`relative h-14 flex items-center gap-4 px-5 rounded-2xl cursor-pointer transition-all border-2 border-dashed ${selectedFile
+                  ? 'border-orange-500 bg-orange-50 shadow-[0_0_20px_-5px_rgba(249,115,22,0.1)]'
+                  : 'border-slate-200 bg-slate-50 hover:border-orange-400 hover:bg-slate-100'
+                  }`}
               >
                 <Input
                   type="file"
@@ -187,14 +186,10 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
                   <p className={`text-sm font-bold truncate ${selectedFile ? 'text-orange-700' : 'text-slate-600'}`}>
                     {selectedFile ? selectedFile.name : (commonT("clickToUpload") || "Choose resource file...")}
                   </p>
-                  {selectedFile && (
-                    <p className="text-[9px] font-black text-orange-400 tracking-wider">
-                      {(selectedFile.size / 1024).toFixed(1)} KB READY
-                    </p>
-                  )}
+
                 </div>
                 {selectedFile && (
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedFile(null);
@@ -213,38 +208,38 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
 
           {/* Preview Section */}
           {previewData.length > 0 && (
-            <div className="flex-1 flex flex-col min-h-0 bg-white rounded-3xl border border-slate-100 shadow-sm mb-8 overflow-hidden transition-all duration-500">
+            <div className="flex-1 flex flex-col min-h-0 bg-white rounded-3xl border border-slate-100 shadow-sm mb-0 overflow-hidden transition-all duration-500">
               <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
                   <div className="px-3 py-1 bg-white rounded-lg border border-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                     {filteredPreviewData.length} / {previewData.length} {commonT("items").toUpperCase()}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-bold italic">
-                    {t("tableHint") || "Header mapping auto-detected"}
+                  <span className="text-[10px] text-orange-500 font-bold italic">
+                    {t("tableHint") === "Rooms.tableHint" ? "Xác nhận dữ liệu trước khi nhập" : t("tableHint")}
                   </span>
                 </div>
                 <div className="w-full md:w-64 relative group">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                  <Input 
-                    placeholder="Search records..." 
+                  <Input
+                    placeholder="Search records..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="h-10 pl-10 bg-white border-slate-200 rounded-xl text-xs font-semibold focus-visible:ring-4 focus-visible:ring-orange-500/5 transition-all"
                   />
                 </div>
               </div>
-              
-              <ScrollArea className="flex-1">
-                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md">
+
+              <div className="h-[650px] overflow-y-auto relative border-t border-slate-100">
+                <table className="w-full text-left border-separate border-spacing-0">
+                  <thead className="sticky top-0 z-20 bg-slate-50 shadow-sm">
                     <tr>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-16">#</th>
+                      <th className="px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 w-16 bg-slate-50/95 border-b border-slate-100">#</th>
                       {headers.map((header) => (
-                        <th key={header} className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                        <th key={header} className="px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-slate-50/95 border-b border-slate-100">
                           {header}
                         </th>
                       ))}
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right w-20">
+                      <th className="px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right w-20 bg-slate-50/95 border-b border-slate-100">
                         {commonT("actions")}
                       </th>
                     </tr>
@@ -254,16 +249,16 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
                       const originalIdx = previewData.indexOf(row);
                       return (
                         <tr key={originalIdx} className="group hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4 text-xs font-black text-slate-300">
+                          <td className="px-6 py-2.5 text-xs font-black text-slate-300">
                             {originalIdx + 1}
                           </td>
                           {headers.map((header) => (
-                            <td key={header} className="px-6 py-4 text-sm font-bold text-slate-700">
+                            <td key={header} className="px-6 py-2.5 text-sm font-bold text-slate-700">
                               {row[header]}
                             </td>
                           ))}
-                          <td className="px-6 py-4 text-right">
-                            <button 
+                          <td className="px-6 py-2.5 text-right">
+                            <button
                               onClick={() => removeRow(row)}
                               className="h-8 w-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
                             >
@@ -275,7 +270,7 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
                     })}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </div>
           )}
 
@@ -292,22 +287,22 @@ export function ImportRoomDialog({ isOpen, onClose }: ImportRoomDialogProps) {
           )}
         </div>
 
-        <DialogFooter className="relative p-8 lg:p-10 lg:pt-6 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row sm:justify-between items-center gap-6">
+        <DialogFooter className="relative p-6 lg:p-8 lg:pt-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row sm:justify-between items-center gap-6 flex-shrink-0">
           <div className="flex items-center gap-3">
-             {selectedCampus && (
-               <div className="px-5 py-2 bg-white rounded-full border border-slate-100 shadow-sm flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">
-                   Target: <span className="text-slate-900">{t(`campuses.${selectedCampus}`) || selectedCampus}</span>
-                 </span>
-               </div>
-             )}
+            {selectedCampus && (
+              <div className="px-5 py-2 bg-white rounded-full border border-slate-100 shadow-sm flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">
+                  Target: <span className="text-slate-900">{t(`campuses.${selectedCampus}`) || selectedCampus}</span>
+                </span>
+              </div>
+            )}
           </div>
-          
+
           <div className="flex items-center gap-4 w-full sm:w-auto">
-            <Button 
-              variant="ghost" 
-              onClick={handleClose} 
+            <Button
+              variant="ghost"
+              onClick={handleClose}
               disabled={importRooms.isPending}
               className="px-8 h-12 text-sm font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
             >
