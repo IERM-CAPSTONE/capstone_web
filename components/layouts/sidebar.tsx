@@ -23,12 +23,15 @@ import {
 } from "lucide-react";
 import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
+import { useAdminDeviceApplications } from "@/hooks/use-devices";
 
 export function Sidebar() {
   const t = useTranslations("Sidebar");
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user } = useAuthStore();
+  const pendingApplicationsQuery = useAdminDeviceApplications({ page: 1, limit: 1, status: "PENDING" });
+  const pendingApplicationsCount = pendingApplicationsQuery.data?.total ?? 0;
 
   const adminMenuItems = [
     { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_ADMIN, exact: true },
@@ -139,7 +142,14 @@ export function Sidebar() {
                   }}
                 >
                   <Icon className={cn("h-5 w-5", isActive ? "text-[#F37021]" : "text-gray-500")} />
-                  {item.label}
+                  <span className="flex items-center gap-2">
+                    {item.label}
+                    {item.href === ROUTES.ADMIN_DEVICES && pendingApplicationsCount > 0 && (
+                      <span className="inline-flex items-center justify-center rounded-full bg-[#F37021] px-2 py-0.5 text-[10px] font-bold text-white">
+                        {pendingApplicationsCount}
+                      </span>
+                    )}
+                  </span>
                 </Link>
               );
             })}
