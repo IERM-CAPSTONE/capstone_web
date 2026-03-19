@@ -54,6 +54,7 @@ export interface ListExamSchedulesParams {
   endTime?: string;
   examRoomId?: string;
   proctorId?: string;
+  studentId?: string;
   campus?: string;
   examType?: string; // PE | FE | TE | RE
 }

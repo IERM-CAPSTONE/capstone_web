@@ -62,6 +62,10 @@ export function Sidebar() {
     { icon: Calendar, label: "Lịch thi", href: ROUTES.EXAMS_SCHEDULE },
   ];
 
+  const studentMenuItems = [
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_STUDENT, exact: true },
+  ];
+
   const itSupportMenuItems = [
     { icon: LayoutDashboard, label: "Tổng quan", href: ROUTES.IT_SUPPORT, exact: true },
     { icon: Ticket, label: "Ticket kỹ thuật", href: ROUTES.IT_SUPPORT_TICKETS },
@@ -74,6 +78,8 @@ export function Sidebar() {
         ? proctorMenuItems
         : user?.role === "hall_invigilator"
           ? hallInvigilatorMenuItems
+          : user?.role === "student"
+            ? studentMenuItems
           : user?.role === "it_support"
             ? itSupportMenuItems
             : adminMenuItems;

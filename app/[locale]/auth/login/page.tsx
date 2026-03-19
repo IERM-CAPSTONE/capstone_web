@@ -10,10 +10,9 @@ import { AuthLoadingSkeleton } from "@/components/ui/page-loading";
 
 export default function LoginPage() {
   const t = useTranslations("Login");
-  const commonT = useTranslations("Common");
 
-  // Sử dụng hook để kiểm tra auth, không redirect nếu đã đăng nhập
-  const { isLoading } = useCheckAuth({ redirectIfAuthenticated: false });
+  // If already authenticated, immediately route to role-based dashboard.
+  const { isLoading } = useCheckAuth({ redirectIfAuthenticated: true });
 
   // Show skeleton while checking authentication
   if (isLoading) {

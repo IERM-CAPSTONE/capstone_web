@@ -17,6 +17,24 @@ export function Header() {
   const t = useTranslations("Common");
 
   const { user, logout: logoutStore } = useAuthStore();
+    const rolePortalMap: Record<string, string> = {
+      admin: "Admin Portal",
+      exam_officer: "Exam Officer Portal",
+      proctor: "Proctor Portal",
+      hall_invigilator: "Hall Invigilator Portal",
+      it_support: "IT Support Portal",
+      student: "Student Portal",
+    };
+
+    const roleLabelMap: Record<string, string> = {
+      admin: "System Administrator",
+      exam_officer: "Exam Officer",
+      proctor: "Proctor",
+      hall_invigilator: "Hall Invigilator",
+      it_support: "IT Support",
+      student: "Student",
+    };
+
   const { toggleSidebar } = useUIStore();
 
   const handleLocaleChange = (newLocale: string) => {
@@ -76,7 +94,7 @@ export function Header() {
             <div className="flex flex-col">
               <span className="text-xl font-bold leading-none">IERM</span>
               <span className="text-xs font-medium opacity-90">
-                {user?.role === "exam_officer" ? "Exam Officer Portal" : "Admin Portal"}
+                {rolePortalMap[user?.role || ""] ?? "IERM Portal"}
               </span>
             </div>
           </div>
@@ -112,7 +130,7 @@ export function Header() {
                 <div className="hidden md:block text-right">
                   <p className="text-sm font-semibold leading-tight">{user?.name || "System User"}</p>
                   <p className="text-xs opacity-90">
-                    {user?.role === "exam_officer" ? "Exam Officer" : "System Administrator"}
+                    {roleLabelMap[user?.role || ""] ?? "System User"}
                   </p>
                 </div>
               </div>
