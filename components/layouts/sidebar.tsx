@@ -49,22 +49,22 @@ export function Sidebar() {
   ];
 
   const proctorMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_PROCTOR, exact: true },
-    { icon: ClipboardList, label: t("applications"), href: ROUTES.PROCTOR_APPLICATIONS },
-    { icon: Ticket, label: "Ticket của tôi", href: ROUTES.PROCTOR_TICKETS },
-    { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
+    { icon: LayoutDashboard, label: t("dashboard"),     href: ROUTES.DASHBOARD_PROCTOR, exact: true },
+    { icon: ClipboardList,  label: t("applications"),  href: ROUTES.PROCTOR_APPLICATIONS },
+    { icon: Ticket,         label: t("myTickets"),      href: ROUTES.PROCTOR_TICKETS },
+    { icon: Calendar,       label: t("schedules"),      href: ROUTES.EXAMS_SCHEDULE },
   ];
 
   const hallInvigilatorMenuItems = [
-    { icon: LayoutDashboard, label: "Tổng quan", href: ROUTES.HALL_INVIGILATOR, exact: true },
-    { icon: ClipboardList, label: "Đơn đăng ký", href: ROUTES.HALL_INVIGILATOR_APPLICATIONS },
-    { icon: Ticket, label: "Ticket được giao", href: ROUTES.HALL_INVIGILATOR_TICKETS },
-    { icon: Calendar, label: "Lịch thi", href: ROUTES.EXAMS_SCHEDULE },
+    { icon: LayoutDashboard, label: t("dashboard"),          href: ROUTES.HALL_INVIGILATOR, exact: true },
+    { icon: ClipboardList,  label: t("applications"),        href: ROUTES.HALL_INVIGILATOR_APPLICATIONS },
+    { icon: Ticket,         label: t("assignedTickets"),     href: ROUTES.HALL_INVIGILATOR_TICKETS },
+    { icon: Calendar,       label: t("schedules"),           href: ROUTES.EXAMS_SCHEDULE },
   ];
 
   const itSupportMenuItems = [
-    { icon: LayoutDashboard, label: "Tổng quan", href: ROUTES.IT_SUPPORT, exact: true },
-    { icon: Ticket, label: "Ticket kỹ thuật", href: ROUTES.IT_SUPPORT_TICKETS },
+    { icon: LayoutDashboard, label: t("dashboard"),      href: ROUTES.IT_SUPPORT, exact: true },
+    { icon: Ticket,          label: t("techTickets"),    href: ROUTES.IT_SUPPORT_TICKETS },
   ];
 
   const menuItems =

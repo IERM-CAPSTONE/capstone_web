@@ -9,7 +9,7 @@ import {
     ChevronRight, Calendar, Clock, FileText, AlertCircle,
     LayoutGrid, CheckCircle2, BookOpen, Loader2, Ticket, X,
     User, MapPin, AlertTriangle, Users, CheckSquare,
-    Square, LayoutList, Map as MapIcon,
+    Square, LayoutList, Map as MapIcon, Search,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useExamScheduleById } from "@/hooks/use-exam-schedules";
@@ -36,16 +36,16 @@ interface IncidentConfig {
 }
 
 const INCIDENTS: IncidentConfig[] = [
-    { id: "deviceViolation", icon: "📵", severity: "urgent", backendType: "Academic Violation", defaultPriority: "Urgent" },
-    { id: "cheatingBehavior", icon: "🚨", severity: "high", backendType: "Academic Violation", defaultPriority: "High" },
-    { id: "submissionFailed", icon: "❌", severity: "urgent", backendType: "Technical Issue", defaultPriority: "Urgent" },
-    { id: "hardwareFailure", icon: "💻", severity: "high", backendType: "Technical Issue", defaultPriority: "High" },
-    { id: "focusLostRepeat", icon: "🔒", severity: "high", backendType: "Technical Issue", defaultPriority: "High" },
-    { id: "cccdMismatch", icon: "🪪", severity: "high", backendType: "Face Mismatch", defaultPriority: "High" },
-    { id: "networkIssue", icon: "📶", severity: "medium", backendType: "Technical Issue", defaultPriority: "Medium" },
-    { id: "wrongFileFormat", icon: "📄", severity: "medium", backendType: "Technical Issue", defaultPriority: "Medium" },
-    { id: "roomIssue", icon: "🏫", severity: "medium", backendType: "Room Management", defaultPriority: "Medium" },
+    { id: "eosClientError",  icon: "💻", severity: "high",   backendType: "Technical Issue", defaultPriority: "High"   },
+    { id: "spinningScreen",  icon: "🔄", severity: "high",   backendType: "Technical Issue", defaultPriority: "High"   },
+    { id: "needReassign",    icon: "🔒", severity: "urgent", backendType: "Technical Issue", defaultPriority: "Urgent" },
+    { id: "lostServerConn",  icon: "📡", severity: "urgent", backendType: "Technical Issue", defaultPriority: "Urgent" },
+    { id: "networkError",    icon: "📶", severity: "high",   backendType: "Technical Issue", defaultPriority: "High"   },
+    { id: "cannotLogin",     icon: "🔑", severity: "urgent", backendType: "Technical Issue", defaultPriority: "Urgent" },
+    { id: "wrongExamCode",   icon: "❌", severity: "high",   backendType: "Technical Issue", defaultPriority: "High"   },
+    { id: "notInExamList",   icon: "📋", severity: "urgent", backendType: "Room Management", defaultPriority: "Urgent" },
 ];
+
 
 const SEV_CARD: Record<string, string> = {
     urgent: "border-red-300 bg-red-50 hover:border-red-400 hover:bg-red-100",
@@ -71,12 +71,12 @@ const PRIORITY_STYLE: Record<TicketPriority, string> = {
     Urgent: "bg-red-100 text-red-700 border-red-200",
 };
 
-const SEAT_STYLE: Record<string, { cell: string; text: string; label: string }> = {
-    Present: { cell: "bg-green-50 border-green-200", text: "text-green-700", label: "text-green-600" },
-    Assigned: { cell: "bg-orange-50 border-orange-200", text: "text-orange-700", label: "text-orange-600" },
-    Absent: { cell: "bg-red-50 border-red-200", text: "text-red-700", label: "text-red-600" },
-    Available: { cell: "bg-blue-50 border-blue-200", text: "text-blue-700", label: "text-blue-600" },
-    Locked: { cell: "bg-slate-100 border-slate-200 opacity-50", text: "text-slate-400", label: "text-slate-400" },
+const SEAT_STYLE: Record<string, { cell: string; text: string; label: string; ring: string }> = {
+    Present:   { cell: "bg-emerald-50 border-emerald-300",   text: "text-emerald-700 font-black",  label: "text-emerald-500",  ring: "ring-emerald-400" },
+    Assigned:  { cell: "bg-amber-50  border-amber-300",     text: "text-amber-700  font-black",  label: "text-amber-500",    ring: "ring-amber-400"  },
+    Absent:    { cell: "bg-red-50    border-red-300",       text: "text-red-600    font-black",  label: "text-red-400",      ring: "ring-red-400"    },
+    Available: { cell: "bg-slate-50  border-slate-200",     text: "text-slate-400  font-semibold",label: "text-slate-300",  ring: "ring-slate-300"  },
+    Locked:    { cell: "bg-slate-100 border-slate-200 opacity-40", text: "text-slate-300 font-semibold", label: "text-slate-300", ring: "ring-slate-200" },
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -131,29 +131,41 @@ function CreateTicketDialog({ sessionId, roomNumber, selectedStudents, onClose, 
     );
     const [priority, setPriority] = useState<TicketPriority>("Medium");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [incidentSearch, setIncidentSearch] = useState("");
 
     const incidentLabels: Record<string, { label: string; sub: string; sevLabel: string }> = {
-        deviceViolation: { label: t("incident.deviceViolation"), sub: t("incident.deviceViolationSub"), sevLabel: t("incident.sevUrgent") },
-        cheatingBehavior: { label: t("incident.cheatingBehavior"), sub: t("incident.cheatingBehaviorSub"), sevLabel: t("incident.sevHigh") },
-        submissionFailed: { label: t("incident.submissionFailed"), sub: t("incident.submissionFailedSub"), sevLabel: t("incident.sevUrgent") },
-        hardwareFailure: { label: t("incident.hardwareFailure"), sub: t("incident.hardwareFailureSub"), sevLabel: t("incident.sevHigh") },
-        focusLostRepeat: { label: t("incident.focusLostRepeat"), sub: t("incident.focusLostRepeatSub"), sevLabel: t("incident.sevHigh") },
-        cccdMismatch: { label: t("incident.cccdMismatch"), sub: t("incident.cccdMismatchSub"), sevLabel: t("incident.sevHigh") },
-        networkIssue: { label: t("incident.networkIssue"), sub: t("incident.networkIssueSub"), sevLabel: t("incident.sevMedium") },
-        wrongFileFormat: { label: t("incident.wrongFileFormat"), sub: t("incident.wrongFileFormatSub"), sevLabel: t("incident.sevMedium") },
-        roomIssue: { label: t("incident.roomIssue"), sub: t("incident.roomIssueSub"), sevLabel: t("incident.sevMedium") },
+        eosClientError:  { label: t("incident.eosClientError"),  sub: t("incident.eosClientErrorSub"),  sevLabel: t("incident.sevHigh")   },
+        spinningScreen:  { label: t("incident.spinningScreen"),  sub: t("incident.spinningScreenSub"),  sevLabel: t("incident.sevHigh")   },
+        needReassign:    { label: t("incident.needReassign"),    sub: t("incident.needReassignSub"),    sevLabel: t("incident.sevUrgent") },
+        lostServerConn:  { label: t("incident.lostServerConn"),  sub: t("incident.lostServerConnSub"),  sevLabel: t("incident.sevUrgent") },
+        networkError:    { label: t("incident.networkError"),    sub: t("incident.networkErrorSub"),    sevLabel: t("incident.sevHigh")   },
+        cannotLogin:     { label: t("incident.cannotLogin"),     sub: t("incident.cannotLoginSub"),     sevLabel: t("incident.sevUrgent") },
+        wrongExamCode:   { label: t("incident.wrongExamCode"),   sub: t("incident.wrongExamCodeSub"),   sevLabel: t("incident.sevHigh")   },
+        notInExamList:   { label: t("incident.notInExamList"),   sub: t("incident.notInExamListSub"),   sevLabel: t("incident.sevUrgent") },
     };
+
+    // Simple label+sub keyword filter
+    const filteredIncidents = incidentSearch.trim()
+        ? INCIDENTS.filter(inc => {
+            const q = incidentSearch.toLowerCase();
+            const meta = incidentLabels[inc.id];
+            return meta?.label.toLowerCase().includes(q) || meta?.sub.toLowerCase().includes(q);
+        })
+        : INCIDENTS;
 
     const handleSelect = (inc: IncidentConfig) => {
         setSelectedId(inc.id);
         setPriority(inc.defaultPriority);
-        if (!nameEdited) setIssueName(incidentLabels[inc.id]?.label ?? "");
+        // Store the incident ID (key) — not the translated label — so the DB is locale-agnostic
+        if (!nameEdited) setIssueName(inc.id);
     };
 
     const handleSubmit = async () => {
         const inc = INCIDENTS.find(i => i.id === selectedId);
         if (!inc) { toast.error(t("ticket.pleaseSelectIncident")); return; }
-        if (!issueName.trim()) { toast.error(t("ticket.pleaseEnterIssueName")); return; }
+        // issueName is the incident ID (key); if user manually edited it, use their text
+        const finalIssueName = nameEdited ? issueName.trim() : inc.id;
+        if (!finalIssueName) { toast.error(t("ticket.pleaseEnterIssueName")); return; }
         setIsSubmitting(true);
         try {
             if (selectedStudents.length > 1) {
@@ -161,7 +173,7 @@ function CreateTicketDialog({ sessionId, roomNumber, selectedStudents, onClose, 
                 const results = await Promise.allSettled(
                     selectedStudents.map(s =>
                         ticketsApi.create({
-                            issueName: issueName.trim(),
+                            issueName: finalIssueName,
                             issueType: inc.backendType,
                             description: description.trim() || undefined,
                             priority,
@@ -180,7 +192,7 @@ function CreateTicketDialog({ sessionId, roomNumber, selectedStudents, onClose, 
             } else {
                 // Single student (or no student selected)
                 await ticketsApi.create({
-                    issueName: issueName.trim(),
+                    issueName: finalIssueName,
                     issueType: inc.backendType,
                     description: description.trim() || undefined,
                     priority,
@@ -230,32 +242,68 @@ function CreateTicketDialog({ sessionId, roomNumber, selectedStudents, onClose, 
 
                     {/* Incident type cards */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                            {t("ticket.selectIncident")} *
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {INCIDENTS.map(inc => {
-                                const meta = incidentLabels[inc.id];
-                                const isActive = selectedId === inc.id;
-                                return (
-                                    <button
-                                        key={inc.id}
-                                        onClick={() => handleSelect(inc)}
-                                        className={cn(
-                                            "text-left p-2.5 rounded-xl border-2 transition-all",
-                                            isActive ? SEV_CARD_ACTIVE[inc.severity] : SEV_CARD[inc.severity]
-                                        )}
-                                    >
-                                        <div className="text-lg mb-1 leading-none">{inc.icon}</div>
-                                        <p className="text-[11px] font-bold text-gray-800 leading-tight">{meta?.label}</p>
-                                        <p className="text-[9px] text-gray-500 mt-0.5 leading-tight line-clamp-2">{meta?.sub}</p>
-                                        <span className={cn("inline-block mt-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide", SEV_BADGE[inc.severity])}>
-                                            {meta?.sevLabel}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                {t("ticket.selectIncident")} *
+                            </label>
+                            {selectedId && (
+                                <span className="text-[10px] text-orange-600 font-semibold">
+                                    ✓ {incidentLabels[selectedId]?.label}
+                                </span>
+                            )}
                         </div>
+
+                        {/* 🔍 Quick search */}
+                        <div className="relative mb-3">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Tìm lỗi… VD: xoay, mất mạng, reassign"
+                                value={incidentSearch}
+                                onChange={e => setIncidentSearch(e.target.value)}
+                                className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none placeholder:text-gray-400"
+                            />
+                            {incidentSearch && (
+                                <button onClick={() => setIncidentSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* 2-col incident grid */}
+                        {filteredIncidents.length === 0 ? (
+                            <div className="flex flex-col items-center py-5 gap-2 text-gray-400">
+                                <Search className="w-5 h-5 opacity-40" />
+                                <p className="text-xs">Không tìm thấy loại lỗi.</p>
+                                <button onClick={() => setIncidentSearch("")} className="text-[11px] text-orange-500 hover:underline">Xem tất cả</button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                                {filteredIncidents.map(inc => {
+                                    const meta = incidentLabels[inc.id];
+                                    const isActive = selectedId === inc.id;
+                                    return (
+                                        <button
+                                            key={inc.id}
+                                            onClick={() => { handleSelect(inc); setIncidentSearch(""); }}
+                                            className={cn(
+                                                "flex items-center gap-3 text-left px-3 py-3 rounded-xl border-2 transition-all",
+                                                isActive ? SEV_CARD_ACTIVE[inc.severity] : SEV_CARD[inc.severity]
+                                            )}
+                                        >
+                                            <span className="text-2xl shrink-0 leading-none">{inc.icon}</span>
+                                            <div className="min-w-0">
+                                                <p className="text-[12px] font-bold text-gray-800 leading-tight truncate">{meta?.label}</p>
+                                                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight line-clamp-2">{meta?.sub}</p>
+                                                <span className={cn("inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide", SEV_BADGE[inc.severity])}>
+                                                    {meta?.sevLabel}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* MSSV – auto-filled from selected student(s) */}
@@ -341,68 +389,73 @@ function StudentPanel({ student, seat, isSelected, onToggleSelect, onClose, onCr
     const t = useTranslations("ProctorSession");
     if (!student) return null;
 
-    const statusColors: Record<string, string> = {
-        CHECKEDIN: "bg-green-100 text-green-700 border-green-200",
-        REGISTERED: "bg-slate-100 text-slate-600 border-slate-200",
-        CHECKEDOUT: "bg-blue-100 text-blue-700 border-blue-200",
-        MOVED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-        REMOVED: "bg-red-100 text-red-700 border-red-200",
+    const statusColors: Record<string, { bg: string; text: string; dot: string }> = {
+        CHECKEDIN:  { bg: "bg-emerald-100", text: "text-emerald-700", dot: "bg-emerald-500 animate-pulse" },
+        REGISTERED: { bg: "bg-slate-100",   text: "text-slate-600",   dot: "bg-slate-400" },
+        CHECKEDOUT: { bg: "bg-blue-100",    text: "text-blue-700",    dot: "bg-blue-500" },
+        MOVED:      { bg: "bg-yellow-100",  text: "text-yellow-700",  dot: "bg-yellow-500" },
+        REMOVED:    { bg: "bg-red-100",     text: "text-red-700",     dot: "bg-red-500" },
     };
-    const statusColor = statusColors[student.status] || statusColors.REGISTERED;
+    const sc = statusColors[student.status ?? "REGISTERED"] ?? statusColors.REGISTERED;
+    const initial = (student.studentName ?? student.studentCode ?? "?")[0].toUpperCase();
 
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-                <h3 className="font-bold text-slate-900 text-sm">{t("studentDetail")}</h3>
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-orange-400" />
+                    {t("studentDetail")}
+                </h3>
+                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
                     <X className="w-4 h-4" />
                 </button>
             </div>
 
-            {/* Avatar + name */}
-            <div className="text-center mb-5">
-                <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 text-2xl font-bold mx-auto mb-3 ring-4 ring-orange-50">
-                    {(student.studentName ?? student.studentCode ?? "?")[0].toUpperCase()}
+            {/* Avatar gradient card */}
+            <div className="rounded-2xl bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 border border-orange-100 p-4 mb-4 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white text-2xl font-black mx-auto mb-3 shadow-lg shadow-orange-200">
+                    {initial}
                 </div>
-                <p className="font-bold text-slate-900 text-base leading-tight">{student.studentName || "—"}</p>
-                <p className="text-xs text-slate-400 mt-1 font-mono">{student.studentCode}</p>
-                <span className={cn("inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border mt-2", statusColor)}>
-                    <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_DOT[student.status] ?? "bg-slate-400")} />
-                    {t(`studentStatus.${student.status}` as any) ?? student.status}
+                <p className="font-bold text-slate-900 text-sm leading-tight">{student.studentName || "—"}</p>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono tracking-wide">{student.studentCode}</p>
+                <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-2.5", sc.bg, sc.text)}>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />
+                    {student.status ? t(`studentStatus.${student.status}` as any) : t("studentStatus.REGISTERED")}
                 </span>
             </div>
 
-            {/* Details */}
-            <div className="space-y-2.5 flex-1">
+            {/* Info rows */}
+            <div className="space-y-1 flex-1">
                 {[
-                    { icon: <MapPin className="w-3.5 h-3.5 text-slate-400" />, label: t("seat"), value: seat ? `R${seat.row}C${seat.col} (Desk ${student.seatNumber})` : `Desk ${student.seatNumber || "N/A"}` },
-                    { icon: <Clock className="w-3.5 h-3.5 text-slate-400" />, label: t("checkIn"), value: student.checkinTime ? format(new Date(student.checkinTime), "HH:mm:ss") : "—" },
-                    { icon: <Clock className="w-3.5 h-3.5 text-slate-400" />, label: t("checkOut"), value: student.checkoutTime ? format(new Date(student.checkoutTime), "HH:mm:ss") : "—" },
-                    { icon: <User className="w-3.5 h-3.5 text-slate-400" />, label: t("identityId"), value: student.identityId || "—" },
-                ].map(({ icon, label, value }) => (
-                    <div key={label} className="flex items-center justify-between py-2 border-b border-slate-50">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                            {icon}{label}
-                        </div>
-                        <span className="text-xs font-semibold text-slate-800 max-w-[55%] text-right truncate">{value}</span>
+                    { icon: <MapPin className="w-3.5 h-3.5" />, label: t("seat"), value: seat ? `R${seat.row}C${seat.col}` : `Bàn ${student.seatNumber || "N/A"}`, color: "text-violet-500" },
+                    { icon: <Clock className="w-3.5 h-3.5" />, label: t("checkIn"), value: student.checkinTime ? format(new Date(student.checkinTime), "HH:mm:ss") : "—", color: "text-emerald-500" },
+                    { icon: <Clock className="w-3.5 h-3.5" />, label: t("checkOut"), value: student.checkoutTime ? format(new Date(student.checkoutTime), "HH:mm:ss") : "—", color: "text-blue-500" },
+                    { icon: <User className="w-3.5 h-3.5" />, label: t("identityId"), value: student.identityId || "—", color: "text-slate-400" },
+                ].map(({ icon, label, value, color }) => (
+                    <div key={label} className="flex items-center gap-2.5 py-2 px-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                        <span className={cn("shrink-0", color)}>{icon}</span>
+                        <span className="text-xs text-slate-400 font-medium flex-1">{label}</span>
+                        <span className="text-xs font-bold text-slate-800 text-right truncate max-w-[50%]">{value}</span>
                     </div>
                 ))}
             </div>
 
             {/* Action buttons */}
-            <div className="pt-4 space-y-2 mt-4">
+            <div className="pt-3 space-y-2 border-t border-slate-100 mt-3">
                 <button
                     onClick={onToggleSelect}
-                    className={cn("w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold border transition-colors",
-                        isSelected ? "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100" : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    className={cn("w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all",
+                        isSelected
+                            ? "bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-200"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-orange-200 hover:text-orange-600"
                     )}
                 >
                     {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     {isSelected ? t("selectedForTicket") : t("selectForTicket")}
                 </button>
                 <Button
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white gap-2 text-sm"
+                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white gap-2 text-sm shadow-md shadow-orange-200 border-0"
                     onClick={onCreateTicket}
                 >
                     <Ticket className="w-4 h-4" /> {t("createTicketForStudent")}
@@ -425,40 +478,36 @@ interface SeatingFloorPlanProps {
 
 function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClick, activeSeatId }: SeatingFloorPlanProps) {
     const t = useTranslations("ProctorSession");
-    // Build lookup maps
     const seatMap: Map<string, ExamSeat> = new Map();
     seats.forEach(s => seatMap.set(`${s.row}-${s.col}`, s));
 
     const studentBySeat: Map<string, StudentExam> = new Map();
     students.forEach(st => {
         if (!st.seatNumber) return;
-        // Support BOTH formats:
-        // - 'row-col' format: "2-5" (newer sessions)
-        // - linear number format: "11" = (row-1)*cols + col (older sessions)
         studentBySeat.set(st.seatNumber, st);
     });
 
     return (
         <div>
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
+            {/* Compact legend */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 px-1">
                 {([
-                    [t("seatStatus.present"), "bg-green-500"],
-                    [t("seatStatus.assigned"), "bg-orange-500"],
-                    [t("seatStatus.absent"), "bg-red-500"],
-                    [t("seatStatus.available"), "bg-blue-500"],
-                    [t("seatStatus.locked"), "bg-slate-400"],
+                    [t("seatStatus.present"),   "bg-emerald-500"],
+                    [t("seatStatus.assigned"),  "bg-amber-500"],
+                    [t("seatStatus.absent"),    "bg-red-500"],
+                    [t("seatStatus.available"), "bg-slate-300"],
+                    [t("seatStatus.locked"),    "bg-slate-200"],
                 ] as [string, string][]).map(([label, dot]) => (
                     <span key={label} className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                        <span className={cn("w-2 h-2 rounded-full", dot)} />{label}
+                        <span className={cn("w-2.5 h-2.5 rounded-full", dot)} />{label}
                     </span>
                 ))}
-                <span className="ml-auto text-xs text-slate-400">{t("clickSeatHint")}</span>
+                <span className="ml-auto text-[11px] text-slate-400 italic">{t("clickSeatHint")}</span>
             </div>
 
-            {/* Grid */}
+            {/* Seat grid */}
             <div
-                className="grid gap-2"
+                className="grid gap-1.5"
                 style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
                 {Array.from({ length: rows }, (_, r) =>
@@ -467,7 +516,6 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                         const seat = seatMap.get(`${row}-${col}`);
                         const seatNum = ((row - 1) * cols + col).toString();
                         const seatRowCol = `${row}-${col}`;
-                        // Try 'row-col' format first, then linear number
                         const student = studentBySeat.get(seatRowCol) ?? studentBySeat.get(seatNum);
                         const style = SEAT_STYLE[seat?.status ?? "Available"];
                         const isActive = seat?.id === activeSeatId;
@@ -478,35 +526,35 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                                 key={`${row}-${col}`}
                                 onClick={() => seat && onSeatClick(seat, student ?? null)}
                                 className={cn(
-                                    "relative flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all cursor-pointer select-none group",
-                                    "h-[72px]",
+                                    "relative flex flex-col items-center justify-center rounded-xl border-2 transition-all cursor-pointer select-none",
+                                    "h-[76px] px-1",
                                     style.cell,
-                                    isActive && "ring-2 ring-orange-500 ring-offset-1 scale-105 z-10 shadow-lg",
+                                    !seat && "opacity-30 cursor-default",
+                                    isActive && `ring-2 ${style.ring} ring-offset-1 scale-[1.06] z-10 shadow-lg`,
                                     isSelected && !isActive && "ring-2 ring-orange-300 ring-offset-1",
-                                    seat && "hover:scale-105 hover:shadow-md hover:z-10"
+                                    seat && "hover:scale-[1.04] hover:shadow-md hover:z-10"
                                 )}
                             >
-                                {/* Selected indicator */}
                                 {isSelected && (
                                     <div className="absolute top-1 left-1">
                                         <CheckSquare className="w-3 h-3 text-orange-500" />
                                     </div>
                                 )}
-                                <p className={cn("text-[9px] font-black uppercase tracking-tight mb-0.5", style.label)}>
+                                <p className={cn("text-[9px] font-bold uppercase tracking-tight mb-0.5 opacity-60", style.label)}>
                                     R{row}C{col}
                                 </p>
                                 {student ? (
                                     <>
-                                        <p className={cn("text-[10px] font-black leading-tight text-center truncate w-full px-1", style.text)}>
+                                        <p className={cn("text-[10px] leading-tight text-center truncate w-full px-0.5", style.text)}>
                                             {student.studentCode}
                                         </p>
-                                        <p className="text-[8px] text-slate-400 truncate w-full text-center px-1">
+                                        <p className="text-[8.5px] text-slate-400 truncate w-full text-center px-0.5 mt-0.5">
                                             {student.studentName?.split(" ").slice(-1)[0]}
                                         </p>
                                     </>
                                 ) : (
-                                    <p className={cn("text-[10px] font-bold", style.text)}>
-                                        {seat?.status ?? "Empty"}
+                                    <p className={cn("text-[9px] font-semibold opacity-40", style.text)}>
+                                        {seat?.status ?? "·"}
                                     </p>
                                 )}
                             </div>
@@ -517,7 +565,7 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
 
             {/* Teacher desk */}
             <div className="mt-6 flex justify-center">
-                <div className="px-10 py-2 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-200">
+                <div className="px-12 py-2 bg-slate-100 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-200">
                     {t("teacherDesk")}
                 </div>
             </div>
@@ -562,7 +610,7 @@ function StudentListView({ students, selectedIds, onToggle, onStudentClick, acti
                             <p className="text-xs text-slate-400">{s.studentCode} · Desk {s.seatNumber || "N/A"}</p>
                         </div>
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold border uppercase", statusColor)}>
-                            {t(`studentStatus.${s.status}` as any) ?? s.status}
+                            {s.status ? t(`studentStatus.${s.status}` as any) : t("studentStatus.REGISTERED")}
                         </span>
                     </div>
                 );
@@ -712,44 +760,61 @@ export default function ProctorExamSessionDetailPage() {
 
                 {/* Left: session info */}
                 <div className="xl:col-span-1 space-y-4">
-                    <Card className="border-none shadow-sm">
-                        <div className="px-4 py-3 border-b border-slate-50">
-                            <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
-                                <AlertCircle className="h-3.5 w-3.5 text-orange-500" />{t("sessionInfo")}
+                    <Card className="border-none shadow-sm overflow-hidden">
+                        {/* Colored header */}
+                        <div className="bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-3">
+                            <h2 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                                <FileText className="h-3.5 w-3.5" />{t("sessionInfo")}
                             </h2>
                         </div>
-                        <CardContent className="p-4 space-y-2.5">
+                        <CardContent className="p-0">
                             {[
-                                { label: t("subject"), value: schedule.subjectCode || "N/A" },
-                                { label: t("semester"), value: schedule.semester || "N/A" },
-                                { label: t("room"), value: schedule.roomNumber || "N/A" },
-                                { label: t("proctor"), value: schedule.proctorName || schedule.proctorId || "N/A" },
-                                { label: t("hallInvigilator"), value: (schedule as any).hallInvigilatorName || "N/A" },
-                            ].map(({ label, value }) => (
-                                <div key={label} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
-                                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{label}</span>
-                                    <span className="text-xs font-semibold text-slate-800 text-right max-w-[60%] truncate">{value}</span>
+                                { icon: <BookOpen className="h-3.5 w-3.5 text-violet-500" />, label: t("subject"), value: schedule.subjectCode || "N/A", bold: true },
+                                { icon: <Calendar className="h-3.5 w-3.5 text-blue-500" />,   label: t("semester"), value: schedule.semester || "N/A" },
+                                { icon: <MapPin className="h-3.5 w-3.5 text-emerald-500" />,    label: t("room"),     value: schedule.roomNumber || "N/A", bold: true },
+                                { icon: <User className="h-3.5 w-3.5 text-orange-500" />,       label: t("proctor"), value: schedule.proctorName || schedule.proctorId || "N/A" },
+                                { icon: <Users className="h-3.5 w-3.5 text-slate-400" />,       label: t("hallInvigilator"), value: (schedule as any).hallInvigilatorName || "N/A" },
+                            ].map(({ icon, label, value, bold }, idx) => (
+                                <div key={label} className={cn("flex items-center gap-3 px-4 py-3", idx !== 4 && "border-b border-slate-50")}>
+                                    <span className="shrink-0">{icon}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{label}</p>
+                                        <p className={cn("text-xs text-slate-800 truncate mt-0.5", bold && "font-bold")}>{value}</p>
+                                    </div>
                                 </div>
                             ))}
                         </CardContent>
                     </Card>
 
+                    {/* Stats mini-cards */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-3 py-3 text-center">
+                            <p className="text-2xl font-black text-emerald-600">{checkedInCount}</p>
+                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{t("checkedIn")}</p>
+                        </div>
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-3 py-3 text-center">
+                            <p className="text-2xl font-black text-slate-700">{students.length}</p>
+                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{t("students")}</p>
+                        </div>
+                    </div>
+
                     {/* Note / Open Code */}
                     {(schedule.note || schedule.openCode) && (
-                        <Card className="border-none shadow-sm">
-                            <div className="px-4 py-3 border-b border-slate-50">
-                                <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
-                                    <BookOpen className="h-3.5 w-3.5 text-blue-500" />{t("notes")}
+                        <Card className="border-none shadow-sm overflow-hidden">
+                            <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-4 py-3">
+                                <h2 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                                    <BookOpen className="h-3.5 w-3.5" />{t("notes")}
                                 </h2>
                             </div>
                             <CardContent className="p-4 space-y-3">
                                 {schedule.note && <p className="text-xs text-slate-600 leading-relaxed">{schedule.note}</p>}
                                 {schedule.openCode && (
-                                    <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-3 flex items-start gap-2">
-                                        <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 mt-0.5 shrink-0" />
-                                        <p className="text-xs text-yellow-800">
-                                            {t("openCode")}: <span className="font-bold">{schedule.openCode}</span>
-                                        </p>
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                                        <div>
+                                            <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide mb-0.5">{t("openCode")}</p>
+                                            <p className="text-sm font-black text-amber-900 tracking-widest">{schedule.openCode}</p>
+                                        </div>
                                     </div>
                                 )}
                             </CardContent>
@@ -761,25 +826,29 @@ export default function ProctorExamSessionDetailPage() {
                 <div className="xl:col-span-2">
                     <Card className="border-none shadow-sm overflow-hidden h-full">
                         {/* View toggle + header */}
-                        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                                <h2 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-slate-400" />
-                                    {viewMode === "seating" ? t("seatingPlan") : t("students")}
-                                </h2>
-                                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">{students.length}</span>
+                        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                                    {viewMode === "seating" ? <MapIcon className="h-4 w-4 text-slate-500" /> : <LayoutList className="h-4 w-4 text-slate-500" />}
+                                </div>
+                                <div>
+                                    <h2 className="font-bold text-slate-900 text-sm">
+                                        {viewMode === "seating" ? t("seatingPlan") : t("students")}
+                                    </h2>
+                                    <p className="text-[11px] text-slate-400">{students.length} sinh viên · {checkedInCount} có mặt</p>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
+                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                                 <button
                                     onClick={() => setViewMode("seating")}
-                                    className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+                                    className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                                         viewMode === "seating" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600")}
                                 >
                                     <MapIcon className="w-3.5 h-3.5" />{t("plan")}
                                 </button>
                                 <button
                                     onClick={() => setViewMode("list")}
-                                    className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+                                    className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                                         viewMode === "list" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600")}
                                 >
                                     <LayoutList className="w-3.5 h-3.5" />{t("list")}
@@ -815,14 +884,18 @@ export default function ProctorExamSessionDetailPage() {
 
                         {/* Bottom bar when students selected */}
                         {selectedIds.size > 0 && (
-                            <div className="px-5 py-3 border-t border-orange-100 bg-orange-50 flex items-center justify-between gap-2">
-                                <span className="text-sm text-orange-700 font-medium flex items-center gap-2">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    {selectedIds.size} {t("students")} {t("selected")}
-                                </span>
-                                <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2 text-sm py-1.5 h-8"
+                            <div className="px-5 py-3.5 border-t border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-black">
+                                        {selectedIds.size}
+                                    </div>
+                                    <span className="text-sm text-orange-700 font-semibold">
+                                        {t("students")} {t("selected")}
+                                    </span>
+                                </div>
+                                <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2 text-sm py-2 h-9 shadow-sm shadow-orange-200"
                                     onClick={() => setShowTicketDialog(true)}>
-                                    <Ticket className="h-3.5 w-3.5" />{t("createTicketForSelected")}
+                                    <Ticket className="h-4 w-4" />{t("createTicketForSelected")}
                                 </Button>
                             </div>
                         )}
@@ -848,40 +921,41 @@ export default function ProctorExamSessionDetailPage() {
                     ) : activeSeat ? (
                         <Card className="border-none shadow-sm p-5 h-full">
                             <div className="flex flex-col h-full">
-                                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                                     <h3 className="font-bold text-slate-900 text-sm">Chi tiết ghế</h3>
-                                    <button onClick={() => setActiveSeat(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+                                    <button onClick={() => setActiveSeat(null)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <div className="text-center mb-5">
-                                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mx-auto mb-3">
-                                        <User className="w-8 h-8" />
+                                <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 p-5 text-center mb-4">
+                                    <div className="w-12 h-12 rounded-xl bg-slate-300 flex items-center justify-center text-slate-500 text-xl mx-auto mb-3">
+                                        <User className="w-6 h-6" />
                                     </div>
-                                    <p className="font-bold text-slate-700">Ghế {activeSeat.status}</p>
-                                    <p className="text-xs text-slate-400 mt-1 font-mono">R{activeSeat.row}C{activeSeat.col}</p>
+                                    <p className="font-bold text-slate-600 text-sm">Ghế {activeSeat.status}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5 font-mono">R{activeSeat.row}C{activeSeat.col}</p>
                                 </div>
-                                <div className="space-y-2 text-xs text-slate-500">
-                                    <div className="flex justify-between py-2 border-b border-slate-50">
-                                        <span className="font-semibold">Trạng thái</span>
-                                        <span className="font-bold text-slate-800">{activeSeat.status}</span>
-                                    </div>
-                                    <div className="flex justify-between py-2">
-                                        <span className="font-semibold">Vị trí</span>
-                                        <span className="font-bold text-slate-800">Hàng {activeSeat.row}, Cột {activeSeat.col}</span>
-                                    </div>
+                                <div className="space-y-1 text-xs">
+                                    {[
+                                        { label: "Trạng thái", value: activeSeat.status },
+                                        { label: "Vị trí", value: `Hàng ${activeSeat.row}, Cột ${activeSeat.col}` },
+                                    ].map(({ label, value }) => (
+                                        <div key={label} className="flex items-center justify-between py-2 px-2.5 rounded-xl bg-slate-50">
+                                            <span className="text-slate-400 font-medium">{label}</span>
+                                            <span className="font-bold text-slate-700">{value}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                                <p className="text-xs text-slate-400 text-center mt-4">
-                                    Dữ liệu sinh viên chưa được tải
-                                </p>
+                                <p className="text-xs text-slate-400 text-center mt-4 italic">Ghế trống — không có sinh viên</p>
                             </div>
                         </Card>
                     ) : (
-                        <Card className="border-none shadow-sm border-dashed h-full flex items-center justify-center p-8 bg-slate-50/50">
+                        <Card className="border-none shadow-sm h-full flex items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-white">
                             <div className="text-center text-slate-400">
-                                <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                <p className="text-sm font-medium">{t("clickSeatOrStudent")}</p>
-                                <p className="text-xs mt-1 opacity-70">{t("toViewDetail")}</p>
+                                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                                    <Users className="w-8 h-8 opacity-30" />
+                                </div>
+                                <p className="text-sm font-semibold text-slate-500">{t("clickSeatOrStudent")}</p>
+                                <p className="text-xs mt-1.5 opacity-60 leading-relaxed">{t("toViewDetail")}</p>
                             </div>
                         </Card>
                     )}

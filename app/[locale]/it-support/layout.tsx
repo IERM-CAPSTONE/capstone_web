@@ -73,18 +73,17 @@ function ITSupportContent({ children }: { children: React.ReactNode }) {
     const { socket, isConnected, joinRoom } = useSocket();
     const user = useAuthStore((s) => s.user);
 
-    // Join room whenever socket connects (or reconnects) and user is available
+    // Join room whenever socket connects (or reconnects) and user is available.
+    // Retry after 500ms to handle race condition where user.id loads after socket.
     useEffect(() => {
-        if (isConnected && user?.id) {
-            joinRoom(user.id);
-        }
+        if (!isConnected || !user?.id) return;
+        joinRoom(user.id);
+        const t = setTimeout(() => joinRoom(user.id), 500);
+        return () => clearTimeout(t);
     }, [isConnected, user?.id, joinRoom]);
 
     useEffect(() => {
         if (!socket) return;
-
-        const myUserId = user?.id || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
-
         const handleAssigned = (payload: {
             ticketId: string;
             assigneeId: string;
@@ -93,8 +92,7 @@ function ITSupportContent({ children }: { children: React.ReactNode }) {
             officerName: string;
             reporterId: string;
         }) => {
-            // Only react if this event is for this user
-            if (payload.assigneeId !== myUserId) return;
+            // Event is delivered via sendToUser — no extra filtering needed
             playAlertSound();
             toast(
                 <div className="flex items-start gap-3">
@@ -119,7 +117,7 @@ function ITSupportContent({ children }: { children: React.ReactNode }) {
 
         socket.on("ticket:assigned", handleAssigned);
         return () => { socket.off("ticket:assigned", handleAssigned); };
-    }, [socket, user?.id]);
+    }, [socket]);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
@@ -138,3 +136,4 @@ function ITSupportContent({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+

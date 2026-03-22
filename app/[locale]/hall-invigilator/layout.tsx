@@ -119,7 +119,13 @@ function HallInvigilatorContent({ children }: { children: React.ReactNode }) {
         };
 
         socket.on("ticket:assigned", handleAssigned);
-        return () => { socket.off("ticket:assigned", handleAssigned); };
+        // Also dispatch a plain window event so the tickets page can refresh without extra socket listeners
+        const forwardRefresh = () => window.dispatchEvent(new CustomEvent("tickets:refresh"));
+        socket.on("ticket:assigned", forwardRefresh);
+        return () => {
+            socket.off("ticket:assigned", handleAssigned);
+            socket.off("ticket:assigned", forwardRefresh);
+        };
     }, [socket, user?.id]);
 
     return (

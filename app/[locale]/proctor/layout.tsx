@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
 import { CheckCircle2 } from "lucide-react";
@@ -69,15 +70,58 @@ function playResolvedSound() {
         const audio = new Audio(_resolvedSound);
         audio.volume = 0.5;
         audio.play().catch(() => { });
-    } catch {
-        // fail silently
-    }
+    } catch { /* fail silently */ }
+}
+
+let _processingSound: string | null = null;
+function playProcessingSound() {
+    try {
+        if (!_processingSound) _processingSound = makeBeepWav([440, 520], 0.1);
+        const audio = new Audio(_processingSound);
+        audio.volume = 0.4;
+        audio.play().catch(() => { });
+    } catch { /* fail silently */ }
 }
 
 // ─── Proctor content with global ticket:resolved listener ─────────────────────
 function ProctorContent({ children }: { children: React.ReactNode }) {
-    const { socket } = useSocket();
+    const { socket, isConnected, joinRoom } = useSocket();
     const user = useAuthStore((s) => s.user);
+    const params = useParams();
+    const locale = (params?.locale as string) || "vi";
+
+    // Join the socket room so backend sendToUser events are received
+    useEffect(() => {
+        if (!user?.id) return;
+        joinRoom(user.id);
+        const t = setTimeout(() => joinRoom(user.id), 500);
+        return () => clearTimeout(t);
+    }, [isConnected, user?.id, joinRoom]);
+
+    const isVI = locale === "vi";
+    const L = {
+        ticketResolved: isVI ? "Ticket của bạn đã được xử lý" : "Ticket has been resolved",
+        resolvedBy:     isVI ? "Bởi" : "By",
+    };
+
+    const KNOWN_KEYS = ["eosClientError","spinningScreen","needReassign","lostServerConn","networkError","cannotLogin","wrongExamCode","notInExamList"];
+    const INCIDENT_MAP: Record<string, { vi: string; en: string }> = {
+        eosClientError: { vi: "EOSClient / Phần mềm thi bị lỗi",  en: "EOSClient / Software Error" },
+        spinningScreen: { vi: "Màn hình xoay liên tục",            en: "Spinning Screen / Loading" },
+        needReassign:   { vi: "Cần reassign (đã đăng nhập rồi)",  en: "Need Reassign (Already Logged In)" },
+        lostServerConn: { vi: "Mất kết nối server thi",            en: "Lost Server Connection" },
+        networkError:   { vi: "Lỗi mạng / Không có mạng",          en: "Network Error" },
+        cannotLogin:    { vi: "Không đăng nhập được",              en: "Cannot Log In" },
+        wrongExamCode:  { vi: "Sai mã thi",                        en: "Wrong Exam Code" },
+        notInExamList:  { vi: "Không có trong danh sách thi",      en: "Not In Exam List" },
+    };
+    const resolveIssue = (raw: string) => {
+        if (KNOWN_KEYS.includes(raw)) {
+            const m = INCIDENT_MAP[raw];
+            return m ? (isVI ? m.vi : m.en) : raw;
+        }
+        return raw;
+    };
 
     useEffect(() => {
         if (!socket) return;
@@ -101,15 +145,15 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
                         <CheckCircle2 className="w-4 h-4 text-green-600" />
                     </div>
                     <div className="flex-1">
-                        <p className="text-sm font-bold text-slate-900">✅ Ticket đã được xử lý</p>
-                        <p className="text-xs text-slate-600 mt-0.5 truncate">{payload.issueName}</p>
+                        <p className="text-sm font-bold text-slate-900">✅ {L.ticketResolved}</p>
+                        <p className="text-xs text-slate-600 mt-0.5 truncate">{resolveIssue(payload.issueName)}</p>
                         {payload.studentCode && (
                             <p className="text-xs font-mono font-bold text-orange-600 mt-1"># {payload.studentCode}</p>
                         )}
                         {payload.resolveNote && (
                             <p className="text-xs text-green-700 mt-1 italic">"{payload.resolveNote}"</p>
                         )}
-                        <p className="text-[11px] text-slate-400 mt-1">Bởi: {payload.officerName}</p>
+                        <p className="text-[11px] text-slate-400 mt-1">{L.resolvedBy}: {payload.officerName}</p>
                     </div>
                 </div>,
                 {
@@ -120,7 +164,51 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
         };
 
         socket.on("ticket:resolved", handleResolved);
-        return () => { socket.off("ticket:resolved", handleResolved); };
+
+        const handleUpdated = (payload: {
+            ticketId: string;
+            status: string;
+            officerName?: string;
+            issueName?: string;
+            studentCode?: string | null;
+            reporterId?: string;
+        }) => {
+            // Only show to the reporter of this ticket
+            if (payload.reporterId && user?.id && payload.reporterId !== user.id) return;
+            if (payload.status !== "IN_PROGRESS") return;
+
+            const issueLabel = payload.issueName ? resolveIssue(payload.issueName) : "";
+            playProcessingSound();
+            toast.info(
+                <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">
+                            🔧 {isVI ? "Đang được xử lý" : "Being Processed"}
+                        </p>
+                        {issueLabel && <p className="text-xs text-slate-600 mt-0.5 truncate">{issueLabel}</p>}
+                        {payload.studentCode && (
+                            <p className="text-xs font-mono font-bold text-orange-600 mt-1"># {payload.studentCode}</p>
+                        )}
+                        {payload.officerName && (
+                            <p className="text-[11px] text-slate-400 mt-1">{L.resolvedBy}: {payload.officerName}</p>
+                        )}
+                    </div>
+                </div>,
+                {
+                    duration: 8000,
+                    style: { borderLeft: "4px solid #3b82f6" },
+                }
+            );
+        };
+
+        socket.on("ticket:updated", handleUpdated);
+        return () => {
+            socket.off("ticket:resolved", handleResolved);
+            socket.off("ticket:updated", handleUpdated);
+        };
     }, [socket, user?.id]);
 
     return (

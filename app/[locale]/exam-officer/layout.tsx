@@ -77,12 +77,42 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
     const params = useParams();
     const locale = (params?.locale as string) || "vi";
 
-    // Join socket room so backend can sendToUser(userId, ...)
-    useEffect(() => {
-        if (isConnected && user?.id) {
-            joinRoom(user.id);
+    // i18n strings for toast notifications (avoid hook for stability)
+    const isVI = locale === "vi";
+    const L = {
+        newTicketFrom: isVI ? "Ticket mới từ" : "New ticket from",
+        newTicket:     isVI ? "Ticket mới" : "New ticket",
+        defaultReporter: isVI ? "Giám thị" : "Proctor",
+        clickToProcess:  isVI ? "Nhấn để xử lý" : "Click to handle",
+        processNow:      isVI ? "Xử lý ngay" : "Handle now",
+    };
+
+    const KNOWN_KEYS = ["eosClientError","spinningScreen","needReassign","lostServerConn","networkError","cannotLogin","wrongExamCode","notInExamList"];
+    const INCIDENT_MAP: Record<string, { vi: string; en: string }> = {
+        eosClientError: { vi: "EOSClient / Phần mềm thi bị lỗi",  en: "EOSClient / Software Error" },
+        spinningScreen: { vi: "Màn hình xoay liên tục",            en: "Spinning Screen / Loading" },
+        needReassign:   { vi: "Cần reassign (đã đăng nhập rồi)",  en: "Need Reassign (Already Logged In)" },
+        lostServerConn: { vi: "Mất kết nối server thi",            en: "Lost Server Connection" },
+        networkError:   { vi: "Lỗi mạng / Không có mạng",          en: "Network Error" },
+        cannotLogin:    { vi: "Không đăng nhập được",              en: "Cannot Log In" },
+        wrongExamCode:  { vi: "Sai mã thi",                        en: "Wrong Exam Code" },
+        notInExamList:  { vi: "Không có trong danh sách thi",      en: "Not In Exam List" },
+    };
+    const resolveIssue = (raw: string) => {
+        if (KNOWN_KEYS.includes(raw)) {
+            const m = INCIDENT_MAP[raw];
+            return m ? (isVI ? m.vi : m.en) : raw;
         }
-    }, [isConnected, user?.id, joinRoom]);
+        return raw;
+    };
+
+    // Join socket room so backend can sendToUser(userId, ...) and sendToCampus(campus, ...)
+    // Trigger when: user data loads, socket connects, or socket instance changes
+    useEffect(() => {
+        if (user?.id && (isConnected || socket?.connected)) {
+            joinRoom(user.id, user.campus ?? undefined);
+        }
+    }, [isConnected, socket, user?.id, user?.campus, joinRoom]);
 
     const navigateToTickets = useCallback(() => {
         router.push(`/${locale}${ROUTES.EXAM_OFFICER_TICKETS}`);
@@ -96,8 +126,8 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
             playTicketSound();
 
             // 2. Show persistent clickable toast
-            const reporterName = payload.reporter?.fullName ?? "Giám thị";
-            const issueName = payload.ticket?.issueName ?? "Ticket mới";
+            const reporterName = payload.reporter?.fullName ?? L.defaultReporter;
+            const issueName = resolveIssue(payload.ticket?.issueName ?? "") || L.newTicket;
             const studentCode = payload.ticket?.studentCode;
             const roomNumber = payload.ticket?.session?.examRoom?.roomNumber
                 ?? payload.ticket?.session?.roomNumber;
@@ -108,13 +138,13 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
                         <Ticket className="w-4 h-4 text-orange-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900">🎫 Ticket mới từ {reporterName}</p>
+                        <p className="text-sm font-bold text-slate-900">🎫 {L.newTicketFrom} {reporterName}</p>
                         <p className="text-xs text-slate-600 truncate mt-0.5">{issueName}</p>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
                             {studentCode && <span className="font-mono font-bold text-orange-600">{studentCode}</span>}
                             {roomNumber && <span className="text-blue-600">📍 {roomNumber}</span>}
                         </div>
-                        <p className="text-[11px] text-orange-500 font-semibold mt-1">Nhấn để xử lý →</p>
+                        <p className="text-[11px] text-orange-500 font-semibold mt-1">{L.clickToProcess} →</p>
                     </div>
                 </div>,
                 {
@@ -125,7 +155,7 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
                         cursor: "pointer",
                     },
                     action: {
-                        label: "Xử lý ngay",
+                        label: L.processNow,
                         onClick: navigateToTickets,
                     },
                 }
