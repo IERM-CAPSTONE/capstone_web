@@ -11,6 +11,7 @@ export interface User {
   username?: string;
   role: UserRole;
   avatar?: string;
+  campus?: string | null;
   createdAt: string;
   updatedAt: string;
 }

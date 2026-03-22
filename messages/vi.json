@@ -464,7 +464,10 @@
         "schedules": "Lịch thi",
         "tickets": "Ticket",
         "applications": "Đơn đăng ký",
-        "subjects": "Môn học"
+        "subjects": "Môn học",
+        "myTickets": "Ticket của tôi",
+        "assignedTickets": "Ticket được giao",
+        "techTickets": "Ticket kỹ thuật"
     },
     "Semesters": {
         "title": "Quản lý học kỳ",
@@ -667,6 +670,14 @@
             "wrongFileFormatSub": "Nộp sai format, máy chấm không đọc được bài",
             "roomIssue": "Sự cố phòng thi khác",
             "roomIssueSub": "Các vấn đề quản lý phòng thi cần ghi nhận",
+            "eosClientError": "EOSClient / Phần mềm thi bị lỗi",
+            "spinningScreen": "Màn hình xoay liên tục",
+            "needReassign": "Cần reassign (đã đăng nhập rồi)",
+            "lostServerConn": "Mất kết nối server thi",
+            "networkError": "Lỗi mạng / Không có mạng",
+            "cannotLogin": "Không đăng nhập được",
+            "wrongExamCode": "Sai mã thi",
+            "notInExamList": "Không có trong danh sách thi",
             "sevUrgent": "Rất cao",
             "sevHigh": "Cao",
             "sevMedium": "Trung bình"
@@ -698,24 +709,85 @@
         "statusInProgress": "Đang diễn ra",
         "statusCompleted": "Đã kết thúc"
     },
+    "ProctorTickets": {
+        "title": "Ticket của tôi",
+        "subtitle": "Danh sách các sự cố bạn đã báo cáo",
+        "refresh": "Làm mới",
+        "loading": "Đang tải dữ liệu...",
+        "errorLoad": "Không thể tải danh sách ticket",
+        "expand": "Xem thêm",
+        "collapse": "Thu gọn",
+        "resolveNote": "Ghi chú xử lý",
+        "by": "Bởi",
+        "filter": {
+            "all": "Tất cả",
+            "open": "Mới",
+            "inProgress": "Đang xử lý",
+            "solved": "Đã xử lý"
+        },
+        "status": {
+            "open": "Mới",
+            "inProgress": "Đang xử lý",
+            "solved": "Đã xử lý",
+            "closed": "Đóng"
+        },
+        "priority": {
+            "low": "Thấp",
+            "medium": "Trung bình",
+            "high": "Cao",
+            "urgent": "Khẩn cấp"
+        },
+        "empty": {
+            "title": "Không có ticket nào",
+            "subtitle": "Chưa có sự cố nào được báo cáo"
+        },
+        "statusNew": "Mới"
+    },
+    "ITSupportTickets": {
+        "title": "Ticket kỹ thuật của tôi",
+        "subtitle": "Các sự cố được phân công để xử lý",
+        "refresh": "Làm mới",
+        "loading": "Đang tải...",
+        "searchPlaceholder": "Tìm kiếm...",
+        "selectAll": "Chọn tất cả",
+        "deselect": "Bỏ chọn",
+        "selectedCount": "đã chọn",
+        "ticketCount": "tickets",
+        "tabs": { "active": "Chờ xử lý", "inprogress": "Đang xử lý", "solved": "Đã xong" },
+        "triage": { "urgent": "Khẩn cấp", "inprogress": "Đang xử lý", "waiting": "Chờ", "done": "Xong" },
+        "priority": { "Urgent": "Khẩn cấp", "High": "Cao", "Medium": "Trung bình", "Low": "Thấp" },
+        "issueTypes": "loại sự cố",
+        "selectN": "Chọn",
+        "deselectGroup": "Bỏ chọn",
+        "columns": { "mssv": "MSSV", "room": "Phòng", "subject": "Môn", "reporter": "Báo cáo bởi", "status": "Trạng thái", "time": "Giờ" },
+        "status": { "OPEN": "Chờ", "IN_PROGRESS": "Đang xử lý", "SOLVED": "Đã xong", "CLOSED": "Đóng" },
+        "actions": { "start": "Nhận", "resolve": "Xử lý xong", "bulkResolve": "Xử lý hàng loạt" },
+        "rightPanel": { "title": "Xử lý nhanh", "hint": "Chọn ticket từ danh sách bên trái để xử lý hàng loạt", "selectedCount": "ticket được chọn", "resolveBtn": "Xử lý xong" },
+        "modal": { "title": "Xác nhận xử lý xong", "selectedCount": "ticket được chọn", "noteLabel": "Ghi chú kỹ thuật", "notePlaceholder": "Mô tả cách đã xử lý...", "cancel": "Huỷ", "confirm": "Xác nhận" },
+        "empty": { "noResults": "Không tìm thấy kết quả", "noTickets": "Không có ticket nào" },
+        "toast": { "loadError": "Không thể tải danh sách ticket", "startSuccess": "Đã bắt đầu xử lý ticket ✓", "startError": "Không thể cập nhật trạng thái", "resolveSuccess": "Đã xử lý ticket", "resolveError": "Không thể xử lý ticket", "noteRequired": "Vui lòng nhập ghi chú xử lý" }
+    },
     "ExamOfficerTickets": {
         "title": "Quản lý Ticket",
         "subtitle": "Xử lý nhanh các sự cố từ giám thị phòng thi",
         "newBadge": "+{count} mới",
         "refresh": "Làm mới",
         "loading": "Đang tải...",
-        "filterActive": "Đang mở ({count})",
-        "filterAssigned": "Đã giao ({count})",
+        "loadingFull": "Đang tải...",
+        "filterActive": "Đang mở",
+        "filterAssigned": "Đã giao",
         "filterAll": "Tất cả",
         "filterSolved": "Đã xử lý",
         "filterAllTypes": "Tất cả loại",
         "noTickets": "Không có ticket nào",
+        "noTicketsSearch": "Không tìm thấy ticket phù hợp",
         "selectAll": "Chọn tất cả",
+        "deselectAll": "Bỏ chọn",
         "clearSelection": "Bỏ chọn",
         "selected": "{count} đã chọn",
         "groupSelected": "{count} chọn",
-        "selectGroup": "Chọn cả nhóm",
-        "deselectGroup": "Bỏ chọn nhóm",
+        "selectGroup": "Chọn {count}",
+        "deselectGroup": "Bỏ chọn",
         "quickProcess": "Xử lý nhanh",
         "selectHint": "Chọn ticket từ danh sách bên trái để bắt đầu xử lý hàng loạt",
         "ticketsSelected": "{count} ticket đã chọn",
@@ -729,12 +801,15 @@
         "notePlaceholderResolve": "VD: Hướng dẫn sinh viên nộp lại bài...",
         "notePlaceholderAssign": "VD: IT đang xử lý (tuỳ chọn)",
         "processing": "Đang xử lý...",
-        "resolveAll": "Xử lý tất cả ({count})",
-        "assignTickets": "Giao {count} ticket",
+        "resolveAll": "Xử lý {count} ticket",
+        "resolveBtn": "Xử lý {count} ticket",
+        "assignBtn": "Giao {count} ticket",
         "resolveNotify": "Mỗi giám thị sẽ nhận thông báo riêng sau khi xử lý",
         "assignNotify": "Người được giao sẽ nhận thông báo ngay",
         "clearAll": "Bỏ chọn tất cả",
         "assignedTo": "Giao cho: {name}",
+        "andMore": "+{count} nữa...",
+        "statTitle": "Thống kê",
         "statNew": "Ticket mới",
         "statInProgress": "Đang xử lý",
         "statAssigned": "Đã giao",
@@ -751,12 +826,40 @@
         "toastAssignFail": "Giao việc thất bại, thử lại",
         "newTicketToast": "Ticket mới từ {reporter}: \"{name}\"",
         "view": "Xem",
+        "searchPlaceholder": "Tìm MSSV, phòng, giám thị, loại lỗi...",
+        "detailTitle": "Chi tiết ticket",
+        "selectThisTicket": "Chọn ticket này để xử lý",
+        "resolveNoteLabel": "Ghi chú xử lý",
+        "resolvedBy": "Bởi:",
+        "issueTypes": "{count} loại lỗi",
+        "triageUrgent": "Khẩn cấp",
+        "triageHigh": "Cao",
+        "triageInProgress": "Đang xử lý",
+        "triageWaiting": "Chờ",
+        "triageDone": "Đã xong",
+        "priorityLabel": {
+            "Urgent": "🚨 Khẩn cấp",
+            "High": "🔴 Cao",
+            "Medium": "🟡 Trung bình",
+            "Low": "⚪ Thấp"
+        },
+        "colStudentId": "MSSV",
+        "colRoom": "PHÒNG",
+        "colSubject": "MÔN",
+        "colProctor": "GIÁM THỊ",
+        "colTime": "GIờ",
         "status": {
             "OPEN": "Mới",
             "Open": "Mới",
             "IN_PROGRESS": "Đang xử lý",
             "SOLVED": "Đã xử lý",
             "CLOSED": "Đã đóng"
+        },
+        "statusShort": {
+            "OPEN": "Mới",
+            "IN_PROGRESS": "Xử lý",
+            "SOLVED": "Xong",
+            "CLOSED": "Đóng"
         },
         "issueType": {
             "Academic Violation": "Vi phạm học thuật",
@@ -773,6 +876,117 @@
         "role": {
             "IT_SUPPORT": "IT Support",
             "HALL_INVIGILATOR": "Giám thị hành lang"
+        }
+    },
+    "HallInvigilatorDashboard": {
+        "portalLabel": "Giám thị hành lang",
+        "greeting": "Xin chào, {name}! 👋",
+        "noUrgent": "Không có",
+        "urgentTickets": "Ticket khẩn cấp",
+        "stats": {
+            "upcomingSessions": "Ca sắp diễn ra",
+            "upcomingDesc": "ca thi sắp tới",
+            "ongoingSessions": "Đang diễn ra",
+            "ongoingDesc": "phòng thi active",
+            "pendingTickets": "Ticket cần xử lý",
+            "pendingDesc": "ticket chờ xử lý",
+            "solvedToday": "Xong hôm nay",
+            "solvedDesc": "đã hoàn thành"
+        },
+        "schedule": {
+            "title": "Lịch thi hôm nay",
+            "countLabel": "ca thi",
+            "viewAll": "Tất cả",
+            "empty": "Không có ca thi hôm nay",
+            "upcoming": "Sắp tới"
+        },
+        "tickets": {
+            "title": "Ticket cần xử lý",
+            "subtitle": "Theo mức độ ưu tiên",
+            "viewAll": "Xem tất cả",
+            "empty": "Không có ticket nào chờ",
+            "emptyDesc": "Bạn đã hoàn thành tất cả!",
+            "viewMore": "Xem thêm {count} ticket"
+        },
+        "summary": {
+            "title": "Tổng quan",
+            "completionRate": "Tỉ lệ hoàn thành",
+            "urgentPending": "Ticket khẩn cấp",
+            "pending": "chờ",
+            "inProgress": "Đang xử lý",
+            "viewAllBtn": "Xem toàn bộ ticket",
+            "todayTitle": "Hôm nay",
+            "todayOngoing": "Ca đang diễn ra",
+            "todaySolved": "Ticket vừa xong",
+            "todayTotal": "Tổng ticket giao"
+        },
+        "session": {
+            "Upcoming": "Sắp diễn ra",
+            "In Progress": "Đang diễn ra",
+            "Completed": "Đã kết thúc"
+        }
+    },
+    "HallInvigilatorTickets": {
+        "title": "Ticket của tôi",
+        "subtitle": "Các ticket Khảo thí đã giao để xử lý",
+        "refresh": "Làm mới",
+        "loading": "Đang tải...",
+        "searchPlaceholder": "Tìm MSSV, phòng...",
+        "triage": {
+            "urgent": "Khẩn cấp",
+            "inprogress": "Đang xử lý",
+            "waiting": "Chờ xử lý",
+            "done": "Đã xong"
+        },
+        "tabs": {
+            "pending": "Cần xử lý",
+            "solved": "Đã xong",
+            "all": "Tất cả"
+        },
+        "empty": {
+            "noResults": "Không tìm thấy kết quả",
+            "noTickets": "Không có ticket nào"
+        },
+        "ticketCount": "ticket",
+        "issueTypes": "loại",
+        "priority": {
+            "Urgent": "Khẩn cấp",
+            "High": "Cao",
+            "Medium": "Trung bình",
+            "Low": "Thấp"
+        },
+        "status": {
+            "OPEN": "Chờ xử lý",
+            "IN_PROGRESS": "Đang xử lý",
+            "SOLVED": "Đã xử lý"
+        },
+        "columns": {
+            "mssv": "MSSV",
+            "room": "Phòng",
+            "subject": "Môn",
+            "reporter": "Báo cáo bởi",
+            "statusCol": "Trạng thái",
+            "action": "Thao tác",
+            "time": "Giờ"
+        },
+        "actions": {
+            "start": "Bắt đầu",
+            "done": "Xong"
+        },
+        "toast": {
+            "loadError": "Không thể tải danh sách ticket",
+            "startSuccess": "Đã bắt đầu xử lý ticket!",
+            "startError": "Không thể cập nhật ticket",
+            "resolveSuccess": "Ticket đã được đánh dấu hoàn thành!",
+            "resolveError": "Không thể cập nhật ticket"
+        },
+        "resolve": {
+            "title": "Xác nhận đã xử lý xong",
+            "noteLabel": "Ghi chú xử lý",
+            "noteOptional": "(tuỳ chọn)",
+            "notePlaceholder": "Mô tả cách đã xử lý...",
+            "cancel": "Huỷ",
+            "confirm": "Xác nhận"
         }
     }
 }

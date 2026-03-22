@@ -34,6 +34,7 @@ export interface TicketFull {
     sessionId?: string | null;
     attachment?: string | null;
     resolveNote?: string | null;
+    techNote?: string | null;
     createdById?: string;
     reporterId?: string;
     studentCode?: string | null;
@@ -63,7 +64,7 @@ export interface ListTicketsParams {
 }
 
 export interface ProcessTicketData {
-    action: "resolve" | "assign";
+    action: "resolve" | "assign" | "start";
     resolveNote: string;
     assigneeId?: string;
 }

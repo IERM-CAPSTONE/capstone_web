@@ -73,6 +73,7 @@ export default function AuthCallbackPage() {
           username: userData.username || undefined,
           role: normalizeRole(userData.role) as UserRole,
           avatar: userData.avatarUrl || userData.avatar || undefined,
+          campus: userData.campus || null,
           createdAt: userData.createdAt || "",
           updatedAt: userData.updatedAt || "",
         };

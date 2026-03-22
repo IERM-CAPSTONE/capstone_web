@@ -65,6 +65,7 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                     name: data.fullName || data.name || data.email || "User",
                     role: normalizeRole(data.role),
                     avatar: data.avatarUrl || data.avatar || undefined,
+                    campus: data.campus || null,
                     createdAt: data.createdAt || "",
                     updatedAt: data.updatedAt || "",
                 };
