@@ -31,6 +31,9 @@ export const ROUTES = {
   ADMIN_ACCOUNTS_EDIT: (id: string) => `/admin/accounts/edit/${id}`,
   ADMIN_ACCOUNTS_DETAIL: (id: string) => `/admin/accounts/${id}`,
   ADMIN_DEVICES: "/admin/devices",
+  ADMIN_DEVICES_CREATE: "/admin/devices/create",
+  ADMIN_DEVICES_DETAIL: (id: string) => `/admin/devices/${id}`,
+  ADMIN_DEVICES_EDIT: (id: string) => `/admin/devices/${id}/edit`,
   ADMIN_SEMESTERS: "/admin/semesters",
 
   // Rooms routes
@@ -81,4 +84,3 @@ export const ROUTES = {
 export function isActiveRoute(currentPath: string, route: string): boolean {
   return currentPath === route || currentPath.startsWith(route + "/");
 }
-
