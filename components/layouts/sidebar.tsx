@@ -40,12 +40,14 @@ export function Sidebar() {
 
   const examOfficerMenuItems = [
     { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_EXAM_OFFICER, exact: true },
+    { icon: Monitor, label: "Monitor", href: "/exam-officer/monitor" },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
     { icon: Ticket, label: t("tickets"), href: ROUTES.EXAM_OFFICER_TICKETS },
     { icon: ClipboardList, label: t("applications"), href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
     { icon: Building2, label: t("rooms"), href: ROUTES.EXAM_OFFICER_ROOMS },
     { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },
     { icon: Calendar, label: t("semesters"), href: ROUTES.EXAM_OFFICER_SEMESTERS },
+    { icon: FileText, label: t("templates"), href: "/exam-officer/templates" },
   ];
 
   const proctorMenuItems = [

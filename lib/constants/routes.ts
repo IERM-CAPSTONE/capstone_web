@@ -43,6 +43,7 @@ export const ROUTES = {
   EXAM_OFFICER_ROOMS: "/exam-officer/rooms",
   EXAM_OFFICER_SEMESTERS: "/exam-officer/semesters",
   EXAM_OFFICER_TICKETS: "/exam-officer/tickets",
+  EXAM_OFFICER_MONITS: "/exam-officer/monitor",
   SUBJECTS: "/exam-officer/subjects",
 
   // Exam Schedules

@@ -464,6 +464,7 @@
         "tickets": "Tickets",
         "applications": "Proctor Applications",
         "subjects": "Subjects",
+        "templates": "Exam Templates",
         "myTickets": "My Tickets",
         "assignedTickets": "Assigned Tickets",
         "techTickets": "Tech Tickets"
@@ -752,19 +753,71 @@
         "deselect": "Deselect",
         "selectedCount": "selected",
         "ticketCount": "tickets",
-        "tabs": { "active": "Waiting", "inprogress": "In Progress", "solved": "Done" },
-        "triage": { "urgent": "Urgent", "inprogress": "In Progress", "waiting": "Waiting", "done": "Done" },
-        "priority": { "Urgent": "Urgent", "High": "High", "Medium": "Medium", "Low": "Low" },
+        "tabs": {
+            "active": "Waiting",
+            "inprogress": "In Progress",
+            "solved": "Done"
+        },
+        "triage": {
+            "urgent": "Urgent",
+            "inprogress": "In Progress",
+            "waiting": "Waiting",
+            "done": "Done"
+        },
+        "priority": {
+            "Urgent": "Urgent",
+            "High": "High",
+            "Medium": "Medium",
+            "Low": "Low"
+        },
         "issueTypes": "issue type(s)",
         "selectN": "Select",
         "deselectGroup": "Deselect",
-        "columns": { "mssv": "Student ID", "room": "Room", "subject": "Subject", "reporter": "Reported by", "status": "Status", "time": "Time" },
-        "status": { "OPEN": "Waiting", "IN_PROGRESS": "In Progress", "SOLVED": "Resolved", "CLOSED": "Closed" },
-        "actions": { "start": "Accept", "resolve": "Resolve", "bulkResolve": "Bulk Resolve" },
-        "rightPanel": { "title": "Quick Actions", "hint": "Select tickets from the left to bulk process", "selectedCount": "ticket(s) selected", "resolveBtn": "Mark as Resolved" },
-        "modal": { "title": "Confirm Resolution", "selectedCount": "ticket(s) selected", "noteLabel": "Technical note", "notePlaceholder": "Describe how it was resolved...", "cancel": "Cancel", "confirm": "Confirm" },
-        "empty": { "noResults": "No results found", "noTickets": "No tickets available" },
-        "toast": { "loadError": "Failed to load tickets", "startSuccess": "Started processing ticket ✓", "startError": "Failed to update status", "resolveSuccess": "Ticket resolved", "resolveError": "Failed to resolve ticket", "noteRequired": "Please enter a technical note" }
+        "columns": {
+            "mssv": "Student ID",
+            "room": "Room",
+            "subject": "Subject",
+            "reporter": "Reported by",
+            "status": "Status",
+            "time": "Time"
+        },
+        "status": {
+            "OPEN": "Waiting",
+            "IN_PROGRESS": "In Progress",
+            "SOLVED": "Resolved",
+            "CLOSED": "Closed"
+        },
+        "actions": {
+            "start": "Accept",
+            "resolve": "Resolve",
+            "bulkResolve": "Bulk Resolve"
+        },
+        "rightPanel": {
+            "title": "Quick Actions",
+            "hint": "Select tickets from the left to bulk process",
+            "selectedCount": "ticket(s) selected",
+            "resolveBtn": "Mark as Resolved"
+        },
+        "modal": {
+            "title": "Confirm Resolution",
+            "selectedCount": "ticket(s) selected",
+            "noteLabel": "Technical note",
+            "notePlaceholder": "Describe how it was resolved...",
+            "cancel": "Cancel",
+            "confirm": "Confirm"
+        },
+        "empty": {
+            "noResults": "No results found",
+            "noTickets": "No tickets available"
+        },
+        "toast": {
+            "loadError": "Failed to load tickets",
+            "startSuccess": "Started processing ticket ✓",
+            "startError": "Failed to update status",
+            "resolveSuccess": "Ticket resolved",
+            "resolveError": "Failed to resolve ticket",
+            "noteRequired": "Please enter a technical note"
+        }
     },
     "ExamOfficerTickets": {
         "title": "Ticket Management",
@@ -875,6 +928,53 @@
         "role": {
             "IT_SUPPORT": "IT Support",
             "HALL_INVIGILATOR": "Hall Invigilator"
+        }
+    },
+    "MonitorDashboard": {
+        "title": "Exam Monitor",
+        "subtitle": "Real-time tracking of ongoing exam sessions",
+        "statsTitle": "Campus Statistics",
+        "stats": {
+            "totalProctors": "Main Proctors",
+            "totalHall": "Hall Invigilators",
+            "totalStudents": "Students",
+            "pendingTickets": "Pending Tickets"
+        },
+        "table": {
+            "subject": "Subject",
+            "status": "Status",
+            "timer": "Timer",
+            "proctorRate": "Main Proctor",
+            "hallRate": "Hall Invig.",
+            "studentRate": "Students",
+            "tickets": "Tickets",
+            "actions": "Actions"
+        },
+        "drilldown": {
+            "room": "Room",
+            "proctor": "Proctor",
+            "hall": "Hall",
+            "checkin": "Check-in",
+            "statusOnline": "Online",
+            "statusOffline": "Offline",
+            "notInRoom": "Not in room"
+        },
+        "phases": {
+            "ongoing": "Ongoing",
+            "upcoming": "Upcoming",
+            "completed": "Completed",
+            "all": "All"
+        },
+        "status": {
+            "checkingIn": "Checking in",
+            "ongoing": "Ongoing",
+            "completed": "Completed"
+        },
+        "filters": {
+            "missingProctor": "Missing Proctor",
+            "hasTickets": "Pending Tickets",
+            "lowAttendance": "Low Attendance",
+            "searchPlaceholder": "Search subject or room..."
         }
     },
     "HallInvigilatorDashboard": {
