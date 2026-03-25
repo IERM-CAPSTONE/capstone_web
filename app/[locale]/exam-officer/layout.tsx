@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
-import { Ticket } from "lucide-react";
+import { Ticket, AlertTriangle } from "lucide-react";
 import { useCheckAuth } from "@/hooks/use-check-auth";
 import { DashboardLoadingSkeleton } from "@/components/ui/page-loading";
 import { useSocket } from "@/hooks/use-socket";
@@ -76,6 +76,7 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
     const user = useAuthStore((s) => s.user);
     const params = useParams();
     const locale = (params?.locale as string) || "vi";
+    const anomalyThrottleRef = useRef<Map<string, number>>(new Map());
 
     // i18n strings for toast notifications (avoid hook for stability)
     const isVI = locale === "vi";
@@ -116,6 +117,10 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
 
     const navigateToTickets = useCallback(() => {
         router.push(`/${locale}${ROUTES.EXAM_OFFICER_TICKETS}`);
+    }, [router, locale]);
+
+    const navigateToMonitor = useCallback(() => {
+        router.push(`/${locale}${ROUTES.EXAM_OFFICER_MONITS}`);
     }, [router, locale]);
 
     useEffect(() => {
@@ -162,9 +167,69 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
             );
         };
 
+        const handleStudentAnomaly = (payload: any) => {
+            const key = `${payload?.eventType || 'student_anomaly'}:${payload?.examSessionId || ''}:${payload?.studentId || ''}`;
+            const now = Date.now();
+            const lastTime = anomalyThrottleRef.current.get(key) ?? 0;
+            // Suppress duplicate anomaly notifications in a short window.
+            if (now - lastTime < 10000) return;
+            anomalyThrottleRef.current.set(key, now);
+
+            playTicketSound();
+            toast(
+                <div className="flex items-start gap-3 cursor-pointer w-full" onClick={navigateToMonitor}>
+                    <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900">Student anomaly detected</p>
+                        <p className="text-xs text-slate-600 truncate mt-0.5">
+                            {payload?.studentName || "Unknown student"} {payload?.studentCode ? `(${payload.studentCode})` : ""}
+                        </p>
+                    </div>
+                </div>,
+                {
+                    duration: 9000,
+                    action: {
+                        label: "Open Monitor",
+                        onClick: navigateToMonitor,
+                    },
+                }
+            );
+        };
+
+        const handleBroadcastSent = (payload: any) => {
+            toast(
+                <div className="flex items-start gap-3 cursor-pointer w-full" onClick={navigateToMonitor}>
+                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <AlertTriangle className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900">Broadcast sent</p>
+                        <p className="text-xs text-slate-600 truncate mt-0.5">{payload?.title || 'Official Announcement'}</p>
+                        <p className="text-[11px] text-slate-500 mt-1 truncate">{payload?.message || ''}</p>
+                    </div>
+                </div>,
+                {
+                    duration: 9000,
+                    action: {
+                        label: 'Open Monitor',
+                        onClick: navigateToMonitor,
+                    },
+                }
+            );
+        };
+
         socket.on("ticket:created", handleNewTicket);
-        return () => { socket.off("ticket:created", handleNewTicket); };
-    }, [socket, navigateToTickets]);
+        socket.on("monitor:student_anomaly", handleStudentAnomaly);
+        socket.on("monitor:broadcast_sent", handleBroadcastSent);
+
+        return () => {
+            socket.off("ticket:created", handleNewTicket);
+            socket.off("monitor:student_anomaly", handleStudentAnomaly);
+            socket.off("monitor:broadcast_sent", handleBroadcastSent);
+        };
+    }, [socket, navigateToTickets, navigateToMonitor]);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
