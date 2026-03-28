@@ -82,7 +82,7 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                 if (redirectIfAuthenticated) {
                     const locale = getCurrentLocale();
                     if (userObj.role === "admin") {
-                        router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
+                        router.replace(`/${locale}${ROUTES.ADMIN_ACCOUNTS}`);
                     } else if (userObj.role === "exam_officer") {
                         router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
                     } else if (userObj.role === "proctor") {
@@ -135,7 +135,7 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
             if (redirectIfAuthenticated) {
                 const locale = getCurrentLocale();
                 if (user.role === "admin") {
-                    router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
+                    router.replace(`/${locale}${ROUTES.ADMIN_ACCOUNTS}`);
                 } else if (user.role === "exam_officer") {
                     router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
                 } else if (user.role === "proctor") {

@@ -130,7 +130,7 @@ export const examSchedulesApi = {
   // Auto-generate exam schedule
   autoGenerate: async (data: AutoGenerateScheduleData): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post("/exam-sessions/auto-generate", data);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
 
@@ -143,7 +143,7 @@ export const examSchedulesApi = {
   // Publish exam schedules
   publish: async (data: { sessionIds?: string[]; semesterId?: string; campus?: string }): Promise<{ success: boolean; count: number }> => {
     const response = await apiClient.post("/exam-sessions/publish", data);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   // Archive exam schedule (only for completed exams)
@@ -157,7 +157,7 @@ export const examSchedulesApi = {
   // Finalize seat assignments for a session
   finalizeSeats: async (id: string): Promise<{ success: boolean; message: string; data: { studentsAssigned: number; seatsUsed: number } }> => {
     const response = await apiClient.post(`/exam-sessions/${id}/finalize-seats`);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   // Import exam schedules (legacy - file upload)

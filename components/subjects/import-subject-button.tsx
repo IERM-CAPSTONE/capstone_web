@@ -8,6 +8,7 @@ import { useSemesters } from "@/hooks/use-semesters";
 import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
 import * as xlsx from "xlsx";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     Dialog,
     DialogContent,
@@ -47,34 +48,51 @@ export function ImportSubjectButton() {
     const tCommon = useTranslations("Common");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const importSubjects = useImportSubjects();
+    const queryClient = useQueryClient();
     const [isUploading, setIsUploading] = useState(false);
     const [allPreviewData, setAllPreviewData] = useState<PreviewData[]>([]);
     const [currentSheetIdx, setCurrentSheetIdx] = useState(0);
     const [showPreview, setShowPreview] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
-    const [isProcessingInQueue, setIsProcessingInQueue] = useState(false);
 
     const { data: semestersData } = useSemesters({ limit: 100 });
     const semesters = semestersData?.data || [];
     const { on } = useSocket();
 
-    // Listen for import completion via socket
+    // Listen for import completion or failure via socket
     useEffect(() => {
         if (!on) return;
 
-        const cleanup = on("IMPORT_COMPLETED", (data: any) => {
+        const onCompleted = (data: any) => {
             if (data.action === "subjects") {
-                setIsProcessingInQueue(false);
+                // Refresh the list immediately
+                queryClient.invalidateQueries({ queryKey: ["subjects"] });
+                toast.dismiss("import-processing");
                 toast.success(data.message || "Subjects imported successfully!", {
                     icon: <Check className="h-4 w-4 text-emerald-500" />,
                     description: `Success: ${data.successCount}, Error: ${data.errorCount}`,
                 });
             }
-        });
+        };
 
-        return cleanup;
-    }, [on]);
+        const onFailed = (data: any) => {
+            if (data.action === "subjects") {
+                toast.dismiss("import-processing");
+                toast.error(data.message || "Import failed", {
+                    icon: <AlertCircle className="h-4 w-4 text-red-500" />,
+                });
+            }
+        };
+
+        const cleanupSuccess = on("IMPORT_COMPLETED", onCompleted);
+        const cleanupError = on("IMPORT_FAILED", onFailed);
+
+        return () => {
+            cleanupSuccess();
+            cleanupError();
+        };
+    }, [on, queryClient]);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -165,9 +183,10 @@ export function ImportSubjectButton() {
                 file: selectedFile,
                 semesterId: selectedSemesterId
             });
-            setIsProcessingInQueue(true);
-            toast.info(result.message || "File uploaded. Processing subjects...", {
-                icon: <Loader2 className="h-4 w-4 animate-spin" />
+            toast.info(result.message || "Processing subjects in background...", {
+                id: "import-processing",
+                icon: <Loader2 className="h-4 w-4 animate-spin" />,
+                duration: Infinity,
             });
         } catch (error: any) {
             console.error("Import failed:", error);
@@ -199,27 +218,6 @@ export function ImportSubjectButton() {
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
             />
-
-            {/* Loading Overlay */}
-            {isProcessingInQueue && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 max-w-sm text-center">
-                        <div className="relative">
-                            <div className="h-16 w-16 border-4 border-orange-100 border-t-orange-600 rounded-full animate-spin"></div>
-                            <FileUp className="h-6 w-6 text-orange-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Processing Subjects</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                We are analyzing and importing subjects into the system. Please do not close this window.
-                            </p>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-orange-600 h-full w-2/3 animate-pulse rounded-full"></div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <Button
                 variant="outline"

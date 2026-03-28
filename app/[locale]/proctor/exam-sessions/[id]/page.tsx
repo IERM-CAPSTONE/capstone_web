@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { useExamScheduleById } from "@/hooks/use-exam-schedules";
 import { useStudentExamsBySession } from "@/hooks/use-student-exams";
 import { useSeatManagement, ExamSeat } from "@/hooks/use-seat-management";
+import { useSocket } from "@/hooks/use-socket";
 import { StudentExam } from "@/lib/api/student-exams";
 import { ticketsApi, IssueType, TicketPriority } from "@/lib/api/tickets";
 import { ROUTES } from "@/lib/constants/routes";
@@ -626,9 +627,14 @@ export default function ProctorExamSessionDetailPage() {
     const scheduleId = params.id as string;
     const locale = getCurrentLocale();
     const t = useTranslations("ProctorSession");
+    const { on } = useSocket();
 
     const { data: schedule, isLoading, error } = useExamScheduleById(scheduleId);
-    const { data: studentsResp, isLoading: studentsLoading } = useStudentExamsBySession(scheduleId);
+    const {
+        data: studentsResp,
+        isLoading: studentsLoading,
+        refetch: refetchStudents,
+    } = useStudentExamsBySession(scheduleId);
     const { seats, loading: seatsLoading, fetchSeats } = useSeatManagement(scheduleId);
 
     const students = studentsResp?.data ?? [];
@@ -642,6 +648,18 @@ export default function ProctorExamSessionDetailPage() {
     const [showTicketDialog, setShowTicketDialog] = useState(false);
 
     useEffect(() => { fetchSeats(); }, [scheduleId, fetchSeats]);
+
+    useEffect(() => {
+        const cleanup = on?.("face_authenticated", (data: any) => {
+            if (data?.examSessionId && data.examSessionId !== scheduleId) return;
+            refetchStudents();
+            fetchSeats();
+        });
+
+        return () => {
+            if (cleanup) cleanup();
+        };
+    }, [on, scheduleId, refetchStudents, fetchSeats]);
 
     const toggleStudent = useCallback((id: string) => {
         setSelectedIds(prev => {

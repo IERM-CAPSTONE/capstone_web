@@ -34,10 +34,9 @@ export function Sidebar() {
   const pendingApplicationsCount = pendingApplicationsQuery.data?.total ?? 0;
 
   const adminMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_ADMIN, exact: true },
     { icon: Users, label: t("accounts"), href: ROUTES.ADMIN_ACCOUNTS },
     { icon: Building2, label: t("rooms"), href: ROUTES.ROOMS },
-    { icon: Users, label: t("devices"), href: ROUTES.ADMIN_DEVICES },
+    { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },
     { icon: Calendar, label: t("semesters"), href: ROUTES.ADMIN_SEMESTERS },
   ];
 

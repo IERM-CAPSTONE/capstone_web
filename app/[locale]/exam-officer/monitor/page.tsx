@@ -92,6 +92,28 @@ export default function MonitorDashboardPage() {
     };
   }, [on, fetchData]);
 
+  useEffect(() => {
+    const handleProctorCheckIn = () => {
+      fetchData();
+    };
+
+    const cleanup = on?.("monitor:proctor-checkin", handleProctorCheckIn);
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [on, fetchData]);
+
+  useEffect(() => {
+    const handleStudentCheckIn = () => {
+      fetchData();
+    };
+
+    const cleanup = on?.("face_authenticated", handleStudentCheckIn);
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [on, fetchData]);
+
 
   const globalStats = useMemo(() => {
     return data.reduce((acc, sub) => ({
@@ -870,7 +892,9 @@ function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
         <div className="space-y-3">
           <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
             <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("drilldown.proctor")}</span>
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                 {t("drilldown.proctor")} • {session.proctorOnline ? "Checked in" : "Not checked in"}
+               </span>
                <span className={cn("text-xs font-black", !session.proctorOnline && 'text-red-500')}>
                  {session.proctorName || t("drilldown.notInRoom") || "Not Assigned"}
                </span>
