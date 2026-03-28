@@ -66,6 +66,10 @@ export function Sidebar() {
     { icon: Calendar,       label: t("schedules"),           href: ROUTES.EXAMS_SCHEDULE },
   ];
 
+  const studentMenuItems = [
+    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_STUDENT, exact: true },
+  ];
+
   const itSupportMenuItems = [
     { icon: LayoutDashboard, label: t("dashboard"),      href: ROUTES.IT_SUPPORT, exact: true },
     { icon: Ticket,          label: t("techTickets"),    href: ROUTES.IT_SUPPORT_TICKETS },
@@ -78,6 +82,8 @@ export function Sidebar() {
         ? proctorMenuItems
         : user?.role === "hall_invigilator"
           ? hallInvigilatorMenuItems
+          : user?.role === "student"
+            ? studentMenuItems
           : user?.role === "it_support"
             ? itSupportMenuItems
             : adminMenuItems;

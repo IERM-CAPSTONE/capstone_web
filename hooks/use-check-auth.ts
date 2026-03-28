@@ -91,6 +91,8 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                         router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
                     } else if (userObj.role === "it_support") {
                         router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
+                    } else if (userObj.role === "student") {
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_STUDENT}`);
                     } else {
                         router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                     }
@@ -144,6 +146,8 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                     router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
                 } else if (user.role === "it_support") {
                     router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
+                } else if (user.role === "student") {
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_STUDENT}`);
                 } else {
                     router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                 }

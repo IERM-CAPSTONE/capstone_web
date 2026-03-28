@@ -24,6 +24,7 @@ export const ROUTES = {
   DASHBOARD_ADMIN: "/admin",
   DASHBOARD_EXAM_OFFICER: "/exam-officer",
   DASHBOARD_PROCTOR: "/proctor",
+  DASHBOARD_STUDENT: "/student",
 
   // Admin routes
   ADMIN_ACCOUNTS: "/admin/accounts",
