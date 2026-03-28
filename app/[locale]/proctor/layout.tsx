@@ -4,7 +4,7 @@ import { useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Megaphone } from "lucide-react";
 import { useCheckAuth } from "@/hooks/use-check-auth";
 import { DashboardLoadingSkeleton } from "@/components/ui/page-loading";
 import { useSocket } from "@/hooks/use-socket";
@@ -205,9 +205,38 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
         };
 
         socket.on("ticket:updated", handleUpdated);
+
+        const handleBroadcastAnnouncement = (payload: {
+            title?: string;
+            message?: string;
+            type?: string;
+            sentAt?: string;
+        }) => {
+            playProcessingSound();
+            toast.info(
+                <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                        <Megaphone className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">
+                            {payload.title || (isVI ? "Thong bao" : "Announcement")}
+                        </p>
+                        <p className="text-xs text-slate-600 mt-0.5">{payload.message || ""}</p>
+                    </div>
+                </div>,
+                {
+                    duration: 10000,
+                    style: { borderLeft: "4px solid #f59e0b" },
+                }
+            );
+        };
+
+        socket.on("broadcast_announcement", handleBroadcastAnnouncement);
         return () => {
             socket.off("ticket:resolved", handleResolved);
             socket.off("ticket:updated", handleUpdated);
+            socket.off("broadcast_announcement", handleBroadcastAnnouncement);
         };
     }, [socket, user?.id]);
 

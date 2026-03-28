@@ -33,6 +33,17 @@ export interface MonitorSummaryParams {
   date?: string;
 }
 
+export interface SessionActivityItem {
+  id: string;
+  activityType: string;
+  event: string;
+  title: string;
+  message: string;
+  ticketId: string;
+  createdAt: string;
+  meta?: Record<string, any>;
+}
+
 export const monitorApi = {
   getSummary: async (params: MonitorSummaryParams): Promise<SubjectMonitorSummary[]> => {
     const response = await apiClient.get<{ data: SubjectMonitorSummary[] }>(
@@ -40,5 +51,15 @@ export const monitorApi = {
       { params }
     );
     return response.data.data;
+  },
+
+  getSessionActivities: async (sessionId: string, params?: { limit?: number }): Promise<SessionActivityItem[]> => {
+    const response = await apiClient.get<{ data: SessionActivityItem[] } | SessionActivityItem[]>(`/exam-sessions/${sessionId}/monitor-activities`, {
+      params,
+    });
+    const raw = response.data as any;
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.data)) return raw.data;
+    return [];
   },
 };

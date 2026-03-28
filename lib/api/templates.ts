@@ -22,6 +22,22 @@ interface ApiResponse<T> {
   };
 }
 
+export interface BroadcastMessageItem {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  createdAt: string;
+  senderName?: string | null;
+  subjectCodes: string[];
+  deliveries: Array<{
+    sessionId: string;
+    subjectCode: string;
+    roomNumber: string;
+    campus: string;
+  }>;
+}
+
 export const templatesApi = {
   getTemplates: async (params?: { page?: number; limit?: number; search?: string; campus?: string }): Promise<AnnouncementTemplate[]> => {
     const response = await apiClient.get<ApiResponse<{ items: AnnouncementTemplate[]; total: number }> | { items: AnnouncementTemplate[]; total: number }>("/announcement-templates", { params });
@@ -55,9 +71,22 @@ export const templatesApi = {
     await apiClient.delete(`/announcement-templates/${id}`);
   },
 
-  broadcast: async (data: { subjectCodes: string[]; content: string; type: string; title?: string }): Promise<{ success: boolean; count: number }> => {
-    const response = await apiClient.post<ApiResponse<{ success: boolean; count: number }> | { success: boolean; count: number }>("/broadcast", data);
+  broadcast: async (data: { subjectCodes: string[]; content: string; type: string; title?: string }): Promise<{ success: boolean; count: number; deliveries: Array<{ sessionId: string; subjectCode: string; roomNumber: string; campus: string }>; sentAt: string }> => {
+    const response = await apiClient.post<ApiResponse<{ success: boolean; count: number; deliveries: Array<{ sessionId: string; subjectCode: string; roomNumber: string; campus: string }>; sentAt: string }> | { success: boolean; count: number; deliveries: Array<{ sessionId: string; subjectCode: string; roomNumber: string; campus: string }>; sentAt: string }>("/broadcast", data);
     const raw = response.data as any;
     return raw?.success && raw?.data ? raw.data : raw;
-  }
+  },
+
+  getBroadcastMessages: async (params?: { subjectCodes?: string[]; limit?: number }): Promise<BroadcastMessageItem[]> => {
+    const response = await apiClient.get<ApiResponse<BroadcastMessageItem[]> | BroadcastMessageItem[]>("/broadcast/messages", {
+      params: {
+        subjectCodes: params?.subjectCodes?.join(","),
+        limit: params?.limit,
+      },
+    });
+    const raw = response.data as any;
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.data)) return raw.data;
+    return [];
+  },
 };

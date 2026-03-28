@@ -24,10 +24,11 @@ import {
   MinusSquare,
   Zap,
   MessageSquare,
-  X
+  X,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { monitorApi, SubjectMonitorSummary, SessionRoomDetail } from "@/lib/api/monitor";
+import { monitorApi, SubjectMonitorSummary, SessionRoomDetail, SessionActivityItem } from "@/lib/api/monitor";
 import { useSocket } from "@/hooks/use-socket";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
@@ -82,13 +83,17 @@ export default function MonitorDashboardPage() {
 
   // Real-time ticket updates
   useEffect(() => {
-    const handleTicketCreated = () => {
+    const handleRefresh = () => {
       fetchData(); // Simplest way to update counts
     };
 
-    const cleanup = on?.("ticket:created", handleTicketCreated);
+    const cleanups = [
+      on?.("monitor:student_anomaly", handleRefresh),
+      on?.("monitor:broadcast_sent", handleRefresh),
+    ].filter(Boolean) as Array<() => void>;
+
     return () => {
-      if (cleanup) cleanup();
+      cleanups.forEach((cleanup) => cleanup());
     };
   }, [on, fetchData]);
 
@@ -348,14 +353,20 @@ export default function MonitorDashboardPage() {
                   </div>
                </div>
 
-               {/* Scrollable Room Grid */}
-               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {selectedSubject.sessions.map((room) => (
-                      <div key={room.sessionId} className="transform transition-all duration-300 hover:scale-[1.03]">
-                        <RoomCard session={room} t={t} />
+               {/* Left insights + Right rooms */}
+               <div className="flex-1 overflow-hidden p-8">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
+                    <SubjectSessionBoards subject={selectedSubject} />
+
+                    <div className="h-full overflow-y-auto custom-scrollbar pr-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {selectedSubject.sessions.map((room) => (
+                          <div key={room.sessionId} className="transform transition-all duration-300 hover:scale-[1.02]">
+                            <RoomCard session={room} t={t} />
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                </div>
             </div>
@@ -402,109 +413,110 @@ export default function MonitorDashboardPage() {
          isOpen={isBroadcastModalOpen} 
          onClose={() => setIsBroadcastModalOpen(false)}
          targetCount={selectedSubjectIds.size}
+         targetSubjectCodes={Array.from(selectedSubjectIds)}
          t={t}
       />
     </div>
   );
 }
 
-interface AnnouncementTemplate {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-}
-
-function BroadcastModal({ isOpen, onClose, targetCount, t }: { isOpen: boolean, onClose: () => void, targetCount: number, t: any }) {
-  const [templates, setTemplates] = useState<AnnouncementTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedTemplate, setSelectedTemplate] = useState<AnnouncementTemplate | null>(null);
+function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }: { isOpen: boolean, onClose: () => void, targetCount: number, targetSubjectCodes: string[], t: any }) {
+  const [broadcastTitle, setBroadcastTitle] = useState("Official Announcement");
   const [customMsg, setCustomMsg] = useState("");
-  const [templateParams, setTemplateParams] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
+  const [sentHistory, setSentHistory] = useState<Array<{ id: string; sentAt: string; title: string; content: string; deliveries: Array<{ sessionId: string; subjectCode: string; roomNumber: string; campus: string }> }>>([]);
 
-  // Parse variables from template content e.g. {time}, {reason}
-  const extractParams = (content: string) => {
-    const regex = /\{([^}]+)\}/g;
-    const matches = content.match(regex);
-    if (!matches) return [];
-    return Array.from(new Set(matches.map(m => m.slice(1, -1))));
-  };
-
-  const currentParams = selectedTemplate ? extractParams(selectedTemplate.content) : [];
-
-  // Re-generate message when params or template change
-  useEffect(() => {
-    if (selectedTemplate) {
-      let finalContent = selectedTemplate.content;
-      Object.entries(templateParams).forEach(([key, val]) => {
-        finalContent = finalContent.replace(new RegExp(`\\{${key}\\}`, 'g'), val || `{${key}}`);
-      });
-      setCustomMsg(finalContent);
-    }
-  }, [selectedTemplate, templateParams]);
-
-  const handleSelectTemplate = (temp: AnnouncementTemplate) => {
-    setSelectedTemplate(temp);
-    setTemplateParams({}); // Reset params
-    setCustomMsg(temp.content);
-  };
+  const targetSubjectCodesKey = targetSubjectCodes.join(",");
 
   useEffect(() => {
-    if (isOpen) {
-      import("@/lib/api/templates").then(m => m.templatesApi.getTemplates()).then(data => {
-        setTemplates(data);
-        setLoading(false);
-      });
-    }
-  }, [isOpen]);
+    if (!isOpen) return;
 
-  const handleSend = () => {
+    import("@/lib/api/templates")
+      .then((m) => m.templatesApi.getBroadcastMessages({ subjectCodes: targetSubjectCodes, limit: 100 }))
+      .then((messages) => {
+        setSentHistory(
+          messages.map((item) => ({
+            id: item.id,
+            sentAt: item.createdAt,
+            title: item.title,
+            content: item.content,
+            deliveries: item.deliveries || [],
+          })),
+        );
+      })
+      .catch((error) => {
+        console.error("Failed to load persisted broadcast messages:", error);
+      });
+  }, [isOpen, targetSubjectCodesKey]);
+
+  const handleSend = async () => {
+    if (targetSubjectCodes.length === 0) {
+      toast.error("Please select at least one subject to broadcast");
+      return;
+    }
+
     setSending(true);
-    setTimeout(() => {
-       toast.success(`Announcement sent to ${targetCount} subjects successfully!`);
-       setSending(false);
-       onClose();
-    }, 1500);
+    try {
+      const { templatesApi } = await import("@/lib/api/templates");
+      const result = await templatesApi.broadcast({
+        subjectCodes: targetSubjectCodes,
+        content: customMsg,
+        type: "INFO",
+        title: broadcastTitle,
+      });
+
+      toast.success(`Announcement sent to ${targetCount} subjects successfully!`);
+      const refreshed = await templatesApi.getBroadcastMessages({ subjectCodes: targetSubjectCodes, limit: 100 });
+      setSentHistory(
+        refreshed.map((item) => ({
+          id: item.id,
+          sentAt: item.createdAt,
+          title: item.title,
+          content: item.content,
+          deliveries: item.deliveries || [],
+        })),
+      );
+    } catch (error) {
+      console.error("Failed to broadcast announcement:", error);
+      toast.error("Failed to send announcement");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-5xl p-0 border-none rounded-3xl shadow-2xl overflow-hidden bg-white">
         <div className="flex h-[80vh]">
-           {/* Sidebar: Library */}
-           <div className="w-[300px] bg-slate-50 border-r border-slate-100 flex flex-col">
+          {/* Sidebar: Message Board */}
+           <div className="w-[40%] min-w-[340px] max-w-[500px] bg-slate-50 border-r border-slate-100 flex flex-col">
               <div className="p-6 border-b border-slate-100">
                   <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                      <MessageSquare className="w-4 h-4 text-orange-600" />
-                     Message Library
+                Broadcast Message Board
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">Select a template to start</p>
+              <p className="text-xs text-slate-500 mt-1">All messages sent in this broadcast session</p>
               </div>
               
               <ScrollArea className="flex-1 p-4">
-                 <div className="space-y-3">
-                    {templates.map(temp => (
-                       <button
-                          key={temp.id}
-                          onClick={() => handleSelectTemplate(temp)}
-                          className={cn(
-                             "w-full text-left p-4 rounded-xl transition-all border-2",
-                             selectedTemplate?.id === temp.id 
-                              ? "border-orange-500 bg-orange-50/50 shadow-sm" 
-                              : "border-transparent bg-white hover:border-slate-200"
-                          )}
-                       >
-                          <div className="flex items-center justify-between mb-1.5">
-                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 uppercase">
-                                {temp.type}
-                             </span>
-                          </div>
-                          <p className="text-sm font-bold text-slate-900 leading-tight mb-1">{temp.title}</p>
-                          <p className="text-xs text-slate-500 line-clamp-1">{temp.content}</p>
-                       </button>
-                    ))}
+             {sentHistory.length === 0 ? (
+              <p className="text-xs text-slate-400">No broadcast messages sent yet.</p>
+             ) : (
+              <div className="space-y-3">
+                {sentHistory.map((item) => (
+                 <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold text-slate-800">{item.title}</p>
+                    <span className="text-[10px] text-slate-400">{new Date(item.sentAt).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-600">{item.content}</p>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Rooms: {item.deliveries.map((d) => `${d.subjectCode}-${d.roomNumber}`).join(", ") || "N/A"}
+                  </p>
                  </div>
+                ))}
+              </div>
+             )}
               </ScrollArea>
            </div>
 
@@ -523,26 +535,15 @@ function BroadcastModal({ isOpen, onClose, targetCount, t }: { isOpen: boolean, 
               </div>
 
               <div className="flex-1 flex flex-col p-8 gap-6 overflow-hidden">
-                 {/* Dynamic Params */}
-                 {selectedTemplate && currentParams.length > 0 && (
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                       <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">Required Parameters</h4>
-                       <div className="grid grid-cols-2 gap-4">
-                          {currentParams.map(param => (
-                             <div key={param} className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-slate-700 ml-1">{param}</label>
-                                <input
-                                  type="text"
-                                  placeholder={`e.g. 10:00 AM`}
-                                  className="w-full h-10 px-4 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all shadow-sm"
-                                  value={templateParams[param] || ""}
-                                  onChange={(e) => setTemplateParams(prev => ({ ...prev, [param]: e.target.value }))}
-                                />
-                             </div>
-                          ))}
-                       </div>
-                    </div>
-                 )}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Announcement Title</label>
+                    <Input
+                     className="h-11 rounded-xl border-slate-200 text-sm font-semibold"
+                     value={broadcastTitle}
+                     onChange={(e) => setBroadcastTitle(e.target.value)}
+                     placeholder="Official Announcement"
+                    />
+                  </div>
 
                  {/* Message Editor */}
                  <div className="flex-1 flex flex-col">
@@ -829,6 +830,109 @@ function StatusBadge({ subject, t, isSmall = false }: { subject: SubjectMonitorS
   );
 }
 
+function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
+  const [loading, setLoading] = useState(false);
+  const [activities, setActivities] = useState<Array<SessionActivityItem & { roomNumber: string }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
+    Promise.all(
+      subject.sessions.map((session) =>
+        monitorApi.getSessionActivities(session.sessionId, { limit: 80 }).then((items) =>
+          items.map((item) => ({
+            ...item,
+            roomNumber: session.roomNumber,
+          })),
+        ),
+      ),
+    )
+      .then((result) => {
+        if (!isMounted) return;
+        const merged = result
+          .flat()
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setActivities(merged);
+      })
+      .catch((error) => {
+        console.error('Failed to load subject activities', error);
+        if (isMounted) {
+          setActivities([]);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [subject]);
+
+  const broadcasts = activities.filter((item) => item.event === 'BROADCAST_SENT');
+
+  return (
+    <div className="grid grid-rows-2 gap-6 h-full min-h-0">
+      <Card className="rounded-3xl border-slate-200/80 h-full min-h-0">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">Message Board</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[calc(100%-64px)] min-h-0">
+          <ScrollArea className="h-full pr-3">
+            {loading ? (
+              <p className="text-sm text-slate-500">Loading messages...</p>
+            ) : broadcasts.length === 0 ? (
+              <p className="text-sm text-slate-500">No broadcast messages for this subject yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {broadcasts.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                      <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600">{item.message}</p>
+                    <p className="mt-2 text-[11px] text-indigo-600 font-semibold">Room {item.roomNumber}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-slate-200/80 h-full min-h-0">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">Activity Log</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[calc(100%-64px)] min-h-0">
+          <ScrollArea className="h-full pr-3">
+            {loading ? (
+              <p className="text-sm text-slate-500">Loading activities...</p>
+            ) : activities.length === 0 ? (
+              <p className="text-sm text-slate-500">No activity recorded for this subject yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {activities.map((item) => (
+                  <div key={`${item.id}-${item.roomNumber}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                      <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600">{item.message}</p>
+                    <p className="mt-2 text-[11px] font-semibold text-orange-600">Room {item.roomNumber}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function CountdownTimer({ endTime, startTime, status, size = "normal", inverse = false }: { endTime: string, startTime: string, status: string, size?: "normal" | "small", inverse?: boolean }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [isUrgent, setIsUrgent] = useState(false);
@@ -874,21 +978,24 @@ function CountdownTimer({ endTime, startTime, status, size = "normal", inverse =
 }
 
 function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
+  const [activityOpen, setActivityOpen] = useState(false);
+
   return (
-    <Card className="shadow-lg border-slate-200/80 hover:border-orange-500/50 hover:shadow-orange-100/30 transition-all duration-300 overflow-hidden group/room">
-      <div className="p-4 border-b bg-slate-50/50 flex flex-row justify-between items-center group-hover/room:bg-orange-50/20 transition-colors">
-        <div className="flex items-center gap-2">
-           <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-           <span className="text-sm font-black text-slate-800">{t("drilldown.room")} {session.roomNumber}</span>
-        </div>
-        {session.pendingTickets > 0 && (
-          <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1.5 shadow-lg shadow-orange-100">
-            <Ticket className="w-3 h-3" />
-            {session.pendingTickets}
+    <>
+      <Card className="shadow-lg border-slate-200/80 hover:border-orange-500/50 hover:shadow-orange-100/30 transition-all duration-300 overflow-hidden group/room">
+        <div className="p-4 border-b bg-slate-50/50 flex flex-row justify-between items-center group-hover/room:bg-orange-50/20 transition-colors">
+          <div className="flex items-center gap-2">
+             <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+             <span className="text-sm font-black text-slate-800">{t("drilldown.room")} {session.roomNumber}</span>
           </div>
-        )}
-      </div>
-      <CardContent className="p-4 flex flex-col gap-4">
+          {session.pendingTickets > 0 && (
+            <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1.5 shadow-lg shadow-orange-100">
+              <Ticket className="w-3 h-3" />
+              {session.pendingTickets}
+            </div>
+          )}
+        </div>
+        <CardContent className="p-4 flex flex-col gap-4">
         <div className="space-y-3">
           <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
             <div className="flex flex-col">
@@ -925,7 +1032,81 @@ function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
             />
           </div>
         </div>
+        <Button
+          variant="outline"
+          className="h-9 w-full rounded-lg border-slate-200 text-xs font-bold text-slate-600 gap-2"
+          onClick={() => setActivityOpen(true)}
+        >
+          <History className="w-3.5 h-3.5" />
+          Activity Log
+        </Button>
       </CardContent>
-    </Card>
+      </Card>
+
+      <RoomActivityDialog
+        sessionId={session.sessionId}
+        roomNumber={session.roomNumber}
+        open={activityOpen}
+        onOpenChange={setActivityOpen}
+      />
+    </>
+  );
+}
+
+function RoomActivityDialog({
+  sessionId,
+  roomNumber,
+  open,
+  onOpenChange,
+}: {
+  sessionId: string;
+  roomNumber: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [activities, setActivities] = useState<SessionActivityItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setLoading(true);
+    monitorApi
+      .getSessionActivities(sessionId, { limit: 80 })
+      .then((result) => setActivities(result))
+      .catch((error) => {
+        console.error("Failed to load session activities", error);
+        toast.error("Failed to load activity history");
+      })
+      .finally(() => setLoading(false));
+  }, [open, sessionId]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Room {roomNumber} Activity Timeline</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="h-[420px] pr-3">
+          {loading ? (
+            <p className="text-sm text-slate-500">Loading activity history...</p>
+          ) : activities.length === 0 ? (
+            <p className="text-sm text-slate-500">No activities recorded yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((item) => (
+                <div key={item.id} className="rounded-xl border border-slate-200 p-3 bg-slate-50/60">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                    <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-600">{item.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
