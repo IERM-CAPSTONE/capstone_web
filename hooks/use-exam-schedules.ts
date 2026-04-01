@@ -7,6 +7,7 @@ import {
   UpdateExamScheduleData,
   PaginatedExamScheduleResponse,
   ImportScheduleData,
+  ImportSchedulePreviewRequest,
   AutoGenerateScheduleData,
 } from "@/lib/api/exam-schedules";
 
@@ -149,6 +150,24 @@ export function useImportWithStudents() {
   return useMutation({
     mutationFn: (data: ImportScheduleData) =>
       examSchedulesApi.importWithStudents(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
+    },
+  });
+}
+
+export function useValidateImportSchedulePreview() {
+  return useMutation({
+    mutationFn: (data: ImportSchedulePreviewRequest) =>
+      examSchedulesApi.validateImportPreview(data),
+  });
+}
+
+export function useBulkAssignStudents() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) => examSchedulesApi.bulkAssignStudents(sessionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_SCHEDULES_QUERY_KEY });
     },

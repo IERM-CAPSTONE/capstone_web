@@ -99,6 +99,28 @@ export interface AutoGenerateScheduleData {
   fileData: string;
 }
 
+export type SeatTemplateType =
+  | 'U_SHAPE'
+  | 'L_LEFT'
+  | 'L_RIGHT'
+  | 'O_SHAPE'
+  | 'GAP_PATTERN'
+  | 'ALTERNATE_ROWS';
+
+export interface ApplySeatTemplateData {
+  templateType: SeatTemplateType;
+  gap?: number;
+}
+
+export interface SeatAssignmentResponse {
+  success: boolean;
+  message: string;
+  data: {
+    studentsAssigned: number;
+    seatsUsed: number;
+  };
+}
+
 export const examSchedulesApi = {
   // List exam schedules
   list: async (
@@ -156,8 +178,18 @@ export const examSchedulesApi = {
   },
 
   // Finalize seat assignments for a session
-  finalizeSeats: async (id: string): Promise<{ success: boolean; message: string; data: { studentsAssigned: number; seatsUsed: number } }> => {
+  finalizeSeats: async (id: string): Promise<SeatAssignmentResponse> => {
     const response = await apiClient.post(`/exam-sessions/${id}/finalize-seats`);
+    return response.data?.data ?? response.data;
+  },
+
+  bulkAssignStudents: async (id: string): Promise<SeatAssignmentResponse> => {
+    const response = await apiClient.post(`/exam-sessions/${id}/bulk-assign-students`);
+    return response.data?.data ?? response.data;
+  },
+
+  applySeatTemplate: async (id: string, data: ApplySeatTemplateData): Promise<any> => {
+    const response = await apiClient.post(`/exam-sessions/${id}/apply-template`, data);
     return response.data?.data ?? response.data;
   },
 
@@ -174,6 +206,14 @@ export const examSchedulesApi = {
   // Import Schedule + Students (JSON) - calls /exam-sessions/import-schedule
   importSchedule: async (data: ImportScheduleData): Promise<ImportScheduleResponse> => {
     const response = await apiClient.post<ImportScheduleResponse>(
+      "/exam-sessions/import-schedule",
+      data
+    );
+    return response.data;
+  },
+
+  validateImportPreview: async (data: ImportSchedulePreviewRequest): Promise<ImportSchedulePreviewResponse> => {
+    const response = await apiClient.post<ImportSchedulePreviewResponse>(
       "/exam-sessions/import-schedule",
       data
     );
@@ -250,8 +290,31 @@ export interface ImportScheduleData {
   importType: 'schedule';
   schedules: ScheduleItem[];
   students: StudentItem[];
+  validationMode?: 'import' | 'preview';
   batchId?: string;
   totalItems?: number;
+}
+
+export interface ImportCapacitySessionResult {
+  examSession: string;
+  room: string;
+  students: number;
+  totalSeats: number | null;
+  canImport: boolean;
+  reason?: string;
+}
+
+export interface ImportCapacityCheckResult {
+  canImport: boolean;
+  errors: string[];
+  warnings: string[];
+  sessions: ImportCapacitySessionResult[];
+  summary: {
+    totalSessions: number;
+    totalStudents: number;
+    totalSeats: number;
+    overloadedSessions: number;
+  };
 }
 
 export interface ImportScheduleResponse {
@@ -260,5 +323,23 @@ export interface ImportScheduleResponse {
   data: {
     schedulesReceived: number;
     studentsReceived: number;
+    capacityCheck?: ImportCapacityCheckResult;
+  };
+}
+
+export interface ImportSchedulePreviewRequest {
+  importType: 'schedule';
+  schedules: ScheduleItem[];
+  students: StudentItem[];
+  validationMode: 'preview';
+}
+
+export interface ImportSchedulePreviewResponse {
+  success: boolean;
+  message: string;
+  data: {
+    schedulesReceived: number;
+    studentsReceived: number;
+    capacityCheck: ImportCapacityCheckResult;
   };
 }

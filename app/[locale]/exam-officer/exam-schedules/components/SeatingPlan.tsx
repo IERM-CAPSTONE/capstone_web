@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SeatGrid } from "./SeatGrid";
 import { SeatActionsPanel } from "./SeatActionsPanel";
 import { StudentDetailModal } from "./StudentDetailModal";
-import { examSchedulesApi } from "@/lib/api/exam-schedules";
+import { examSchedulesApi, SeatTemplateType } from "@/lib/api/exam-schedules";
 import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
@@ -72,8 +72,13 @@ export default function SeatingPlan({
     const [selectedSeat, setSelectedSeat] = useState<ExamSeat | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
     const [isFinalizingSeats, setIsFinalizingSeats] = useState(false);
+    const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<SeatTemplateType>('U_SHAPE');
 
     const students = studentsResponse?.data || [];
+    const hasStudentsImported = !!scheduleData?.hasStudentsImported;
+    const normalizedRole = String(user?.role || '').toUpperCase();
+    const canUseLayoutTools = ['ADMIN', 'EXAM_OFFICER'].includes(normalizedRole);
     const rows = maxRows || 5;
     const cols = maxColumns || 6;
     const unassignedStudentsCount = students.filter(s => !s.seatPosition).length;
@@ -103,6 +108,16 @@ export default function SeatingPlan({
     // Handle seat lock/unlock - toggle directly without confirmation
     const handleSeatLockToggle = async (seat: ExamSeat) => {
         try {
+            if (!canUseLayoutTools) {
+                setActionError('Only Exam Officers can edit seat layout.');
+                return;
+            }
+
+            if (hasStudentsImported) {
+                setActionError('Seat layout is locked after students are assigned.');
+                return;
+            }
+
             setActionError(null);
 
             if (seat.status === 'Locked') {
@@ -127,10 +142,11 @@ export default function SeatingPlan({
             setIsFinalizingSeats(true);
             setActionError(null);
 
-            const result = await examSchedulesApi.finalizeSeats(examSessionId);
+            const result = await examSchedulesApi.bulkAssignStudents(examSessionId);
 
             if (result.success) {
                 toast.success(`Successfully assigned ${result.data.studentsAssigned} students to seats`);
+                setIsEditing(false);
                 // Refresh all data
                 await Promise.all([
                     fetchSeats(),
@@ -144,6 +160,28 @@ export default function SeatingPlan({
             toast.error(errorMsg);
         } finally {
             setIsFinalizingSeats(false);
+        }
+    };
+
+    const handleApplyTemplate = async (templateType: SeatTemplateType) => {
+        try {
+            if (!canUseLayoutTools) {
+                setActionError('Only Exam Officers can apply templates.');
+                return;
+            }
+
+            setIsApplyingTemplate(true);
+            setActionError(null);
+
+            await examSchedulesApi.applySeatTemplate(examSessionId, { templateType });
+            await fetchSeats();
+            toast.success(`Template ${templateType} applied successfully`);
+        } catch (err: any) {
+            const errorMsg = err?.response?.data?.message || 'Failed to apply seat template';
+            setActionError(errorMsg);
+            toast.error(errorMsg);
+        } finally {
+            setIsApplyingTemplate(false);
         }
     };
 
@@ -180,11 +218,15 @@ export default function SeatingPlan({
                 onEditToggle={setIsEditing}
                 onRefresh={fetchSeats}
                 onFinalize={handleFinalizeSeats}
+                onTemplateApply={handleApplyTemplate}
                 userRole={user?.role}
                 error={actionError || seatsError}
-                hasStudentsImported={false}
+                hasStudentsImported={hasStudentsImported}
                 hasUnassignedStudents={unassignedStudentsCount > 0}
                 isFinalizingSeats={isFinalizingSeats}
+                isApplyingTemplate={isApplyingTemplate}
+                selectedTemplate={selectedTemplate}
+                onSelectedTemplateChange={setSelectedTemplate}
             />
 
             {/* Legend */}

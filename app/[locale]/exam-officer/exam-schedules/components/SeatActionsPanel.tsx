@@ -1,16 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Edit2, Save, X, CheckCircle } from "lucide-react";
+import { SeatTemplateType } from "@/lib/api/exam-schedules";
 
 interface SeatActionsPanelProps {
   isEditing: boolean;
   onEditToggle: (editing: boolean) => void;
   onRefresh: () => void;
   onFinalize?: () => void;
+  onTemplateApply?: (templateType: SeatTemplateType) => void;
   userRole?: string;
   error?: string | null;
   hasStudentsImported?: boolean;
   hasUnassignedStudents?: boolean;
   isFinalizingSeats?: boolean;
+  isApplyingTemplate?: boolean;
+  selectedTemplate?: SeatTemplateType;
+  onSelectedTemplateChange?: (template: SeatTemplateType) => void;
 }
 
 export function SeatActionsPanel({
@@ -23,14 +28,21 @@ export function SeatActionsPanel({
   hasStudentsImported = false,
   hasUnassignedStudents = false,
   isFinalizingSeats = false,
+  onTemplateApply,
+  isApplyingTemplate = false,
+  selectedTemplate = 'U_SHAPE',
+  onSelectedTemplateChange,
 }: SeatActionsPanelProps) {
-  const canEdit = ['admin', 'exam_officer', 'proctor'].includes(userRole);
+  const normalizedRole = String(userRole || '').toUpperCase();
+  const canViewPanel = ['ADMIN', 'EXAM_OFFICER', 'PROCTOR'].includes(normalizedRole);
+  const canUseLayoutTools = ['ADMIN', 'EXAM_OFFICER'].includes(normalizedRole);
+  const canUseTemplates = canUseLayoutTools && !hasStudentsImported;
 
-  if (!canEdit) {
+  if (!canViewPanel) {
     return null;
   }
 
-  const showFinalizeButton = !hasStudentsImported && hasUnassignedStudents && !isEditing;
+  const showFinalizeButton = canUseLayoutTools && !hasStudentsImported && hasUnassignedStudents && !isEditing;
 
   return (
     <div className="space-y-4 mb-6">
@@ -42,7 +54,7 @@ export function SeatActionsPanel({
               onClick={() => onEditToggle(true)}
               variant="outline"
               className="gap-2"
-              disabled={hasStudentsImported}
+              disabled={hasStudentsImported || !canUseLayoutTools}
             >
               <Edit2 className="h-4 w-4" />
               Edit Seats
@@ -105,11 +117,45 @@ export function SeatActionsPanel({
         </Button>
       </div>
 
+      {canUseTemplates && (
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-2 md:flex-row md:items-center">
+          <p className="text-[11px] font-semibold text-slate-600 md:min-w-[120px]">Seat Template</p>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => onSelectedTemplateChange?.(e.target.value as SeatTemplateType)}
+            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm"
+            disabled={isApplyingTemplate || isEditing}
+          >
+            <option value="U_SHAPE">U Shape</option>
+            <option value="L_LEFT">Left L</option>
+            <option value="L_RIGHT">Right L</option>
+            <option value="O_SHAPE">O Shape</option>
+            <option value="GAP_PATTERN">Gap Pattern</option>
+            <option value="ALTERNATE_ROWS">Alternate Rows</option>
+          </select>
+          <Button
+            onClick={() => onTemplateApply?.(selectedTemplate)}
+            variant="outline"
+            disabled={isApplyingTemplate || isEditing}
+          >
+            {isApplyingTemplate ? 'Applying...' : 'Apply Template'}
+          </Button>
+        </div>
+      )}
+
       {/* Help text in edit mode */}
-      {isEditing && (
+      {isEditing && canUseLayoutTools && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-[12px] text-blue-700 font-medium">
             💡 Click a seat to toggle Available ⇄ Locked. Locked seats cannot be assigned to students.
+          </p>
+        </div>
+      )}
+
+      {!canUseLayoutTools && (
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+          <p className="text-[12px] text-slate-700 font-medium">
+            Proctors can swap assigned seats, but cannot edit seat layout or apply templates.
           </p>
         </div>
       )}

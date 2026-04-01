@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,10 @@ import {
     Trash2,
     X
 } from "lucide-react";
-import { useImportWithStudents } from "@/hooks/use-exam-schedules";
+import { useImportWithStudents, useValidateImportSchedulePreview } from "@/hooks/use-exam-schedules";
 import { useImportDialog } from "../hooks/useImportDialog";
+import { ImportCapacityCheckResult } from "@/lib/api/exam-schedules";
+import { roomsApi } from "@/lib/api/rooms";
 
 interface ImportScheduleDialogProps {
     isOpen: boolean;
@@ -60,6 +63,9 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
     } = useImportDialog({ importType: "schedule" });
 
     const scheduleMutation = useImportWithStudents();
+    const capacityCheckMutation = useValidateImportSchedulePreview();
+    const [capacityCheck, setCapacityCheck] = useState<ImportCapacityCheckResult | null>(null);
+    const [isCheckingCapacity, setIsCheckingCapacity] = useState(false);
     const isPending = scheduleMutation.isPending || isWaitingForWorker;
 
     const ITEMS_PER_PAGE = 20;
@@ -84,6 +90,181 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
         errorPage * ERRORS_PER_PAGE
     );
 
+    const buildFallbackCapacityCheck = async (): Promise<ImportCapacityCheckResult> => {
+        const sessionToRoom = new Map<string, string>();
+        const studentCountBySession = new Map<string, number>();
+
+        schedulePreview.forEach((item: any) => {
+            const session = String(item?.examSession || "").trim();
+            const room = String(item?.room || "").trim();
+            if (!session) return;
+            if (room) {
+                sessionToRoom.set(session, room);
+            }
+        });
+
+        studentPreview.forEach((item: any) => {
+            const session = String(item?.examSession || "").trim();
+            if (!session) return;
+            studentCountBySession.set(session, (studentCountBySession.get(session) || 0) + 1);
+        });
+
+        const sessions = Array.from(new Set([...sessionToRoom.keys(), ...studentCountBySession.keys()]));
+        const rooms = Array.from(new Set(sessions.map((session) => sessionToRoom.get(session)).filter(Boolean) as string[]));
+
+        const roomResults = await Promise.all(
+            rooms.map(async (roomNumber) => {
+                try {
+                    const response = await roomsApi.getAll({ page: 1, limit: 1, roomNumber });
+                    const room = response?.data?.[0] as any;
+                    return [roomNumber.toLowerCase(), room || null] as const;
+                } catch {
+                    return [roomNumber.toLowerCase(), null] as const;
+                }
+            })
+        );
+
+        const roomMap = new Map<string, any>(roomResults);
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        const sessionResults: ImportCapacityCheckResult['sessions'] = [];
+
+        let totalStudents = 0;
+        let totalSeats = 0;
+        let overloadedSessions = 0;
+
+        sessions.forEach((session) => {
+            const room = sessionToRoom.get(session) || "";
+            const students = studentCountBySession.get(session) || 0;
+            totalStudents += students;
+
+            if (!room) {
+                const reason = `Session "${session}" has no room value in preview data.`;
+                errors.push(`${reason} Fix: add a valid room in the Room column.`);
+                sessionResults.push({ examSession: session, room: "", students, totalSeats: null, canImport: false, reason });
+                return;
+            }
+
+            const roomData = roomMap.get(room.toLowerCase());
+            const totalSeatsForRoom = roomData?.total_seats ?? null;
+
+            if (!roomData) {
+                const reason = `Room "${room}" not found in system.`;
+                errors.push(`${reason} Fix: correct room code in file or create room in Room Management.`);
+                sessionResults.push({ examSession: session, room, students, totalSeats: null, canImport: false, reason });
+                return;
+            }
+
+            if (totalSeatsForRoom === null || totalSeatsForRoom === undefined) {
+                const reason = `Room "${room}" has no totalSeats configured.`;
+                errors.push(`${reason} Fix: set totalSeats for this room before import.`);
+                sessionResults.push({ examSession: session, room, students, totalSeats: null, canImport: false, reason });
+                return;
+            }
+
+            totalSeats += Number(totalSeatsForRoom);
+
+            if (students > Number(totalSeatsForRoom)) {
+                overloadedSessions += 1;
+                const overflow = students - Number(totalSeatsForRoom);
+                const reason = `Session "${session}" has ${students} students but room "${room}" has ${totalSeatsForRoom} seats.`;
+                errors.push(`${reason} Fix: reduce ${overflow} students for this session or move to a larger room.`);
+                sessionResults.push({
+                    examSession: session,
+                    room,
+                    students,
+                    totalSeats: Number(totalSeatsForRoom),
+                    canImport: false,
+                    reason,
+                });
+                return;
+            }
+
+            if (students === 0) {
+                warnings.push(`Session "${session}" has 0 students. Fix: verify student rows for this session in file.`);
+            }
+
+            sessionResults.push({
+                examSession: session,
+                room,
+                students,
+                totalSeats: Number(totalSeatsForRoom),
+                canImport: true,
+            });
+        });
+
+        return {
+            canImport: errors.length === 0,
+            errors,
+            warnings,
+            sessions: sessionResults,
+            summary: {
+                totalSessions: sessions.length,
+                totalStudents,
+                totalSeats,
+                overloadedSessions,
+            },
+        };
+    };
+
+    const runCapacityCheck = async (): Promise<boolean> => {
+        if (!previewLoaded) {
+            setCapacityCheck(null);
+            return false;
+        }
+
+        setIsCheckingCapacity(true);
+        try {
+            const response = await capacityCheckMutation.mutateAsync({
+                importType: "schedule",
+                validationMode: "preview",
+                schedules: schedulePreview as any,
+                students: studentPreview as any,
+            });
+
+            const result =
+                (response as any)?.data?.capacityCheck ??
+                (response as any)?.data?.data?.capacityCheck ??
+                (response as any)?.capacityCheck;
+
+            if (!result || typeof result.canImport !== "boolean") {
+                console.error("Unexpected capacity-check response shape:", response);
+                const fallback = await buildFallbackCapacityCheck();
+                setCapacityCheck(fallback);
+                setImportError(
+                    fallback.canImport
+                        ? "Using local capacity analysis because server response was incomplete."
+                        : "Capacity check failed. See detailed fixes below."
+                );
+                return fallback.canImport;
+            }
+
+            setCapacityCheck(result);
+            if (!result.canImport) {
+                setImportError("Capacity check failed. Please fix the file content before importing.");
+            } else {
+                setImportError("");
+            }
+
+            return result.canImport;
+        } catch (err: any) {
+            setCapacityCheck(null);
+            setImportError(err?.response?.data?.message || err?.message || "Failed to validate capacity.");
+            return false;
+        } finally {
+            setIsCheckingCapacity(false);
+        }
+    };
+
+    useEffect(() => {
+        if (previewLoaded) {
+            void runCapacityCheck();
+            return;
+        }
+
+        setCapacityCheck(null);
+    }, [previewLoaded]);
+
     const handleImport = async () => {
         if (!selectedFile) {
             setImportError("Please select a file first");
@@ -91,6 +272,11 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
         }
 
         try {
+            const canImport = await runCapacityCheck();
+            if (!canImport) {
+                return;
+            }
+
             const STUDENT_CHUNK_SIZE = 100;
             const studentChunks = chunkArray(studentPreview, STUDENT_CHUNK_SIZE);
             const totalBatches = Math.max(1, studentChunks.length);
@@ -110,6 +296,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                     importType: "schedule",
                     schedules: currentSchedules as any,
                     students: currentStudents as any,
+                    validationMode: "import",
                     batchId: batchId,
                     totalItems: schedulePreview.length + studentPreview.length
                 });
@@ -126,8 +313,23 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
     };
 
     const handleClose = () => {
+        setCapacityCheck(null);
         handleReset();
         onClose();
+    };
+
+    const handleSaveEditAndCheck = () => {
+        handleSaveEdit();
+        setTimeout(() => {
+            void runCapacityCheck();
+        }, 0);
+    };
+
+    const handleDeleteRowAndCheck = (index: number) => {
+        handleDeleteRow(index);
+        setTimeout(() => {
+            void runCapacityCheck();
+        }, 0);
     };
 
     if (!isOpen) return null;
@@ -360,6 +562,103 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                         </div>
                                     )}
 
+                                    {previewLoaded && (
+                                        <div className={`p-3 border rounded-lg mb-4 ${capacityCheck?.canImport ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div>
+                                                    <p className={`text-sm font-semibold ${capacityCheck?.canImport ? "text-emerald-700" : "text-red-700"}`}>
+                                                        {capacityCheck?.canImport ? "Capacity Check Passed" : "Capacity Check Failed"}
+                                                    </p>
+                                                    {capacityCheck && (
+                                                        <p className="text-xs text-slate-700 mt-1">
+                                                            Sessions: {capacityCheck.summary.totalSessions} | Students: {capacityCheck.summary.totalStudents} | Total Seats: {capacityCheck.summary.totalSeats}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={isCheckingCapacity || isPending}
+                                                    onClick={() => void runCapacityCheck()}
+                                                >
+                                                    {isCheckingCapacity ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Checking...
+                                                        </>
+                                                    ) : (
+                                                        "Re-check Capacity"
+                                                    )}
+                                                </Button>
+                                            </div>
+
+                                            {capacityCheck && capacityCheck.errors.length > 0 && (
+                                                <div className="mt-2">
+                                                    <p className="text-xs font-semibold text-red-700">Errors and Fix Guidance</p>
+                                                    <ul className="mt-1 text-xs text-red-700 space-y-1">
+                                                        {capacityCheck.errors.slice(0, 5).map((error, index) => (
+                                                            <li key={index}>- {error}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {capacityCheck && capacityCheck.warnings.length > 0 && (
+                                                <div className="mt-2">
+                                                    <p className="text-xs font-semibold text-amber-700">Warnings and Recommendations</p>
+                                                    <ul className="mt-1 text-xs text-amber-700 space-y-1">
+                                                        {capacityCheck.warnings.slice(0, 5).map((warning, index) => (
+                                                            <li key={index}>- {warning}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {capacityCheck && capacityCheck.sessions.some(s => !s.canImport) && (
+                                                <div className="mt-3 border border-red-200 rounded-md bg-white">
+                                                    <div className="px-3 py-2 border-b border-red-100 text-xs font-semibold text-red-700">
+                                                        Sessions that must be fixed before import
+                                                    </div>
+                                                    <div className="max-h-40 overflow-y-auto">
+                                                        <table className="w-full text-xs">
+                                                            <thead className="bg-red-50">
+                                                                <tr>
+                                                                    <th className="px-2 py-1 text-left">Session</th>
+                                                                    <th className="px-2 py-1 text-left">Room</th>
+                                                                    <th className="px-2 py-1 text-left">Students</th>
+                                                                    <th className="px-2 py-1 text-left">Seats</th>
+                                                                    <th className="px-2 py-1 text-left">How to fix</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {capacityCheck.sessions.filter(s => !s.canImport).slice(0, 10).map((s, idx) => {
+                                                                    const overflow = (s.totalSeats ?? 0) > 0 ? s.students - (s.totalSeats ?? 0) : null;
+                                                                    const fix =
+                                                                        !s.room
+                                                                            ? 'Add room value in file'
+                                                                            : s.totalSeats == null
+                                                                                ? 'Configure totalSeats for room'
+                                                                                : overflow && overflow > 0
+                                                                                    ? `Move/reduce ${overflow} students or use bigger room`
+                                                                                    : 'Check room/session mapping';
+                                                                    return (
+                                                                        <tr key={`${s.examSession}-${idx}`} className="border-t border-red-50">
+                                                                            <td className="px-2 py-1">{s.examSession}</td>
+                                                                            <td className="px-2 py-1">{s.room || '-'}</td>
+                                                                            <td className="px-2 py-1">{s.students}</td>
+                                                                            <td className="px-2 py-1">{s.totalSeats ?? '-'}</td>
+                                                                            <td className="px-2 py-1">{fix}</td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Preview Table */}
                                     <div className="overflow-x-auto border border-slate-200 rounded-lg mb-4 max-h-[400px] overflow-y-auto">
                                         <table className="w-full text-sm">
@@ -409,7 +708,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                             <td className="px-4 py-2 text-center">
                                                                 {isEditing ? (
                                                                     <div className="flex items-center justify-center gap-2">
-                                                                        <Button size="sm" onClick={() => handleSaveEdit()}>Save</Button>
+                                                                        <Button size="sm" onClick={handleSaveEditAndCheck}>Save</Button>
                                                                         <Button size="sm" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
                                                                     </div>
                                                                 ) : (
@@ -422,7 +721,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                                             <Edit2 className="h-4 w-4" />
                                                                         </button>
                                                                         <button
-                                                                            onClick={() => handleDeleteRow(actualIndex)}
+                                                                            onClick={() => handleDeleteRowAndCheck(actualIndex)}
                                                                             className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
                                                                             title="Delete"
                                                                         >
@@ -480,7 +779,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                     Cancel
                                 </Button>
                                 {previewLoaded && (
-                                    <Button onClick={handleImport} disabled={isPending || (schedulePreview.length === 0 && studentPreview.length === 0)}>
+                                    <Button onClick={handleImport} disabled={isPending || isCheckingCapacity || !capacityCheck?.canImport || (schedulePreview.length === 0 && studentPreview.length === 0)}>
                                         {isPending ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

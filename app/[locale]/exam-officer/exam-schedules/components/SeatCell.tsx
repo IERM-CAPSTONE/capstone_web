@@ -29,9 +29,9 @@ export function SeatCell({
   const label = stt ? `#${stt}` : `R${row}C${col}`;
 
   // Determine seat styling based on status
-  let seatStyles = "bg-[#F8FAFC] border-slate-100";
-  let textStyles = "text-slate-400";
-  let labelStyles = "text-slate-300";
+  let seatStyles = "bg-emerald-50 border-emerald-200";
+  let textStyles = "text-emerald-700";
+  let labelStyles = "text-emerald-800";
   let statusText = "Available";
   let statusIcon = null;
 
@@ -61,10 +61,10 @@ export function SeatCell({
     labelStyles = "text-red-800";
     statusText = "ABSENT";
   } else if (seat?.status === 'Available') {
-    // Available seat - Neutral
-    seatStyles = "bg-[#F8FAFC] border-slate-100";
-    textStyles = "text-slate-400";
-    labelStyles = "text-slate-300";
+    // Available seat - Green
+    seatStyles = "bg-emerald-50 border-emerald-200 shadow-sm";
+    textStyles = "text-emerald-700";
+    labelStyles = "text-emerald-800";
     statusText = "Available";
   }
 
@@ -73,7 +73,8 @@ export function SeatCell({
     statusText = studentCode;
   }
 
-  const canManage = isEditing && ['admin', 'exam_officer', 'proctor'].includes(userRole);
+  const normalizedRole = String(userRole || '').toUpperCase();
+  const canManage = isEditing && ['ADMIN', 'EXAM_OFFICER'].includes(normalizedRole);
   const canLock = canManage && seat && (seat.status === 'Available' || seat.status === 'Locked');
 
   return (
