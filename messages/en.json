@@ -467,7 +467,8 @@
         "templates": "Exam Templates",
         "myTickets": "My Tickets",
         "assignedTickets": "Assigned Tickets",
-        "techTickets": "Tech Tickets"
+        "techTickets": "Tech Tickets",
+        "reports": "Reports"
     },
     "Semesters": {
         "title": "Semester Management",
