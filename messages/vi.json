@@ -469,7 +469,8 @@
         "myTickets": "Ticket của tôi",
         "assignedTickets": "Ticket được giao",
         "techTickets": "Ticket kỹ thuật",
-        "reports": "Báo cáo"
+        "reports": "Báo cáo",
+        "attendanceLogs": "Nhật ký điểm danh"
     },
     "Semesters": {
         "title": "Quản lý học kỳ",
@@ -819,6 +820,67 @@
             "resolveSuccess": "Đã xử lý ticket",
             "resolveError": "Không thể xử lý ticket",
             "noteRequired": "Vui lòng nhập ghi chú xử lý"
+        }
+    },
+    "ExamOfficerAttendanceLogs": {
+        "title": "Nhật ký điểm danh",
+        "subtitle": "Theo dõi nhật ký điểm danh bằng khuôn mặt",
+        "refresh": "Làm mới",
+        "toastLoadError": "Không thể tải nhật ký điểm danh",
+        "filters": {
+            "title": "BỘ LỌC",
+            "examSessionId": "Mã ca thi",
+            "examSessionIdPlaceholder": "Nhập mã ca thi",
+            "deviceId": "Mã thiết bị",
+            "deviceIdPlaceholder": "Nhập mã thiết bị",
+            "studentCode": "Mã sinh viên",
+            "studentCodePlaceholder": "Nhập mã sinh viên",
+            "studentName": "Tên sinh viên",
+            "studentNamePlaceholder": "Nhập tên sinh viên",
+            "status": "Trạng thái",
+            "allStatuses": "Tất cả trạng thái",
+            "reset": "Đặt lại"
+        },
+        "cards": {
+            "successfulLogs": "Lượt điểm danh thành công",
+            "failedLogs": "Lượt điểm danh thất bại"
+        },
+        "table": {
+            "student": "Sinh viên",
+            "examSession": "Ca thi",
+            "status": "Trạng thái",
+            "confidence": "Độ tin cậy",
+            "room": "Phòng",
+            "device": "Thiết bị",
+            "time": "Thời gian",
+            "loading": "Đang tải dữ liệu...",
+            "empty": "Không có dữ liệu log."
+        },
+        "status": {
+            "SUCCESS": "Thành công",
+            "ERROR": "Lỗi"
+        },
+        "room": {
+            "correct": "Đúng phòng",
+            "wrong": "Sai phòng"
+        },
+        "pagination": {
+            "page": "Trang {page} / {totalPages}",
+            "previous": "Trước",
+            "next": "Sau"
+        },
+        "modal": {
+            "title": "Chi tiết log điểm danh",
+            "student": "Sinh viên",
+            "examSessionId": "Mã ca thi",
+            "deviceId": "Mã thiết bị",
+            "uid": "UID",
+            "studentId": "ID sinh viên",
+            "status": "Trạng thái",
+            "confidence": "Độ tin cậy",
+            "roomCheck": "Kiểm tra phòng",
+            "timestamp": "Thời gian",
+            "message": "Thông điệp"
         }
     },
     "ExamOfficerTickets": {

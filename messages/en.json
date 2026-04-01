@@ -468,7 +468,8 @@
         "myTickets": "My Tickets",
         "assignedTickets": "Assigned Tickets",
         "techTickets": "Tech Tickets",
-        "reports": "Reports"
+        "reports": "Reports",
+        "attendanceLogs": "Attendance Logs"
     },
     "Semesters": {
         "title": "Semester Management",
@@ -818,6 +819,67 @@
             "resolveSuccess": "Ticket resolved",
             "resolveError": "Failed to resolve ticket",
             "noteRequired": "Please enter a technical note"
+        }
+    },
+    "ExamOfficerAttendanceLogs": {
+        "title": "Attendance Logs",
+        "subtitle": "Track face-attendance logs",
+        "refresh": "Refresh",
+        "toastLoadError": "Unable to load attendance logs",
+        "filters": {
+            "title": "FILTERS",
+            "examSessionId": "Exam Session ID",
+            "examSessionIdPlaceholder": "Exam session ID",
+            "deviceId": "Device ID",
+            "deviceIdPlaceholder": "Device ID",
+            "studentCode": "Student Code",
+            "studentCodePlaceholder": "Student code",
+            "studentName": "Student Name",
+            "studentNamePlaceholder": "Student name",
+            "status": "Status",
+            "allStatuses": "All statuses",
+            "reset": "Reset"
+        },
+        "cards": {
+            "successfulLogs": "Successful logs",
+            "failedLogs": "Failed logs"
+        },
+        "table": {
+            "student": "Student",
+            "examSession": "Exam Session",
+            "status": "Status",
+            "confidence": "Confidence",
+            "room": "Room",
+            "device": "Device",
+            "time": "Time",
+            "loading": "Loading data...",
+            "empty": "No log data."
+        },
+        "status": {
+            "SUCCESS": "Success",
+            "ERROR": "Error"
+        },
+        "room": {
+            "correct": "Correct room",
+            "wrong": "Wrong room"
+        },
+        "pagination": {
+            "page": "Page {page} / {totalPages}",
+            "previous": "Previous",
+            "next": "Next"
+        },
+        "modal": {
+            "title": "Attendance Log Details",
+            "student": "Student",
+            "examSessionId": "Exam Session ID",
+            "deviceId": "Device ID",
+            "uid": "UID",
+            "studentId": "Student ID",
+            "status": "Status",
+            "confidence": "Confidence",
+            "roomCheck": "Room Check",
+            "timestamp": "Timestamp",
+            "message": "Message"
         }
     },
     "ExamOfficerTickets": {
