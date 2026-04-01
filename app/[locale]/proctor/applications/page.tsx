@@ -108,9 +108,12 @@ export default function ProctorApplicationsPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">
-                      {application.preferredDate
-                        ? dateFnsFormat(parseISO(application.preferredDate), "MMM d, yyyy", { locale: enUS })
-                        : "No date specified"}
+                      {getTypeLabel(application.preferredType)} • {getShiftLabel(application.preferredShift)}
+                      {application.preferredDate && (
+                        <span className="text-gray-500 dark:text-gray-400">
+                          , {dateFnsFormat(parseISO(application.preferredDate), "MMM d", { locale: enUS })}
+                        </span>
+                      )}
                     </CardTitle>
                     {getStatusBadge(application.status)}
                   </div>

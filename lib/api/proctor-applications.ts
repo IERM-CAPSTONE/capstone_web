@@ -12,7 +12,7 @@ export interface ProctorApplication {
   teacherCode: string | null;
   preferredShift: PreferredShift;
   preferredType: PreferredType;
-  preferredDate: string | null;
+  preferredDates: Date[];
   notes: string | null;
   status: ProctorApplicationStatus;
   createdAt: string;
@@ -22,14 +22,14 @@ export interface ProctorApplication {
 export interface CreateProctorApplicationData {
   preferredShift: PreferredShift;
   preferredType: PreferredType;
-  preferredDate?: string | null;
+  preferredDates?: string[];
   notes?: string | null;
 }
 
 export interface UpdateProctorApplicationData {
   preferredShift?: PreferredShift;
   preferredType?: PreferredType;
-  preferredDate?: string | null;
+  preferredDates?: string[];
   notes?: string | null;
 }
 
@@ -126,10 +126,10 @@ export const proctorApplicationsApi = {
   },
 
   // Get available dates from exam sessions
-  getAvailableDates: async (semester?: string): Promise<AvailableDate[]> => {
+  getAvailableDates: async (semesterId?: string): Promise<AvailableDate[]> => {
     const response = await apiClient.get<ApiResponse<AvailableDate[]>>(
       "/proctor-applications/available-dates",
-      { params: semester ? { semester } : undefined }
+      { params: semesterId ? { semesterId } : undefined }
     );
     if (!response.data.success || !response.data.data) {
       throw new Error("Failed to fetch available dates");

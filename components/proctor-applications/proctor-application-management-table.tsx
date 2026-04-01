@@ -28,6 +28,28 @@ export function ProctorApplicationManagementTable({
   total = 0,
   onPageChange,
 }: ProctorApplicationManagementTableProps) {
+  const formatPreferredDates = (application: ProctorApplication) => {
+    const dates = application.preferredDates && application.preferredDates.length > 0
+      ? application.preferredDates
+      : [];
+
+    if (dates.length === 0) {
+      return "Not specified";
+    }
+
+    // Convert to Date objects if needed
+    const dateObj = dates[0] instanceof Date ? dates[0] : new Date(dates[0]);
+    const first = dateFnsFormat(dateObj, "MMM d, yyyy", {
+      locale: enUS,
+    });
+
+    if (dates.length === 1) {
+      return first;
+    }
+
+    return `${first} (+${dates.length - 1} more)`;
+  };
+
   const [confirmAction, setConfirmAction] = useState<{
     id: string;
     type: "approve" | "reject";
@@ -154,13 +176,7 @@ export function ProctorApplicationManagementTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {application.preferredDate
-                      ? dateFnsFormat(
-                          parseISO(application.preferredDate),
-                          "MMM d, yyyy",
-                          { locale: enUS }
-                        )
-                      : "Not specified"}
+                    {formatPreferredDates(application)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {getShiftLabel(application.preferredShift)}

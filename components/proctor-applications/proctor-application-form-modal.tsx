@@ -21,23 +21,42 @@ import {
 interface ProctorApplicationFormModalProps {
   application?: ProctorApplication | null;
   onClose: () => void;
-  semester?: string;
+  semesterId?: string;
 }
 
 export function ProctorApplicationFormModal({
   application,
   onClose,
-  semester,
+  semesterId,
 }: ProctorApplicationFormModalProps) {
   const isEdit = !!application;
   const createApplication = useCreateProctorApplication();
   const updateApplication = useUpdateProctorApplication();
-  const { data: availableDates = [], isLoading: datesLoading } = useAvailableDates(semester);
+  const {
+    data: availableDates = [],
+    isLoading: datesLoading,
+    error: datesError,
+  } = useAvailableDates(semesterId);
+
+  const getInitialPreferredDates = (source?: ProctorApplication | null) => {
+    if (!source) {
+      return [] as string[];
+    }
+
+    if (Array.isArray(source.preferredDates) && source.preferredDates.length > 0) {
+      return source.preferredDates.map((date) => {
+        const dateObj = date instanceof Date ? date : new Date(date);
+        return dateObj.toISOString().split("T")[0];
+      });
+    }
+
+    return [] as string[];
+  };
 
   const [formData, setFormData] = useState({
     preferredShift: (application?.preferredShift || "MORNING") as PreferredShift,
     preferredType: (application?.preferredType || "ROOM") as PreferredType,
-    preferredDate: application?.preferredDate || "",
+    preferredDates: getInitialPreferredDates(application),
     notes: application?.notes || "",
   });
 
@@ -48,11 +67,23 @@ export function ProctorApplicationFormModal({
       setFormData({
         preferredShift: application.preferredShift,
         preferredType: application.preferredType,
-        preferredDate: application.preferredDate || "",
+        preferredDates: getInitialPreferredDates(application),
         notes: application.notes || "",
       });
     }
   }, [application]);
+
+  const togglePreferredDate = (date: string) => {
+    setFormData((prev) => {
+      const exists = prev.preferredDates.includes(date);
+      return {
+        ...prev,
+        preferredDates: exists
+          ? prev.preferredDates.filter((item) => item !== date)
+          : [...prev.preferredDates, date],
+      };
+    });
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -81,7 +112,7 @@ export function ProctorApplicationFormModal({
         const updateData: UpdateProctorApplicationData = {
           preferredShift: formData.preferredShift,
           preferredType: formData.preferredType,
-          preferredDate: formData.preferredDate || null,
+          preferredDates: formData.preferredDates,
           notes: formData.notes || null,
         };
         await updateApplication.mutateAsync({ id: application.id, data: updateData });
@@ -89,7 +120,7 @@ export function ProctorApplicationFormModal({
         const createData: CreateProctorApplicationData = {
           preferredShift: formData.preferredShift,
           preferredType: formData.preferredType,
-          preferredDate: formData.preferredDate || null,
+          preferredDates: formData.preferredDates,
           notes: formData.notes || null,
         };
         await createApplication.mutateAsync(createData);
@@ -171,29 +202,32 @@ export function ProctorApplicationFormModal({
 
             <div>
               <label className="block text-sm font-medium mb-1">
-                Preferred Date
+                Preferred Dates
               </label>
               {datesLoading ? (
                 <p className="text-sm text-gray-500">Loading available dates...</p>
+              ) : datesError ? (
+                <p className="text-sm text-red-500">
+                  {(datesError as Error).message || "Failed to load available dates"}
+                </p>
               ) : availableDates.length === 0 ? (
                 <p className="text-sm text-gray-500">No exam sessions available</p>
               ) : (
-                <select
-                  value={formData.preferredDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, preferredDate: e.target.value })
-                  }
-                  disabled={isLoading}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="">-- Select a date --</option>
+                <div className="space-y-2 border rounded-md p-3 max-h-44 overflow-y-auto">
                   {availableDates.map((dateInfo) => (
-                    <option key={dateInfo.date} value={dateInfo.date}>
-                      {new Date(dateInfo.date).toLocaleDateString()} ({dateInfo.count}{" "}
-                      sessions)
-                    </option>
+                    <label key={dateInfo.date} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.preferredDates.includes(dateInfo.date)}
+                        onChange={() => togglePreferredDate(dateInfo.date)}
+                        disabled={isLoading}
+                      />
+                      <span>
+                        {new Date(dateInfo.date).toLocaleDateString()} ({dateInfo.count} sessions)
+                      </span>
+                    </label>
                   ))}
-                </select>
+                </div>
               )}
             </div>
 

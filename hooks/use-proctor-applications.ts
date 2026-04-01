@@ -25,10 +25,10 @@ export function useProctorApplications(params?: ListAllProctorApplicationsParams
 }
 
 // Get available dates
-export function useAvailableDates(semester?: string) {
+export function useAvailableDates(semesterId?: string) {
   return useQuery({
-    queryKey: ["proctor-applications", "available-dates", semester],
-    queryFn: () => proctorApplicationsApi.getAvailableDates(semester),
+    queryKey: ["proctor-applications", "available-dates", semesterId],
+    queryFn: () => proctorApplicationsApi.getAvailableDates(semesterId),
   });
 }
 
