@@ -20,6 +20,7 @@ import {
   ClipboardList,
   BookOpen,
   Ticket,
+  BarChart2,
 } from "lucide-react";
 import { ROUTES } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export function Sidebar() {
     { icon: Monitor, label: "Monitor", href: "/exam-officer/monitor" },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
     { icon: Ticket, label: t("tickets"), href: ROUTES.EXAM_OFFICER_TICKETS },
+    { icon: BarChart2, label: t("reports"), href: ROUTES.EXAM_OFFICER_REPORTS },
     { icon: ClipboardList, label: t("applications"), href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
     { icon: Building2, label: t("rooms"), href: ROUTES.EXAM_OFFICER_ROOMS },
     { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },

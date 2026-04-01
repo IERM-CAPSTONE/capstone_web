@@ -468,7 +468,8 @@
         "templates": "Mẫu thông báo",
         "myTickets": "Ticket của tôi",
         "assignedTickets": "Ticket được giao",
-        "techTickets": "Ticket kỹ thuật"
+        "techTickets": "Ticket kỹ thuật",
+        "reports": "Báo cáo"
     },
     "Semesters": {
         "title": "Quản lý học kỳ",

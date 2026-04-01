@@ -61,6 +61,9 @@ export interface CreateTicketData {
 export interface ListTicketsParams {
     status?: string;
     issueType?: string;
+    sessionId?: string;
+    fromDate?: string;
+    toDate?: string;
 }
 
 export interface ProcessTicketData {
