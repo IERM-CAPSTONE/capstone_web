@@ -13,6 +13,7 @@ export interface ExamSchedule {
   proctorName: string | null;
   hallInvigilatorId: string | null;
   hallInvigilatorName: string | null;
+  hallInvigilatorUsername?: string | null;
   subjectCode: string | null;
   examOpenTime: string | null;
   examCloseTime: string | null;

@@ -61,6 +61,7 @@ export const ROUTES = {
   // Proctor Applications
   PROCTOR_APPLICATIONS: "/proctor/applications",
   PROCTOR_TICKETS: "/proctor/tickets",
+  PROCTOR_EXAM_SCHEDULES: "/proctor/exam-schedules",
   PROCTOR_EXAM_SESSION_DETAIL: (id: string) => `/proctor/exam-sessions/${id}`,
   EXAM_OFFICER_PROCTOR_APPLICATIONS: "/exam-officer/proctor-applications",
 

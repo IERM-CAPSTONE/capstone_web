@@ -4,7 +4,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
-import { Ticket, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useCheckAuth } from "@/hooks/use-check-auth";
 import { DashboardLoadingSkeleton } from "@/components/ui/page-loading";
 import { useSocket } from "@/hooks/use-socket";
@@ -78,35 +78,6 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
     const locale = (params?.locale as string) || "vi";
     const anomalyThrottleRef = useRef<Map<string, number>>(new Map());
 
-    // i18n strings for toast notifications (avoid hook for stability)
-    const isVI = locale === "vi";
-    const L = {
-        newTicketFrom: isVI ? "Ticket mới từ" : "New ticket from",
-        newTicket:     isVI ? "Ticket mới" : "New ticket",
-        defaultReporter: isVI ? "Giám thị" : "Proctor",
-        clickToProcess:  isVI ? "Nhấn để xử lý" : "Click to handle",
-        processNow:      isVI ? "Xử lý ngay" : "Handle now",
-    };
-
-    const KNOWN_KEYS = ["eosClientError","spinningScreen","needReassign","lostServerConn","networkError","cannotLogin","wrongExamCode","notInExamList"];
-    const INCIDENT_MAP: Record<string, { vi: string; en: string }> = {
-        eosClientError: { vi: "EOSClient / Phần mềm thi bị lỗi",  en: "EOSClient / Software Error" },
-        spinningScreen: { vi: "Màn hình xoay liên tục",            en: "Spinning Screen / Loading" },
-        needReassign:   { vi: "Cần reassign (đã đăng nhập rồi)",  en: "Need Reassign (Already Logged In)" },
-        lostServerConn: { vi: "Mất kết nối server thi",            en: "Lost Server Connection" },
-        networkError:   { vi: "Lỗi mạng / Không có mạng",          en: "Network Error" },
-        cannotLogin:    { vi: "Không đăng nhập được",              en: "Cannot Log In" },
-        wrongExamCode:  { vi: "Sai mã thi",                        en: "Wrong Exam Code" },
-        notInExamList:  { vi: "Không có trong danh sách thi",      en: "Not In Exam List" },
-    };
-    const resolveIssue = (raw: string) => {
-        if (KNOWN_KEYS.includes(raw)) {
-            const m = INCIDENT_MAP[raw];
-            return m ? (isVI ? m.vi : m.en) : raw;
-        }
-        return raw;
-    };
-
     // Join socket room so backend can sendToUser(userId, ...) and sendToCampus(campus, ...)
     // Trigger when: user data loads, socket connects, or socket instance changes
     useEffect(() => {
@@ -115,57 +86,12 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
         }
     }, [isConnected, socket, user?.id, user?.campus, joinRoom]);
 
-    const navigateToTickets = useCallback(() => {
-        router.push(`/${locale}${ROUTES.EXAM_OFFICER_TICKETS}`);
-    }, [router, locale]);
-
     const navigateToMonitor = useCallback(() => {
         router.push(`/${locale}${ROUTES.EXAM_OFFICER_MONITS}`);
     }, [router, locale]);
 
     useEffect(() => {
         if (!socket) return;
-
-        const handleNewTicket = (payload: { ticket: any; reporter?: any }) => {
-            // 1. Play alert sound
-            playTicketSound();
-
-            // 2. Show persistent clickable toast
-            const reporterName = payload.reporter?.fullName ?? L.defaultReporter;
-            const issueName = resolveIssue(payload.ticket?.issueName ?? "") || L.newTicket;
-            const studentCode = payload.ticket?.studentCode;
-            const roomNumber = payload.ticket?.session?.examRoom?.roomNumber
-                ?? payload.ticket?.session?.roomNumber;
-
-            toast(
-                <div className="flex items-start gap-3 cursor-pointer w-full" onClick={navigateToTickets}>
-                    <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                        <Ticket className="w-4 h-4 text-orange-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900">🎫 {L.newTicketFrom} {reporterName}</p>
-                        <p className="text-xs text-slate-600 truncate mt-0.5">{issueName}</p>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
-                            {studentCode && <span className="font-mono font-bold text-orange-600">{studentCode}</span>}
-                            {roomNumber && <span className="text-blue-600">📍 {roomNumber}</span>}
-                        </div>
-                        <p className="text-[11px] text-orange-500 font-semibold mt-1">{L.clickToProcess} →</p>
-                    </div>
-                </div>,
-                {
-                    duration: 12000,
-                    style: {
-                        padding: "12px",
-                        borderLeft: "4px solid #f97316",
-                        cursor: "pointer",
-                    },
-                    action: {
-                        label: L.processNow,
-                        onClick: navigateToTickets,
-                    },
-                }
-            );
-        };
 
         const handleStudentAnomaly = (payload: any) => {
             const key = `${payload?.eventType || 'student_anomaly'}:${payload?.examSessionId || ''}:${payload?.studentId || ''}`;
@@ -220,16 +146,14 @@ function ExamOfficerContent({ children }: { children: React.ReactNode }) {
             );
         };
 
-        socket.on("ticket:created", handleNewTicket);
         socket.on("monitor:student_anomaly", handleStudentAnomaly);
         socket.on("monitor:broadcast_sent", handleBroadcastSent);
 
         return () => {
-            socket.off("ticket:created", handleNewTicket);
             socket.off("monitor:student_anomaly", handleStudentAnomaly);
             socket.off("monitor:broadcast_sent", handleBroadcastSent);
         };
-    }, [socket, navigateToTickets, navigateToMonitor]);
+    }, [socket, navigateToMonitor]);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">

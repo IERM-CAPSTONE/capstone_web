@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Upload,
   Users,
+  ShieldCheck,
   Zap,
   Download,
   Building2,
@@ -201,25 +202,25 @@ export default function ExamOfficerDashboardPage() {
   // 7 Standard Daily Exam Slots rules
   const FIXED_SLOTS = [
     { id: 1, start: "07:30", timeRange: "07:30 - 09:00" },
-    { id: 2, start: "09:00", timeRange: "09:00 - 10:30" },
-    { id: 3, start: "10:30", timeRange: "10:30 - 12:00" },
-    { id: 4, start: "12:00", timeRange: "12:00 - 13:30" },
-    { id: 5, start: "13:30", timeRange: "13:30 - 15:00" },
-    { id: 6, start: "15:00", timeRange: "15:00 - 16:30" },
-    { id: 7, start: "16:30", timeRange: "16:30 - 18:00" }
+    { id: 2, start: "09:10", timeRange: "09:10 - 10:40" },
+    { id: 3, start: "10:50", timeRange: "10:50 - 12:20" },
+    { id: 4, start: "12:50", timeRange: "12:50 - 14:20" },
+    { id: 5, start: "14:30", timeRange: "14:30 - 16:00" },
+    { id: 6, start: "16:10", timeRange: "16:10 - 17:40" }
   ];
 
   const getSlotLogicForTime = (time: string) => {
     if (time === "Unknown") return "07:30"; // fallback
+    const exactSlot = FIXED_SLOTS.find(slot => slot.start === time);
+    if (exactSlot) return exactSlot.start;
     const [h, m] = time.split(":").map(Number);
     const totalMinutes = h * 60 + m;
-    if (totalMinutes < 9 * 60) return "07:30";
-    if (totalMinutes < 10 * 60 + 30) return "09:00";
-    if (totalMinutes < 12 * 60) return "10:30";
-    if (totalMinutes < 13 * 60 + 30) return "12:00";
-    if (totalMinutes < 15 * 60) return "13:30";
-    if (totalMinutes < 16 * 60 + 30) return "15:00";
-    return "16:30";
+    if (totalMinutes < 9 * 60 + 10) return "07:30";
+    if (totalMinutes < 10 * 60 + 50) return "09:10";
+    if (totalMinutes < 12 * 60 + 50) return "10:50";
+    if (totalMinutes < 14 * 60 + 30) return "12:50";
+    if (totalMinutes < 16 * 60 + 10) return "14:30";
+    return "16:10";
   };
 
   const getFormattedTimeRange = (open: string | null, close: string | null) => {
@@ -229,6 +230,9 @@ export default function ExamOfficerDashboardPage() {
     if (!openDate) return "N/A";
     return `${format(openDate, "HH:mm")}${closeDate ? ` - ${format(closeDate, "HH:mm")}` : ""}`;
   };
+
+  const getHallInvigilatorDisplay = (schedule: any) =>
+    schedule?.hallInvigilatorUsername || schedule?.hallInvigilatorName || "CHƯA GÁN";
 
   const matrix = useMemo(() => schedules.reduce((acc, s) => {
     const dateStr = s.examOpenTime ? format(parseLocalDate(s.examOpenTime) || new Date(), "yyyy-MM-dd") : "Unknown";
@@ -251,15 +255,15 @@ export default function ExamOfficerDashboardPage() {
   }).map(d => format(d, "yyyy-MM-dd"));
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 bg-[#f0f2f5] min-h-screen">
+    <div className="flex flex-col gap-4 p-3 md:p-4 bg-[#f0f2f5] min-h-screen">
       {/* Premium Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="h-14 w-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl flex items-center justify-center shadow-lg shadow-orange-200">
-            <Calendar className="h-7 w-7 text-white" />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-md shadow-orange-200">
+            <Calendar className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">{t("examOfficer.examSchedules")}</h1>
+            <h1 className="text-[2rem] font-black text-slate-900 tracking-tight leading-none mb-1">{t("examOfficer.examSchedules")}</h1>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[3px]">{t("examOfficer.schedulesPage.missionControl")}</p>
@@ -267,33 +271,33 @@ export default function ExamOfficerDashboardPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-white hover:shadow-lg font-bold gap-2 px-5 transition-all text-slate-600" onClick={() => setShowScheduleDialog(true)}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-slate-600" onClick={() => setShowScheduleDialog(true)}>
             <Upload className="h-4 w-4" /> {t("examOfficer.actions.importSchedule")}
           </Button>
-          <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-white hover:shadow-lg font-bold gap-2 px-5 transition-all text-slate-600" onClick={() => setShowProctorDialog(true)}>
+          <Button variant="outline" className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-slate-600" onClick={() => setShowProctorDialog(true)}>
             <Users className="h-4 w-4" /> {t("examOfficer.actions.importProctors")}
           </Button>
-          <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-white hover:shadow-lg font-bold gap-2 px-5 transition-all text-slate-600" onClick={() => setShowExamCodeDialog(true)}>
+          <Button variant="outline" className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-slate-600" onClick={() => setShowExamCodeDialog(true)}>
             <FileText className="h-4 w-4" /> {t("examOfficer.actions.importExamCodes")}
           </Button>
-          <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-white hover:shadow-lg font-bold gap-2 px-5 transition-all text-orange-600 border-orange-100 bg-orange-50/30" onClick={() => setShowExportDialog(true)}>
+          <Button variant="outline" className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-orange-600 border-orange-100 bg-orange-50/30" onClick={() => setShowExportDialog(true)}>
             <Download className="h-4 w-4" /> {t("examOfficer.actions.export")}
           </Button>
-          <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-white hover:shadow-lg font-bold gap-2 px-5 transition-all text-emerald-600 border-emerald-100 bg-emerald-50/30" onClick={() => setShowPublishDialog(true)}>
+          <Button variant="outline" className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-emerald-600 border-emerald-100 bg-emerald-50/30" onClick={() => setShowPublishDialog(true)}>
             <Send className="h-4 w-4" /> Publish Schedule
           </Button>
           <Button
             variant="outline"
             disabled={isLoading || isRefetching}
             onClick={() => refetch()}
-            className="h-12 rounded-2xl border-slate-200 hover:bg-white hover:shadow-lg font-bold gap-2 px-5 transition-all text-orange-600 border-orange-100 bg-orange-50/30 disabled:opacity-50"
+            className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-orange-600 border-orange-100 bg-orange-50/30 disabled:opacity-50"
           >
             <RotateCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <div className="w-[1px] h-8 bg-slate-200 mx-2 hidden lg:block" />
-          <Button className="h-12 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 font-bold gap-3 px-6 shadow-xl shadow-slate-200 transition-all active:scale-95" onClick={() => setShowAutoGenerateDialog(true)}>
+          <Button className="h-11 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 font-bold gap-3 px-5 shadow-lg shadow-slate-200 transition-all active:scale-95" onClick={() => setShowAutoGenerateDialog(true)}>
             <Zap className="h-4 w-4 text-orange-400" /> {t("examOfficer.actions.autoCreateSchedule")}
           </Button>
           <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex gap-1.5 ml-2">
@@ -304,21 +308,21 @@ export default function ExamOfficerDashboardPage() {
       </div>
 
       {/* High-Impact Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: t("examOfficer.schedulesPage.stats.examsThisBatch"), value: stats.totalExams, color: "text-blue-600", icon: Layers, bg: "bg-blue-100/50" },
           { label: t("examOfficer.schedulesPage.stats.totalStudents"), value: stats.totalStudents, color: "text-orange-600", icon: Users, bg: "bg-orange-100/50" },
           { label: t("examOfficer.schedulesPage.stats.availableRooms"), value: stats.totalRooms, color: "text-emerald-600", icon: MapPin, bg: "bg-emerald-100/50" },
           { label: t("examOfficer.schedulesPage.stats.activeCampuses"), value: stats.campuses, color: "text-purple-600", icon: Building2, bg: "bg-purple-100/50" },
         ].map(stat => (
-          <Card key={stat.label} className="border-none shadow-sm bg-white rounded-3xl overflow-hidden group hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6 flex items-center gap-5">
-              <div className={`p-4 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`h-6 w-6 ${stat.color}`} />
+          <Card key={stat.label} className="border-none shadow-sm bg-white rounded-[1.75rem] overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className={`p-3 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{stat.label}</p>
-                <p className={`text-2xl font-black text-slate-900`}>{stat.value.toLocaleString()}</p>
+                <p className={`text-[1.9rem] font-black text-slate-900 leading-none`}>{stat.value.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -326,14 +330,14 @@ export default function ExamOfficerDashboardPage() {
       </div>
 
       {/* Comprehensive Filters */}
-      <Card className="border-none shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
-        <CardContent className="p-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 bg-slate-100 rounded-2xl flex items-center justify-center">
-              <Plus className="h-5 w-5 text-slate-400 rotate-45" />
+      <Card className="border-none shadow-sm bg-white rounded-[2rem] overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-5">
+            <div className="h-9 w-9 bg-slate-100 rounded-2xl flex items-center justify-center">
+              <Plus className="h-4 w-4 text-slate-400 rotate-45" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">{t("examOfficer.schedulesPage.smartFilter.title")}</h2>
+              <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">{t("examOfficer.schedulesPage.smartFilter.title")}</h2>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{t("examOfficer.schedulesPage.smartFilter.subtitle")}</p>
             </div>
             <div className="ml-auto flex items-center gap-4">
@@ -341,7 +345,7 @@ export default function ExamOfficerDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("examOfficer.schedulesPage.filters.subject")}</label>
               <SearchableSelect
@@ -480,7 +484,7 @@ export default function ExamOfficerDashboardPage() {
               ))}
             </div>
             {/* Matrix skeleton */}
-            <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[700px] animate-pulse p-6 flex flex-col gap-4">
+            <div className="bg-white border border-slate-200 rounded-[2rem] shadow-xl overflow-hidden min-h-[620px] animate-pulse p-5 flex flex-col gap-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="w-28 h-36 bg-slate-100 rounded-2xl shrink-0" />
@@ -608,13 +612,13 @@ export default function ExamOfficerDashboardPage() {
           </div>
 
           {/* The Scrollable Matrix Board */}
-          <div className="relative bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[700px]">
+          <div className="relative bg-white border border-slate-200 rounded-[2rem] shadow-xl overflow-hidden min-h-[620px]">
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
               <div className="flex" style={{ width: 'max-content' }}>
                 {/* Fixed Time Sidebar */}
                 <div className="sticky left-0 z-40 bg-white/95 backdrop-blur-md border-r border-slate-200 flex flex-col pt-[72px]">
                   {FIXED_SLOTS.map(slot => (
-                    <div key={slot.id} className="h-[450px] w-28 px-2 flex flex-col justify-center border-b border-slate-100">
+                    <div key={slot.id} className="h-[320px] w-20 px-1.5 flex flex-col justify-center border-b border-slate-100">
                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center shadow-sm">
                         <p className="font-black text-slate-900 border-b-2 border-orange-500 pb-1 text-lg uppercase tracking-widest">
                           Slot {slot.id}
@@ -632,9 +636,9 @@ export default function ExamOfficerDashboardPage() {
                   {gridDates.map(date => {
                     const isToday = isSameDay(parseISO(date), new Date());
                     return (
-                      <div key={date} className={`w-[420px] border-r border-slate-100 flex flex-col bg-white ${isToday ? 'bg-orange-50/10' : ''}`}>
+                      <div key={date} className={`w-[320px] border-r border-slate-100 flex flex-col bg-white ${isToday ? 'bg-orange-50/10' : ''}`}>
                         {/* Day Header */}
-                        <div className={`sticky top-0 z-30 p-4 border-b border-slate-100 text-center h-[72px] flex flex-col justify-center relative ${isToday ? 'bg-orange-600 text-white shadow-xl' : 'bg-slate-900 text-white shadow-lg'}`}>
+                        <div className={`sticky top-0 z-30 p-3 border-b border-slate-100 text-center h-[64px] flex flex-col justify-center relative ${isToday ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-md'}`}>
                           <p className="text-[10px] font-black uppercase tracking-[2px] opacity-70 mb-0.5">{tCommon("days." + format(parseISO(date), "EEEE").toLowerCase())}</p>
                           <h3 className="text-sm font-black tracking-tight">{format(parseISO(date), "dd MMM, yyyy")}</h3>
                           {isToday && <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-white text-orange-600 text-[8px] font-black px-3 py-0.5 rounded-full shadow-lg border border-orange-100 z-50">TODAY</div>}
@@ -649,7 +653,7 @@ export default function ExamOfficerDashboardPage() {
                             return (
                               <div
                                 key={slot.id}
-                                className="h-[450px] p-2 border-b border-slate-100 overflow-hidden hover:bg-slate-50/5 transition-colors flex flex-col"
+                                className="h-[320px] p-2 border-b border-slate-100 overflow-hidden hover:bg-slate-50/5 transition-colors flex flex-col"
                               >
                                 <div
                                   className="h-full w-full p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex flex-col gap-3"
@@ -663,7 +667,7 @@ export default function ExamOfficerDashboardPage() {
                                       return (
                                         <div
                                           key={campus}
-                                          className={`${theme.bg} ${theme.border} border-2 rounded-2xl p-3 shadow-sm flex flex-col gap-3 transition-all duration-300 drop-shadow-sm`}
+                                          className={`${theme.bg} ${theme.border} border-2 rounded-2xl p-2.5 shadow-sm flex flex-col gap-2.5 transition-all duration-300 drop-shadow-sm`}
                                           onDragOver={(e) => {
                                             e.preventDefault();
                                             e.currentTarget.classList.add("ring-2", "ring-orange-500", "scale-[1.01]");
@@ -694,17 +698,17 @@ export default function ExamOfficerDashboardPage() {
                                             const hidden = campusSessions.slice(MAX_INLINE);
                                             return (
                                               <>
-                                                <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid grid-cols-2 gap-1.5">
                                                   {visible.map((s: any) => (
                                                     <div
                                                       key={s.id}
                                                       draggable
                                                       onDragStart={(e) => handleDragStart(e, s.id)}
                                                       onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_DETAIL(s.id)}`)}
-                                                      className={`group/card p-2.5 rounded-xl shadow-sm border transition-all cursor-pointer relative overflow-hidden flex flex-col gap-1.5 ${!s.proctorName ? 'bg-rose-50/30 border-rose-100 hover:border-rose-400' : 'bg-white border-slate-100 hover:border-orange-400'}`}
+                                                      className={`group/card p-2 rounded-xl shadow-sm border transition-all cursor-pointer relative overflow-hidden flex flex-col gap-1 ${!s.proctorName ? 'bg-rose-50/30 border-rose-100 hover:border-rose-400' : 'bg-white border-slate-100 hover:border-orange-400'}`}
                                                     >
                                                       <div className="flex justify-between items-start">
-                                                        <h4 className={`text-[15px] font-black uppercase truncate tracking-tight leading-none ${!s.proctorName ? 'text-rose-700' : 'text-slate-900 font-black'}`}>{s.subjectCode}</h4>
+                                                        <h4 className={`text-[14px] font-black uppercase truncate tracking-tight leading-none ${!s.proctorName ? 'text-rose-700' : 'text-slate-900 font-black'}`}>{s.subjectCode}</h4>
                                                         <div className="flex items-center gap-1 text-[10px] font-black text-white bg-gradient-to-r from-indigo-600 to-purple-600 px-2 py-0.5 rounded-lg leading-none shadow-sm shadow-indigo-100">
                                                           {s.examType}
                                                         </div>
@@ -727,6 +731,10 @@ export default function ExamOfficerDashboardPage() {
                                                         <div className={`flex items-center gap-2.5 text-xs font-black px-2 py-1 rounded-lg border shadow-sm transition-colors ${s.proctorName ? 'text-slate-800 bg-slate-50 border-slate-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>
                                                           <Users className="h-3.5 w-3.5" />
                                                           <span className="truncate uppercase font-black">{s.proctorName || 'CHƯA GÁN'}</span>
+                                                        </div>
+                                                        <div className={`flex items-center gap-2.5 text-xs font-black px-2 py-1 rounded-lg border shadow-sm transition-colors ${s.hallInvigilatorId ? 'text-slate-800 bg-emerald-50/40 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>
+                                                          <ShieldCheck className="h-3.5 w-3.5" />
+                                                          <span className="truncate uppercase font-black">{getHallInvigilatorDisplay(s)}</span>
                                                         </div>
                                                       </div>
                                                     </div>
@@ -865,6 +873,7 @@ export default function ExamOfficerDashboardPage() {
                     <span className="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-2 py-1 rounded-lg border border-orange-100"><Clock className="h-3 w-3" /> {getFormattedTimeRange(s.examOpenTime, s.examCloseTime)}</span>
                     <span className="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-2 py-1 rounded-lg border border-orange-100"><Users className="h-3 w-3" /> {s.studentCount || 0}</span>
                     <span className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${s.proctorName ? 'text-slate-700 bg-slate-50 border-slate-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}><Users className="h-3 w-3" /> {s.proctorName || 'CHƯA GÁN'}</span>
+                    <span className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${s.hallInvigilatorId ? 'text-slate-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}><ShieldCheck className="h-3 w-3" /> {getHallInvigilatorDisplay(s)}</span>
                   </div>
                 </div>
               ))}

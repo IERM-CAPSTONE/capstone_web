@@ -42,9 +42,7 @@ const SESSION_VI: Record<string, string> = {
 
 const PRIORITY_CFG: Record<string, { bar: string; badge: string; dot: string }> = {
     Urgent: { bar: "bg-red-500",    badge: "bg-red-50 text-red-600 border-red-200",        dot: "bg-red-500 animate-pulse" },
-    High:   { bar: "bg-orange-500", badge: "bg-orange-50 text-orange-600 border-orange-200", dot: "bg-orange-500" },
-    Medium: { bar: "bg-yellow-400", badge: "bg-yellow-50 text-yellow-600 border-yellow-200", dot: "bg-yellow-400" },
-    Low:    { bar: "bg-blue-400",   badge: "bg-blue-50 text-blue-600 border-blue-200",     dot: "bg-blue-400" },
+    Normal: { bar: "bg-slate-400",  badge: "bg-slate-50 text-slate-700 border-slate-200",     dot: "bg-slate-400" },
 };
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
     OPEN:        { label: "Chờ xử lý",  cls: "bg-orange-100 text-orange-700 border-orange-200" },
@@ -116,7 +114,7 @@ export default function HallInvigilatorDashboard() {
 
     const activeTickets = tickets
         .filter(t => t.status === "OPEN" || t.status === "IN_PROGRESS")
-        .sort((a, b) => ["Urgent","High","Medium","Low"].indexOf(a.priority) - ["Urgent","High","Medium","Low"].indexOf(b.priority));
+        .sort((a, b) => ["Urgent","Normal"].indexOf(a.priority) - ["Urgent","Normal"].indexOf(b.priority));
     const solvedToday = tickets.filter(t => {
         if (t.status !== "SOLVED") return false;
         const d = new Date(t.updatedAt), n = new Date();
@@ -306,7 +304,7 @@ export default function HallInvigilatorDashboard() {
                             ) : (
                                 <div className="divide-y divide-slate-50">
                                     {activeTickets.slice(0, 8).map(t => {
-                                        const cfg = PRIORITY_CFG[t.priority] ?? PRIORITY_CFG.Low;
+                                        const cfg = PRIORITY_CFG[t.priority] ?? PRIORITY_CFG.Normal;
                                         const sts = STATUS_CFG[t.status];
                                         const room = t.session?.examRoom?.roomNumber ?? (t.session as any)?.roomNumber;
                                         return (

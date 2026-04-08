@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils/cn";
 
 import { useTranslations } from "next-intl";
 
-export function SemesterManagement() {
+export function SemesterManagement({ readonly = false }: { readonly?: boolean }) {
     const t = useTranslations("Semesters");
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -71,13 +71,15 @@ export function SemesterManagement() {
                     >
                         <RefreshCcw className={isLoading ? "animate-spin" : ""} size={18} />
                     </Button>
-                    <Button
-                        onClick={handleCreate}
-                        className="rounded-full bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-200 dark:shadow-none h-11 px-6 font-bold"
-                    >
-                        <Plus className="mr-2 h-5 w-5" />
-                        {t("addSemester")}
-                    </Button>
+                    {!readonly && (
+                        <Button
+                            onClick={handleCreate}
+                            className="rounded-full bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-200 dark:shadow-none h-11 px-6 font-bold"
+                        >
+                            <Plus className="mr-2 h-5 w-5" />
+                            {t("addSemester")}
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -96,8 +98,8 @@ export function SemesterManagement() {
                 <CardContent className="p-0 mt-4">
                     <SemesterTable
                         semesters={semesters}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
+                        onEdit={readonly ? undefined : handleEdit}
+                        onDelete={readonly ? undefined : handleDelete}
                         isLoading={isLoading}
                     />
 
@@ -154,7 +156,7 @@ export function SemesterManagement() {
                 </CardContent>
             </Card>
 
-            {isDialogOpen && (
+            {!readonly && isDialogOpen && (
                 <SemesterDialog
                     semester={editingSemester}
                     onClose={() => {

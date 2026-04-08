@@ -244,6 +244,7 @@ export default function AutoGenerateScheduleDialog({
             const payload: any = {
                 semesterId: formData.semesterId,
                 campus: formData.campus,
+                selectedType: formData.selectedType,
                 roomIds: formData.selectedRooms,
                 fileData: campusFilesArray[0]?.fileData,
                 campusFiles: campusFilesArray,

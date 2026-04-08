@@ -62,9 +62,11 @@ export function SemesterTable({
                         <th className="text-left px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">
                             {t("endDate")}
                         </th>
-                        <th className="text-right px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">
-                            {t("actions")}
-                        </th>
+                        {(onEdit || onDelete) && (
+                            <th className="text-right px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">
+                                {t("actions")}
+                            </th>
+                        )}
                     </tr>
                 </thead>
                 <tbody>
@@ -93,30 +95,32 @@ export function SemesterTable({
                                     <span>{formatDate(semester.endDate)}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4">
-                                <div className="flex items-center justify-end gap-2">
-                                    {onEdit && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onEdit(semester)}
-                                            className="h-8 w-8 p-0 hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-orange-950"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                    {onDelete && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onDelete(semester.id)}
-                                            className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </td>
+                            {(onEdit || onDelete) && (
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center justify-end gap-2">
+                                        {onEdit && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => onEdit(semester)}
+                                                className="h-8 w-8 p-0 hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-orange-950"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {onDelete && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => onDelete(semester.id)}
+                                                className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </td>
+                            )}
                         </tr>
                     ))}
                 </tbody>

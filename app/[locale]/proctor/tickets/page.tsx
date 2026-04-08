@@ -15,7 +15,7 @@ import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
 
 // ── Priority / Status config ───────────────────────────────────────────────────
-const PRIORITY_ORDER: Record<string, number> = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
+const PRIORITY_ORDER: Record<string, number> = { Urgent: 0, Normal: 1 };
 const STATUS_ORDER: Record<string, number>   = { OPEN: 0, IN_PROGRESS: 1, SOLVED: 2, CLOSED: 3 };
 
 const PRIORITY_CFG: Record<string, {
@@ -23,9 +23,7 @@ const PRIORITY_CFG: Record<string, {
     Icon: React.ElementType; iconColor: string;
 }> = {
     Urgent: { label: "priority.urgent", badge: "bg-red-100 text-red-700 border-red-200",       bar: "bg-gradient-to-r from-red-500 to-rose-500",     glow: "shadow-red-100",    Icon: ShieldAlert,  iconColor: "text-red-500"    },
-    High:   { label: "priority.high",   badge: "bg-orange-100 text-orange-700 border-orange-200", bar: "bg-gradient-to-r from-orange-500 to-amber-500", glow: "shadow-orange-100", Icon: Flame,        iconColor: "text-orange-500" },
-    Medium: { label: "priority.medium", badge: "bg-yellow-100 text-yellow-700 border-yellow-200", bar: "bg-gradient-to-r from-yellow-400 to-amber-400", glow: "shadow-yellow-100", Icon: TrendingDown, iconColor: "text-yellow-500" },
-    Low:    { label: "priority.low",    badge: "bg-slate-100 text-slate-600 border-slate-200",    bar: "bg-gradient-to-r from-slate-300 to-slate-400",  glow: "shadow-slate-100",  Icon: Minus,        iconColor: "text-slate-400"  },
+    Normal: { label: "priority.normal", badge: "bg-slate-100 text-slate-700 border-slate-200",    bar: "bg-gradient-to-r from-slate-400 to-slate-500",  glow: "shadow-slate-100",  Icon: Minus,        iconColor: "text-slate-500"  },
 };
 
 const STATUS_CFG: Record<string, { labelKey: string; dot: string; badge: string; pulse?: boolean }> = {
@@ -195,7 +193,7 @@ export default function ProctorTicketsPage() {
                         {displayed.map((ticket, idx) => {
                             const roomNumber  = ticket.session?.examRoom?.roomNumber ?? (ticket.session as any)?.roomNumber;
                             const sc          = STATUS_CFG[ticket.status] ?? STATUS_CFG.OPEN;
-                            const pc          = PRIORITY_CFG[ticket.priority] ?? PRIORITY_CFG.Medium;
+                            const pc          = PRIORITY_CFG[ticket.priority] ?? PRIORITY_CFG.Normal;
                             const isExpanded  = expanded === ticket.id;
                             const isNew       = ticket.status === "OPEN";
                             const isInProgress = ticket.status === "IN_PROGRESS";
@@ -322,11 +320,11 @@ export default function ProctorTicketsPage() {
                                         )}
                                     </div>
 
-                                    {/* Left accent for Urgent/High unresolved */}
-                                    {!isSolved && (ticket.priority === "Urgent" || ticket.priority === "High") && (
+                                    {/* Left accent for unresolved urgent tickets */}
+                                    {!isSolved && ticket.priority === "Urgent" && (
                                         <div className={cn(
                                             "absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl",
-                                            ticket.priority === "Urgent" ? "bg-red-500" : "bg-orange-500"
+                                            "bg-red-500"
                                         )} />
                                     )}
                                 </div>

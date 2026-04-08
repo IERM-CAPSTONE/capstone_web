@@ -42,7 +42,6 @@ export function Sidebar() {
   ];
 
   const examOfficerMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), href: ROUTES.DASHBOARD_EXAM_OFFICER, exact: true },
     { icon: Monitor, label: "Monitor", href: "/exam-officer/monitor" },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
     { icon: Ticket, label: t("tickets"), href: ROUTES.EXAM_OFFICER_TICKETS },
@@ -58,7 +57,7 @@ export function Sidebar() {
     { icon: LayoutDashboard, label: t("dashboard"),     href: ROUTES.DASHBOARD_PROCTOR, exact: true },
     { icon: ClipboardList,  label: t("applications"),  href: ROUTES.PROCTOR_APPLICATIONS },
     { icon: Ticket,         label: t("myTickets"),      href: ROUTES.PROCTOR_TICKETS },
-    { icon: Calendar,       label: t("schedules"),      href: ROUTES.EXAMS_SCHEDULE },
+    { icon: Calendar,       label: t("schedules"),      href: ROUTES.PROCTOR_EXAM_SCHEDULES },
   ];
 
   const hallInvigilatorMenuItems = [

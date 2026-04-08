@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 import {
     RefreshCw, Loader2, CheckCircle2, Clock,
     Hash, MapPin, BookOpen, X, AlertCircle, Activity,
-    Search, ChevronDown, ChevronRight, Play,
-    ShieldAlert, Flame, TrendingDown, Minus, PlayCircle,
+    Search, ChevronDown, ChevronRight,
+    ShieldAlert, Minus,
     CheckSquare, Square, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -18,9 +18,7 @@ import { toast } from "sonner";
 // ── Priority config ────────────────────────────────────────────────────────────
 const PRIORITY_CFG = {
     Urgent: { order: 0, bar: "bg-red-500",    badge: "bg-red-100 text-red-700 border-red-200",      headerBg: "bg-red-50 border-red-100",      text: "text-red-700",    countBg: "bg-red-500 text-white",    dot: "bg-red-500",    Icon: ShieldAlert },
-    High:   { order: 1, bar: "bg-orange-500", badge: "bg-orange-100 text-orange-700 border-orange-200", headerBg: "bg-orange-50 border-orange-100", text: "text-orange-700", countBg: "bg-orange-500 text-white", dot: "bg-orange-500", Icon: Flame },
-    Medium: { order: 2, bar: "bg-yellow-400", badge: "bg-yellow-100 text-yellow-700 border-yellow-200", headerBg: "bg-yellow-50 border-yellow-100", text: "text-yellow-700", countBg: "bg-yellow-400 text-white", dot: "bg-yellow-400", Icon: TrendingDown },
-    Low:    { order: 3, bar: "bg-slate-300",  badge: "bg-slate-100 text-slate-600 border-slate-200",   headerBg: "bg-slate-50 border-slate-100",  text: "text-slate-600",  countBg: "bg-slate-400 text-white",  dot: "bg-slate-400",  Icon: Minus },
+    Normal: { order: 1, bar: "bg-slate-400",  badge: "bg-slate-100 text-slate-700 border-slate-200",   headerBg: "bg-slate-50 border-slate-100",  text: "text-slate-700",  countBg: "bg-slate-500 text-white",  dot: "bg-slate-400",  Icon: Minus },
 } as const;
 type PriorityKey = keyof typeof PRIORITY_CFG;
 
@@ -148,7 +146,6 @@ export default function HallInvigilatorTicketsPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [resolvingTickets, setResolvingTickets] = useState<TicketFull[]>([]);
     const [processing, setProcessing] = useState<string | null>(null);
-    const [startedAt, setStartedAt] = useState<Record<string, string>>({});
     const { socket } = useSocket();
 
     const fetchTickets = useCallback(async () => {
@@ -206,13 +203,13 @@ export default function HallInvigilatorTicketsPage() {
     const grouped = useMemo(() => {
         const byPriority = new Map<string, Map<string, TicketFull[]>>();
         for (const tk of displayed) {
-            const p = tk.priority ?? "Medium";
+            const p = tk.priority ?? "Normal";
             if (!byPriority.has(p)) byPriority.set(p, new Map());
             const byIssue = byPriority.get(p)!;
             if (!byIssue.has(tk.issueName)) byIssue.set(tk.issueName, []);
             byIssue.get(tk.issueName)!.push(tk);
         }
-        return (["Urgent", "High", "Medium", "Low"] as PriorityKey[])
+        return (["Urgent", "Normal"] as PriorityKey[])
             .filter(p => byPriority.has(p))
             .map(p => ({
                 priority: p,
@@ -250,33 +247,6 @@ export default function HallInvigilatorTicketsPage() {
     };
 
     // ── Actions ──
-    const handleStart = async (ticketId: string) => {
-        setProcessing(ticketId);
-        try {
-            await ticketsApi.process(ticketId, { action: "start" as any, resolveNote: "" });
-            const now = new Date().toISOString();
-            setStartedAt(prev => ({ ...prev, [ticketId]: now }));
-            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: "IN_PROGRESS" as any } : t));
-            toast.success(`⏱️ ${t("toast.startSuccess")}`);
-        } catch { toast.error(t("toast.startError")); }
-        finally { setProcessing(null); }
-    };
-
-    const handleBulkStart = async () => {
-        const openIds = [...selectedIds].filter(id => tickets.find(tk => tk.id === id)?.status === "OPEN");
-        if (!openIds.length) return;
-        setProcessing("bulk");
-        const now = new Date().toISOString();
-        try {
-            await Promise.all(openIds.map(id => ticketsApi.process(id, { action: "start" as any, resolveNote: "" })));
-            setStartedAt(prev => { const n = { ...prev }; openIds.forEach(id => { n[id] = now; }); return n; });
-            setTickets(prev => prev.map(tk => openIds.includes(tk.id) ? { ...tk, status: "IN_PROGRESS" as any } : tk));
-            toast.success(`⏱️ ${t("toast.startSuccess")} (${openIds.length})`);
-            setSelectedIds(new Set());
-        } catch { toast.error(t("toast.startError")); }
-        finally { setProcessing(null); }
-    };
-
     const handleBulkResolve = async (note: string) => {
         // Only process IN_PROGRESS tickets — never re-resolve SOLVED ones
         const ids = [...selectedIds].filter(id => tickets.find(tk => tk.id === id)?.status === "IN_PROGRESS");
@@ -395,7 +365,7 @@ export default function HallInvigilatorTicketsPage() {
 
                         {/* ── PRIORITY GROUPS ── */}
                         {grouped.map(({ priority, issues }) => {
-                            const cfg = PRIORITY_CFG[priority as PriorityKey] ?? PRIORITY_CFG.Medium;
+                            const cfg = PRIORITY_CFG[priority as PriorityKey] ?? PRIORITY_CFG.Normal;
                             const { Icon } = cfg;
                             const priCollapsed = collapsedPriority.has(priority);
                             const totalInPriority = issues.reduce((s, [, tks]) => s + tks.length, 0);
@@ -493,7 +463,7 @@ export default function HallInvigilatorTicketsPage() {
                                                                                             {t(`status.${ticket.status}` as any) ?? ticket.status}
                                                                                         </span>
                                                                                         {ticket.status === "IN_PROGRESS" && (
-                                                                                            <TimerBadge startISO={startedAt[ticket.id] ?? ticket.updatedAt} />
+                                                                                            <TimerBadge startISO={ticket.updatedAt} />
                                                                                         )}
                                                                                         {ticket.resolveNote && (
                                                                                             <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md truncate max-w-[80px]" title={ticket.resolveNote}>
@@ -503,16 +473,6 @@ export default function HallInvigilatorTicketsPage() {
                                                                                     </div>
                                                                                     {/* Actions */}
                                                                                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                                                                        {canAct && isOpen && (
-                                                                                            <button
-                                                                                                onClick={() => handleStart(ticket.id)}
-                                                                                                disabled={processing === ticket.id}
-                                                                                                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold hover:bg-blue-600 transition-colors disabled:opacity-60 shrink-0"
-                                                                                            >
-                                                                                                {processing === ticket.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                                                                                                {t("actions.start")}
-                                                                                            </button>
-                                                                                        )}
                                                                                         {canAct && isInProg && (
                                                                                             <button
                                                                                                 onClick={() => { setSelectedIds(new Set([ticket.id])); setResolvingTickets([ticket]); }}
@@ -555,16 +515,6 @@ export default function HallInvigilatorTicketsPage() {
                         {selectedInProg > 0 && <span className="text-[10px] bg-orange-500 px-2 py-0.5 rounded-full font-bold">{selectedInProg} đang xử lý</span>}
                     </div>
                     <div className="w-px h-6 bg-white/20" />
-                    {selectedOpen > 0 && (
-                        <button
-                            onClick={handleBulkStart}
-                            disabled={processing === "bulk"}
-                            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-500 hover:bg-blue-600 rounded-xl text-xs font-bold transition-colors disabled:opacity-60"
-                        >
-                            {processing === "bulk" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                            Bắt đầu ({selectedOpen})
-                        </button>
-                    )}
                     {selectedInProg > 0 && (
                         <button
                             onClick={() => setResolvingTickets(selected.filter(tk => tk.status === "IN_PROGRESS"))}

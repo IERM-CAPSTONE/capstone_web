@@ -1,18 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Search, BookOpen, RefreshCcw, CheckCircle, LayoutGrid, Construction } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, BookOpen, RefreshCcw, Settings, CheckCircle, LayoutGrid, Construction } from "lucide-react";
-import { useSubjects, useDeleteSubject } from "@/hooks/use-subjects";
-import { useDebounce } from "@/hooks/use-debounce";
 import { SubjectTable } from "@/components/subjects/subject-table";
-import { SubjectDialog } from "@/components/subjects/subject-dialog";
-import { ExamPartManagementDialog } from "@/components/subjects/exam-part-management-dialog";
-import { ImportSubjectButton } from "@/components/subjects/import-subject-button";
-import { Subject } from "@/types";
-import { toast } from "sonner";
-
+import { useSubjects } from "@/hooks/use-subjects";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useTranslations } from "next-intl";
 
 export default function SubjectManagementPage() {
@@ -21,9 +15,6 @@ export default function SubjectManagementPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [page, setPage] = useState(1);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [isExamPartDialogOpen, setIsExamPartDialogOpen] = useState(false);
-    const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
     const limit = 10;
     const { data, isLoading, refetch, isRefetching } = useSubjects({
@@ -32,41 +23,15 @@ export default function SubjectManagementPage() {
         search: debouncedSearch,
     });
 
-    const deleteSubject = useDeleteSubject();
-
-    const handleEdit = (subject: Subject) => {
-        setEditingSubject(subject);
-        setIsDialogOpen(true);
-    };
-
-    const handleCreate = () => {
-        setEditingSubject(null);
-        setIsDialogOpen(true);
-    };
-
-    const handleDelete = async (id: string) => {
-        if (confirm("Are you sure you want to delete this subject? This will also remove all associated exam parts.")) {
-            try {
-                await deleteSubject.mutateAsync(id);
-                toast.success("Subject deleted successfully");
-            } catch (error) {
-                console.error("Error deleting subject:", error);
-                toast.error("Failed to delete subject");
-            }
-        }
-    };
-
     const subjects = data?.data || [];
     const pagination = data?.pagination;
 
     return (
         <div className="space-y-10 pb-20 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-            {/* Premium Light Header & Stats Section */}
             <section className="relative overflow-hidden rounded-[3rem] bg-white border border-slate-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)]">
-                {/* Soft Background Accents */}
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/[0.03] rounded-full blur-[100px] pointer-events-none" />
                 <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-500/[0.02] rounded-full blur-[80px] pointer-events-none" />
-                
+
                 <div className="relative p-8 lg:p-14">
                     <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-10 mb-14">
                         <div className="space-y-4">
@@ -78,10 +43,10 @@ export default function SubjectManagementPage() {
                                 {t("title") || "Subject Management"}
                             </h1>
                             <p className="max-w-xl text-slate-500 font-semibold text-xl leading-relaxed opacity-80">
-                                {t("subtitle") || "Configure academic subjects and define examination blueprints for the current term."}
+                                {t("subtitle") || "View academic subjects and examination blueprints for the current term."}
                             </p>
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-3">
                             <Button
                                 variant="outline"
@@ -92,29 +57,9 @@ export default function SubjectManagementPage() {
                                 <RefreshCcw className={`mr-3 h-5 w-5 text-orange-500 group-hover:rotate-180 transition-transform duration-500 ${isRefetching ? "animate-spin" : ""}`} />
                                 <span className="font-bold text-sm tracking-tight">{tCommon("refresh")}</span>
                             </Button>
-                            
-                            <ImportSubjectButton />
-                            
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsExamPartDialogOpen(true)}
-                                className="h-14 px-6 border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 text-slate-700 rounded-2xl transition-all active:scale-95 shadow-sm group"
-                            >
-                                <Settings className="mr-3 h-5 w-5 text-blue-500 group-hover:rotate-90 transition-transform duration-500" />
-                                <span className="font-bold text-sm tracking-tight">{t("manageExamParts")}</span>
-                            </Button>
-
-                            <Button
-                                onClick={handleCreate}
-                                className="h-14 px-8 bg-orange-600 hover:bg-orange-500 text-white border-0 shadow-[0_15px_30px_-5px_rgba(234,88,12,0.4)] rounded-2xl transition-all active:scale-95 flex items-center gap-2"
-                            >
-                                <Plus className="h-5 w-5" strokeWidth={3} />
-                                <span className="text-base font-black">{t("addSubject")}</span>
-                            </Button>
                         </div>
                     </div>
 
-                    {/* Minimalist Stats Divider */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {[
                             { label: t("totalSubjects") || "Total Subjects", value: data?.pagination?.total || 0, icon: BookOpen, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
@@ -122,7 +67,7 @@ export default function SubjectManagementPage() {
                             { label: t("departments") || "Departments", value: "0", icon: LayoutGrid, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
                             { label: t("blueprints") || "Examination Blueprints", value: "0", icon: Construction, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
                         ].map((stat, idx) => (
-                            <div key={idx} className={`relative group p-7 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden`}>
+                            <div key={idx} className="relative group p-7 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden">
                                 <div className="flex flex-col gap-4">
                                     <div className={`w-14 h-14 rounded-2xl ${stat.bg} ${stat.color} border ${stat.border} flex items-center justify-center shadow-inner`}>
                                         <stat.icon className="h-7 w-7" strokeWidth={2.5} />
@@ -138,7 +83,6 @@ export default function SubjectManagementPage() {
                 </div>
             </section>
 
-            {/* Modern Control Panel */}
             <div className="space-y-8">
                 <div className="flex flex-col lg:flex-row items-center gap-4">
                     <div className="flex-1 relative group w-full">
@@ -153,24 +97,17 @@ export default function SubjectManagementPage() {
                             className="w-full h-16 pl-16 pr-8 bg-white border-slate-100 focus-visible:ring-4 focus-visible:ring-orange-500/10 rounded-[1.5rem] text-lg font-semibold shadow-sm hover:shadow-md transition-all placeholder:text-slate-400"
                         />
                     </div>
-                    
+
                     <div className="h-16 px-10 flex items-center justify-center bg-white border border-slate-100 rounded-[1.5rem] text-slate-900 font-black text-sm tracking-[0.1em] shadow-sm">
                         <span className="text-orange-600 mr-2">{subjects.length}</span> {tCommon("items")?.toUpperCase() || "UNITS"}
                     </div>
                 </div>
 
-                {/* Table Container */}
                 <div className="bg-white rounded-[3rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.03)] border border-slate-100/50 overflow-hidden min-h-[600px] flex flex-col">
                     <div className="flex-1">
-                        <SubjectTable
-                            subjects={subjects}
-                            isLoading={isLoading}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                        />
+                        <SubjectTable subjects={subjects} isLoading={isLoading} />
                     </div>
 
-                    {/* Premium Pagination */}
                     {pagination && pagination.total > 0 && (
                         <div className="p-10 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-8 bg-slate-50/20">
                             <div className="flex items-center gap-4 text-slate-400 font-bold text-xs tracking-[0.1em] uppercase px-8 py-3 bg-white rounded-full border border-slate-100 shadow-sm">
@@ -185,7 +122,7 @@ export default function SubjectManagementPage() {
                                 <span>{tCommon("of")}</span>
                                 <span className="text-orange-600 font-black px-2 py-0.5 bg-orange-50 rounded-md tabular-nums">{pagination.total}</span>
                             </div>
-                            
+
                             <div className="flex items-center gap-3">
                                 <Button
                                     variant="outline"
@@ -195,7 +132,7 @@ export default function SubjectManagementPage() {
                                 >
                                     <svg className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                                 </Button>
-                                
+
                                 <div className="flex items-center gap-3 px-8 h-14 bg-white border border-slate-100 rounded-2xl shadow-sm text-lg font-black tracking-tight">
                                     <span className="text-orange-600 px-3 py-1 bg-orange-50 rounded-lg">{pagination.page}</span>
                                     <span className="opacity-20 font-light text-2xl">/</span>
@@ -215,21 +152,6 @@ export default function SubjectManagementPage() {
                     )}
                 </div>
             </div>
-
-            {isDialogOpen && (
-                <SubjectDialog
-                    subject={editingSubject}
-                    onClose={() => {
-                        setIsDialogOpen(false);
-                        setEditingSubject(null);
-                    }}
-                />
-            )}
-            {isExamPartDialogOpen && (
-                <ExamPartManagementDialog
-                    onClose={() => setIsExamPartDialogOpen(false)}
-                />
-            )}
         </div>
     );
 }

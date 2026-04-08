@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import {
   Users,
   UserCheck,
@@ -29,9 +30,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { monitorApi, SubjectMonitorSummary, SessionRoomDetail, SessionActivityItem } from "@/lib/api/monitor";
+import { ticketsApi, TicketPriority, IssueType } from "@/lib/api/tickets";
+import { studentExamsApi, StudentExam } from "@/lib/api/student-exams";
 import { useSocket } from "@/hooks/use-socket";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
+import { parseLocalDate } from "../exam-schedules/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,9 +48,88 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type ActiveStudentMatch = {
+  studentExam: StudentExam;
+  subject: SubjectMonitorSummary;
+  session: SessionRoomDetail;
+};
+
+const ATTENDANCE_OPEN_BEFORE_MS = 40 * 60 * 1000;
+const ATTENDANCE_CLOSE_AFTER_OPEN_MS = 10 * 60 * 1000;
+
+type MonitorPhase = "Upcoming" | "Ongoing" | "Completed";
+type AttendancePhase = "NotOpen" | "Open" | "Locked" | "Completed";
+
+function getAttendanceOpenAt(examOpenTime: Date | null) {
+  return examOpenTime ? new Date(examOpenTime.getTime() - ATTENDANCE_OPEN_BEFORE_MS) : null;
+}
+
+function getAttendanceCloseAt(examOpenTime: Date | null) {
+  return examOpenTime ? new Date(examOpenTime.getTime() + ATTENDANCE_CLOSE_AFTER_OPEN_MS) : null;
+}
+
+function formatCountdownMs(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function resolveMonitorPhase(subject: SubjectMonitorSummary) {
+  const now = new Date();
+  const openTime = parseLocalDate(subject.examOpenTime);
+  const closeTime = parseLocalDate(subject.examCloseTime);
+  const attendanceOpenAt = getAttendanceOpenAt(openTime);
+
+  if (!openTime || !closeTime) {
+    return subject.status === "Completed" ? "Completed" : "Upcoming";
+  }
+
+  const isCompleted = subject.status === "Completed" || now >= closeTime;
+  const isOngoing =
+    subject.status === "Ongoing" ||
+    (!!attendanceOpenAt && now >= attendanceOpenAt && now < closeTime);
+
+  if (isCompleted) return "Completed";
+  if (isOngoing) return "Ongoing";
+  return "Upcoming";
+}
+
+function isExamOngoing(subject: SubjectMonitorSummary) {
+  const now = new Date();
+  const openTime = parseLocalDate(subject.examOpenTime);
+  const closeTime = parseLocalDate(subject.examCloseTime);
+  if (!openTime || !closeTime) return false;
+  return now >= openTime && now < closeTime;
+}
+
+function resolveAttendancePhase(subject: SubjectMonitorSummary): AttendancePhase {
+  const now = new Date();
+  const openTime = parseLocalDate(subject.examOpenTime);
+  const closeTime = parseLocalDate(subject.examCloseTime);
+
+  if (!openTime || !closeTime) {
+    return "NotOpen";
+  }
+
+  const attendanceOpenAt = getAttendanceOpenAt(openTime);
+  const attendanceCloseAt = getAttendanceCloseAt(openTime);
+
+  if (!attendanceOpenAt || !attendanceCloseAt) {
+    return "NotOpen";
+  }
+
+  if (now >= closeTime) return "Completed";
+  if (now < attendanceOpenAt) return "NotOpen";
+  if (now < attendanceCloseAt) return "Open";
+  return "Locked";
+}
+
 export default function MonitorDashboardPage() {
   const t = useTranslations("MonitorDashboard");
   const commonT = useTranslations("Common");
+  const locale = useLocale();
   const { user } = useAuthStore();
 
   const [data, setData] = useState<SubjectMonitorSummary[]>([]);
@@ -60,7 +143,16 @@ export default function MonitorDashboardPage() {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [sessionPhase, setSessionPhase] = useState<"ALL" | "ONGOING" | "UPCOMING" | "COMPLETED">("ONGOING");
+  const [sessionPhase, setSessionPhase] = useState<"CHECKIN" | "ONGOING">("CHECKIN");
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [ticketStudentCode, setTicketStudentCode] = useState("");
+  const [ticketIssueType, setTicketIssueType] = useState<IssueType>("Academic Violation");
+  const [ticketIssueName, setTicketIssueName] = useState("Sinh viÃªn vi pháº¡m trong giá» thi");
+  const [ticketDescription, setTicketDescription] = useState("");
+  const [ticketPriority, setTicketPriority] = useState<TicketPriority>("Normal");
+  const [studentLookupLoading, setStudentLookupLoading] = useState(false);
+  const [ticketSubmitting, setTicketSubmitting] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState<ActiveStudentMatch[]>([]);
 
   const { on } = useSocket();
 
@@ -90,6 +182,7 @@ export default function MonitorDashboardPage() {
     const cleanups = [
       on?.("monitor:student_anomaly", handleRefresh),
       on?.("monitor:broadcast_sent", handleRefresh),
+      on?.("monitor:ticket_count_changed", handleRefresh),
     ].filter(Boolean) as Array<() => void>;
 
     return () => {
@@ -134,22 +227,12 @@ export default function MonitorDashboardPage() {
 
   const filteredData = useMemo(() => {
     let result = data;
-    const now = new Date();
 
-    // 1. Filter by phase
-    if (sessionPhase !== "ALL") {
-      result = result.filter(subject => {
-        const openTime = new Date(subject.examOpenTime);
-        const closeTime = new Date(subject.examCloseTime);
-        const isCompleted = subject.status === "Completed" || now > closeTime;
-        const isOngoing = (subject.status === "Ongoing" || (now >= openTime && now <= closeTime) || (subject.status === "Scheduled" && now >= new Date(openTime.getTime() - 60 * 60 * 1000))); // also consider checkin phase as ongoing
-
-        if (sessionPhase === "COMPLETED") return isCompleted;
-        if (sessionPhase === "ONGOING") return !isCompleted && isOngoing;
-        if (sessionPhase === "UPCOMING") return !isCompleted && !isOngoing;
-        return true;
-      });
-    }
+    // 1. Filter by monitor working mode
+    result = result.filter(subject => {
+      if (sessionPhase === "CHECKIN") return resolveAttendancePhase(subject) === "Open";
+      return isExamOngoing(subject);
+    });
 
     // 2. Filter by search term
     if (searchTerm) {
@@ -168,7 +251,151 @@ export default function MonitorDashboardPage() {
     }
 
     return result;
-  }, [data, searchTerm, activeFilter]);
+  }, [data, searchTerm, activeFilter, sessionPhase]);
+
+  const activeSessionIndex = useMemo(() => {
+    const entries = data
+      .filter((subject) => resolveMonitorPhase(subject) === "Ongoing")
+      .flatMap((subject) =>
+        subject.sessions.map((session) => [
+          session.sessionId,
+          { subject, session },
+        ] as const),
+      );
+
+    return new Map(entries);
+  }, [data]);
+
+  const defaultTicketIssueName =
+    locale === "vi" ? "Sinh viên vi phạm trong giờ thi" : "Student violation during exam";
+
+  useEffect(() => {
+    setTicketIssueName((prev) => {
+      if (
+        !prev ||
+        prev === "Sinh viên vi phạm trong giờ thi" ||
+        prev === "Student violation during exam" ||
+        prev.includes("vi phạm")
+      ) {
+        return defaultTicketIssueName;
+      }
+      return prev;
+    });
+  }, [defaultTicketIssueName]);
+
+  const resetTicketModal = useCallback(() => {
+    setTicketStudentCode("");
+    setTicketIssueType("Academic Violation");
+    setTicketIssueName(defaultTicketIssueName);
+    setTicketDescription("");
+    setTicketPriority("Normal");
+    setStudentLookupLoading(false);
+    setTicketSubmitting(false);
+    setSelectedStudents([]);
+  }, [defaultTicketIssueName]);
+
+  const handleLookupStudent = useCallback(async () => {
+    const normalizedCode = ticketStudentCode.trim().toUpperCase();
+    if (!normalizedCode) {
+      toast.error(locale === "vi" ? "Vui lòng nhập mã sinh viên" : "Please enter a student code");
+      return;
+    }
+
+    setStudentLookupLoading(true);
+    try {
+      const response = await studentExamsApi.list({
+        studentCode: normalizedCode,
+        limit: 20,
+      });
+
+      const matchedExam = response.data.find((item) => activeSessionIndex.has(item.examSessionId));
+      if (!matchedExam) {
+        toast.error(locale === "vi" ? "Không tìm thấy sinh viên đang thi trong các ca đang diễn ra" : "No student found in the currently ongoing sessions");
+        return;
+      }
+
+      const activeMatch = activeSessionIndex.get(matchedExam.examSessionId);
+      if (!activeMatch) {
+        toast.error(locale === "vi" ? "Không xác định được ca thi hiện tại của sinh viên" : "Could not determine the student's active session");
+        return;
+      }
+
+      const nextMatch = {
+        studentExam: matchedExam,
+        subject: activeMatch.subject,
+        session: activeMatch.session,
+      };
+
+      setSelectedStudents((prev) => {
+        if (prev.some((item) => item.studentExam.id === nextMatch.studentExam.id)) {
+          toast.info(locale === "vi" ? "Sinh viên này đã có trong danh sách" : "This student is already in the list");
+          return prev;
+        }
+
+        toast.success(locale === "vi" ? "Đã thêm sinh viên vào danh sách ticket" : "Student added to ticket list");
+        return [...prev, nextMatch];
+      });
+      setTicketStudentCode("");
+    } catch (error) {
+      console.error("Failed to lookup student by code", error);
+      toast.error(locale === "vi" ? "Không thể tra cứu mã sinh viên lúc này" : "Unable to look up the student code right now");
+    } finally {
+      setStudentLookupLoading(false);
+    }
+  }, [activeSessionIndex, locale, ticketStudentCode]);
+
+  const handleCreateTicketFromMonitor = useCallback(async () => {
+    if (selectedStudents.length === 0) {
+      toast.error(locale === "vi" ? "Vui lòng thêm ít nhất một sinh viên trước khi tạo ticket" : "Please add at least one student before creating a ticket");
+      return;
+    }
+
+    const issueName = ticketIssueName.trim();
+    if (!issueName) {
+      toast.error(locale === "vi" ? "Vui lòng nhập tên ticket" : "Please enter a ticket title");
+      return;
+    }
+
+    setTicketSubmitting(true);
+    try {
+      await Promise.all(
+        selectedStudents.map((student) =>
+          ticketsApi.create({
+            issueName,
+            issueType: ticketIssueType,
+            description: ticketDescription.trim() || undefined,
+            priority: ticketPriority,
+            sessionId: student.session.sessionId,
+            studentCode: student.studentExam.studentCode ?? "",
+            confirmedAssignmentType: "HALL_INVIGILATOR",
+          }),
+        ),
+      );
+
+      toast.success(
+        locale === "vi"
+          ? `Đã tạo ${selectedStudents.length} ticket và chuyển cho giám thị hành lang`
+          : `${selectedStudents.length} tickets created and assigned to the hall invigilator`,
+      );
+      setTicketModalOpen(false);
+      resetTicketModal();
+      fetchData();
+    } catch (error) {
+      console.error("Failed to create ticket from monitor", error);
+      toast.error(locale === "vi" ? "Không thể tạo ticket lúc này" : "Unable to create the ticket right now");
+    } finally {
+      setTicketSubmitting(false);
+    }
+  }, [
+    selectedStudents,
+    ticketIssueName,
+    ticketIssueType,
+    ticketDescription,
+    ticketPriority,
+    resetTicketModal,
+    fetchData,
+    locale,
+  ]);
 
   if (loading && data.length === 0) {
     return (
@@ -190,7 +417,9 @@ export default function MonitorDashboardPage() {
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 leading-none">{t("title")}</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Campus {user?.campus || "N/A"}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                {locale === "vi" ? "Cơ sở" : "Campus"} {user?.campus || "N/A"}
+              </p>
             </div>
           </div>
 
@@ -209,10 +438,26 @@ export default function MonitorDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="h-9 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs gap-2 shadow-sm"
+                onClick={() => setTicketModalOpen(true)}
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                {locale === "vi" ? "Tạo ticket theo MSSV" : "Create Ticket by Student ID"}
+              </Button>
+              {false && (<Button
+                size="sm"
+                className="h-9 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs gap-2 shadow-sm"
+                onClick={() => setTicketModalOpen(true)}
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                Táº¡o ticket theo MSSV
+              </Button>)}
               <div className="relative group">
                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                  <Input 
-                    placeholder="Search..."
+                    placeholder={t("filters.searchPlaceholder")}
                     className="pl-9 h-9 w-40 bg-slate-50 border-slate-200 text-xs font-bold rounded-lg focus:ring-orange-500/20"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -228,16 +473,25 @@ export default function MonitorDashboardPage() {
         {/* Compact Filters & Counter */}
         <div className="flex items-center justify-between px-2 py-1">
             <div className="flex gap-2">
-               <FilterTab active={sessionPhase === "ONGOING"} onClick={() => setSessionPhase("ONGOING")} label={t("phases.ongoing")} />
-               <FilterTab active={sessionPhase === "UPCOMING"} onClick={() => setSessionPhase("UPCOMING")} label={t("phases.upcoming")} />
-               <FilterTab active={sessionPhase === "COMPLETED"} onClick={() => setSessionPhase("COMPLETED")} label={t("phases.completed")} />
-               <FilterTab active={sessionPhase === "ALL"} onClick={() => setSessionPhase("ALL")} label={t("phases.all")} />
+               <FilterTab
+                 active={sessionPhase === "CHECKIN"}
+                 onClick={() => setSessionPhase("CHECKIN")}
+                 label={locale === "vi" ? "Đang check-in" : "Check-in Open"}
+               />
+               <FilterTab
+                 active={sessionPhase === "ONGOING"}
+                 onClick={() => setSessionPhase("ONGOING")}
+                 label={locale === "vi" ? "Đang diễn ra" : "Ongoing Exam"}
+               />
             </div>
             
             <div className="flex items-center">
               <div className="text-[11px] font-black text-slate-500 bg-slate-100/50 px-4 py-1.5 rounded-full border border-slate-200 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                  {filteredData.length} Subjects Active
+                  {filteredData.length}{" "}
+                  {sessionPhase === "CHECKIN"
+                    ? (locale === "vi" ? "môn đang mở điểm danh" : "subjects open for check-in")
+                    : (locale === "vi" ? "môn đang diễn ra" : "ongoing subjects")}
               </div>
 
               <div className="flex gap-2 ml-4">
@@ -254,7 +508,9 @@ export default function MonitorDashboardPage() {
                     )}
                   >
                     {isSelectionMode ? <X className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
-                    {isSelectionMode ? "Exit Broadcast Mode" : "Broadcast Mode"}
+                    {isSelectionMode
+                      ? (locale === "vi" ? "Thoát chế độ phát thông báo" : "Exit Broadcast Mode")
+                      : (locale === "vi" ? "Chế độ phát thông báo" : "Broadcast Mode")}
                   </Button>
                   
                   {isSelectionMode && (
@@ -267,7 +523,9 @@ export default function MonitorDashboardPage() {
                       }}
                       className="h-9 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-white border-slate-100 text-slate-400 px-4 transition-all shadow-sm"
                     >
-                      {selectedSubjectIds.size === filteredData.length ? "Deselect All" : "Select All"}
+                      {selectedSubjectIds.size === filteredData.length
+                        ? (locale === "vi" ? "Bỏ chọn tất cả" : "Deselect All")
+                        : (locale === "vi" ? "Chọn tất cả" : "Select All")}
                     </Button>
                   )}
               </div>
@@ -313,6 +571,7 @@ export default function MonitorDashboardPage() {
                     <SubjectCard
                       subject={subject}
                       t={t}
+                      locale={locale}
                       isSelected={isSelectionMode && isSelected}
                     />
                   </div>
@@ -324,9 +583,9 @@ export default function MonitorDashboardPage() {
 
       {/* Modern Room Details Popup */}
       <Dialog open={!!selectedSubject} onOpenChange={(open) => !open && setSelectedSubject(null)}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[85vh] p-0 overflow-hidden border-none rounded-[40px] shadow-2xl bg-slate-50/95 backdrop-blur-2xl">
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[85vh] p-0 overflow-hidden border-none rounded-[40px] shadow-2xl bg-slate-50/95 backdrop-blur-2xl">
           {selectedSubject && (
-            <div className="flex flex-col h-full">
+            <div className="flex max-h-[85vh] flex-col">
                {/* Custom Modal Header */}
                <div className="p-8 bg-white/80 border-b border-slate-100 flex items-center justify-between shrink-0">
                   <div className="flex flex-col">
@@ -340,7 +599,7 @@ export default function MonitorDashboardPage() {
                         <StatusBadge subject={selectedSubject} t={t} />
                      </div>
                      <p className="text-sm font-bold text-slate-400 mt-2 ml-14 uppercase tracking-widest">
-                        Room Details & Management Control
+                        {locale === "vi" ? "Chi tiết phòng & điều phối" : "Room Details & Management Control"}
                      </p>
                   </div>
                   
@@ -354,11 +613,11 @@ export default function MonitorDashboardPage() {
                </div>
 
                {/* Left insights + Right rooms */}
-               <div className="flex-1 overflow-hidden p-8">
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
+               <div className="flex-1 overflow-y-auto p-8">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
                     <SubjectSessionBoards subject={selectedSubject} />
 
-                    <div className="h-full overflow-y-auto custom-scrollbar pr-2">
+                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {selectedSubject.sessions.map((room) => (
                           <div key={room.sessionId} className="transform transition-all duration-300 hover:scale-[1.02]">
@@ -374,15 +633,213 @@ export default function MonitorDashboardPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={ticketModalOpen}
+        onOpenChange={(open) => {
+          setTicketModalOpen(open);
+          if (!open) resetTicketModal();
+        }}
+      >
+        <DialogContent className="max-w-[540px] rounded-[18px] border-none bg-white p-0 shadow-2xl overflow-hidden">
+          <div className="border-b border-slate-100 bg-slate-50/80 px-3.5 py-3">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-[15px] font-black text-slate-900">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+                  <Ticket className="h-3.5 w-3.5" />
+                </div>
+                {locale === "vi" ? "Tạo ticket theo mã sinh viên" : "Create ticket by student code"}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              {locale === "vi"
+                ? "Dùng khi khảo thí phát hiện sinh viên vi phạm từ log hệ thống trong giờ thi."
+                : "Use this when the exam office detects a student violation from system logs during an exam."}
+            </p>
+          </div>
+
+          <div className="space-y-2.5 p-3">
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[1fr_auto]">
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                  {locale === "vi" ? "Mã sinh viên" : "Student code"}
+                </label>
+                <Input
+                  value={ticketStudentCode}
+                  onChange={(event) => setTicketStudentCode(event.target.value.toUpperCase())}
+                  placeholder={locale === "vi" ? "Ví dụ: DE200143" : "Example: DE200143"}
+                  className="h-7 rounded-lg border-slate-200 font-mono text-[12px] font-bold uppercase"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  onClick={handleLookupStudent}
+                  disabled={studentLookupLoading}
+                  className="h-7 rounded-lg bg-orange-600 px-3 text-[12px] text-white hover:bg-orange-500"
+                >
+                  {studentLookupLoading ? (locale === "vi" ? "Đang tra cứu..." : "Looking up...") : (locale === "vi" ? "Tra cứu" : "Lookup")}
+                </Button>
+              </div>
+            </div>
+
+            {selectedStudents.length > 0 ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
+                      {locale === "vi" ? "Danh sách sinh viên đã chọn" : "Selected students"}
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
+                      {locale === "vi"
+                        ? `${selectedStudents.length} sinh viên sẽ được tạo ticket`
+                        : `${selectedStudents.length} students will receive tickets`}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-white px-2 py-1.5 text-right shadow-sm ring-1 ring-emerald-100">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{locale === "vi" ? "Phân công mặc định" : "Default assignment"}</p>
+                    <p className="mt-1 text-sm font-black text-emerald-700">{locale === "vi" ? "Giám thị hành lang" : "Hall invigilator"}</p>
+                  </div>
+                </div>
+
+                <div className="max-h-36 overflow-y-auto pr-1">
+                  <div className="flex flex-wrap gap-2">
+                  {selectedStudents.map((student) => (
+                    <div
+                      key={student.studentExam.id}
+                      className="relative min-w-[220px] max-w-[240px] flex-1 rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-emerald-100"
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1 h-6 w-6 p-0 text-slate-400 hover:text-rose-600"
+                        onClick={() =>
+                          setSelectedStudents((prev) => prev.filter((item) => item.studentExam.id !== student.studentExam.id))
+                        }
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                      <div className="min-w-0 pr-6">
+                        <h3 className="truncate text-[13px] font-black text-slate-900">
+                          {student.studentExam.studentCode}
+                        </h3>
+                        <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-700">
+                          {student.subject.subjectCode} · {locale === "vi" ? "Phòng" : "Room"} {student.session.roomNumber}
+                        </p>
+                        <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                          {student.studentExam.studentName || (locale === "vi" ? "Không có tên" : "No name")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 p-2.5 text-[12px] text-slate-500">
+                {locale === "vi"
+                  ? "Nhập từng MSSV rồi bấm tra cứu để thêm sinh viên vào danh sách tạo ticket."
+                  : "Enter each student code and look it up to add students to the ticket list."}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                {locale === "vi" ? "Loại ticket" : "Ticket type"}
+              </label>
+              <select
+                value={ticketIssueType}
+                onChange={(event) => setTicketIssueType(event.target.value as IssueType)}
+                className="h-7 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] font-bold text-slate-700 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
+              >
+                <option value="Academic Violation">{locale === "vi" ? "Vi phạm học vụ" : "Academic Violation"}</option>
+                <option value="Technical Issue">{locale === "vi" ? "Sự cố kỹ thuật" : "Technical Issue"}</option>
+                <option value="Room Management">{locale === "vi" ? "Quản lý phòng thi" : "Room Management"}</option>
+                <option value="Face Mismatch">{locale === "vi" ? "Sai lệch khuôn mặt" : "Face Mismatch"}</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                {locale === "vi" ? "Tên ticket" : "Ticket title"}
+              </label>
+              <Input
+                value={ticketIssueName}
+                onChange={(event) => setTicketIssueName(event.target.value)}
+                placeholder={locale === "vi" ? "Ví dụ: Sinh viên vi phạm trong giờ thi" : "Example: Student violation during exam"}
+                className="h-7 rounded-lg border-slate-200 text-[12px] font-semibold"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                {locale === "vi" ? "Mô tả" : "Description"}
+              </label>
+              <textarea
+                value={ticketDescription}
+                onChange={(event) => setTicketDescription(event.target.value)}
+                placeholder={locale === "vi" ? "Mô tả ngắn hành vi vi phạm được phát hiện từ log hệ thống..." : "Briefly describe the violation detected from the system logs..."}
+                className="min-h-[52px] w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-700 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                {locale === "vi" ? "Mức ưu tiên" : "Priority"}
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
+                {(["Normal", "Urgent"] as TicketPriority[]).map((priority) => (
+                  <button
+                    key={priority}
+                    type="button"
+                    onClick={() => setTicketPriority(priority)}
+                    className={cn(
+                      "rounded-lg border px-2.5 py-1.5 text-[12px] font-black transition",
+                      ticketPriority === priority
+                        ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-500 hover:border-slate-300",
+                    )}
+                  >
+                    {locale === "vi"
+                      ? ({ Normal: "Bình thường", Urgent: "Khẩn" } as Record<TicketPriority, string>)[priority]
+                      : priority}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/70 px-3 py-2.5">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTicketModalOpen(false);
+                resetTicketModal();
+              }}
+              className="h-7 rounded-lg px-3"
+            >
+              {commonT("cancel")}
+            </Button>
+            <Button
+              onClick={handleCreateTicketFromMonitor}
+              disabled={selectedStudents.length === 0 || ticketSubmitting}
+              className="h-7 rounded-lg bg-orange-600 px-3 text-white hover:bg-orange-500"
+            >
+              {ticketSubmitting ? (locale === "vi" ? "Đang tạo..." : "Creating...") : (locale === "vi" ? "Tạo ticket" : "Create ticket")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Floating Action Bar for Selection Mode */}
       {isSelectionMode && selectedSubjectIds.size > 0 && (
          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in slide-in-from-bottom-10 duration-500">
             <div className="bg-slate-900 text-white px-6 py-3 rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.3)] flex items-center gap-8 border border-white/10 backdrop-blur-xl">
                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Targets</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">{locale === "vi" ? "Mục tiêu" : "Targets"}</span>
                   <div className="flex items-center gap-2">
                      <span className="text-xl font-black tabular-nums">{selectedSubjectIds.size}</span>
-                     <span className="text-xs font-bold text-slate-400 uppercase">Subjects</span>
+                     <span className="text-xs font-bold text-slate-400 uppercase">{locale === "vi" ? "Môn" : "Subjects"}</span>
                   </div>
                </div>
                
@@ -394,14 +851,14 @@ export default function MonitorDashboardPage() {
                     variant="ghost" 
                     className="h-10 px-4 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]"
                   >
-                    Clear
+                    {locale === "vi" ? "Bỏ chọn" : "Clear"}
                   </Button>
                   <Button 
                     onClick={() => setIsBroadcastModalOpen(true)}
                     className="h-10 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-orange-900/20 active:scale-95 transition-all"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    Broadcast
+                    {locale === "vi" ? "Phát thông báo" : "Broadcast"}
                   </Button>
                </div>
             </div>
@@ -421,6 +878,8 @@ export default function MonitorDashboardPage() {
 }
 
 function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }: { isOpen: boolean, onClose: () => void, targetCount: number, targetSubjectCodes: string[], t: any }) {
+  const locale = useLocale();
+  const commonT = useTranslations("Common");
   const [broadcastTitle, setBroadcastTitle] = useState("Official Announcement");
   const [customMsg, setCustomMsg] = useState("");
   const [sending, setSending] = useState(false);
@@ -451,7 +910,7 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
 
   const handleSend = async () => {
     if (targetSubjectCodes.length === 0) {
-      toast.error("Please select at least one subject to broadcast");
+      toast.error(locale === "vi" ? "Vui lòng chọn ít nhất một môn để phát thông báo" : "Please select at least one subject to broadcast");
       return;
     }
 
@@ -465,7 +924,7 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
         title: broadcastTitle,
       });
 
-      toast.success(`Announcement sent to ${targetCount} subjects successfully!`);
+      toast.success(locale === "vi" ? `Đã gửi thông báo tới ${targetCount} môn thành công!` : `Announcement sent to ${targetCount} subjects successfully!`);
       const refreshed = await templatesApi.getBroadcastMessages({ subjectCodes: targetSubjectCodes, limit: 100 });
       setSentHistory(
         refreshed.map((item) => ({
@@ -478,7 +937,7 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
       );
     } catch (error) {
       console.error("Failed to broadcast announcement:", error);
-      toast.error("Failed to send announcement");
+      toast.error(locale === "vi" ? "Không thể gửi thông báo" : "Failed to send announcement");
     } finally {
       setSending(false);
     }
@@ -493,14 +952,14 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
               <div className="p-6 border-b border-slate-100">
                   <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                      <MessageSquare className="w-4 h-4 text-orange-600" />
-                Broadcast Message Board
+                {locale === "vi" ? "Bảng tin phát thông báo" : "Broadcast Message Board"}
                   </h3>
-              <p className="text-xs text-slate-500 mt-1">All messages sent in this broadcast session</p>
+              <p className="text-xs text-slate-500 mt-1">{locale === "vi" ? "Tất cả thông báo đã gửi trong phiên phát này" : "All messages sent in this broadcast session"}</p>
               </div>
               
               <ScrollArea className="flex-1 p-4">
              {sentHistory.length === 0 ? (
-              <p className="text-xs text-slate-400">No broadcast messages sent yet.</p>
+               <p className="text-xs text-slate-400">{locale === "vi" ? "Chưa có thông báo nào được gửi." : "No broadcast messages sent yet."}</p>
              ) : (
               <div className="space-y-3">
                 {sentHistory.map((item) => (
@@ -511,7 +970,7 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
                   </div>
                   <p className="mt-1 text-xs text-slate-600">{item.content}</p>
                   <p className="mt-2 text-[11px] text-slate-500">
-                    Rooms: {item.deliveries.map((d) => `${d.subjectCode}-${d.roomNumber}`).join(", ") || "N/A"}
+                    {locale === "vi" ? "Phòng" : "Rooms"}: {item.deliveries.map((d) => `${d.subjectCode}-${d.roomNumber}`).join(", ") || "N/A"}
                   </p>
                  </div>
                 ))}
@@ -525,39 +984,39 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
               {/* Modal Header */}
               <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">Broadcast Announcement</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Your message will be sent to {targetCount} active subjects.</p>
-                 </div>
-                 <div className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-xs font-bold border border-orange-100 flex items-center gap-2 shadow-sm">
+                    <h2 className="text-xl font-bold text-slate-900">{locale === "vi" ? "Phát thông báo" : "Broadcast Announcement"}</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">{locale === "vi" ? `Thông điệp sẽ được gửi tới ${targetCount} môn đang hoạt động.` : `Your message will be sent to ${targetCount} active subjects.`}</p>
+                  </div>
+                  <div className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-xs font-bold border border-orange-100 flex items-center gap-2 shadow-sm">
                     <Zap className="w-3.5 h-3.5 fill-orange-500" />
-                    {targetCount} Subjects Target
-                 </div>
+                    {locale === "vi" ? `${targetCount} môn mục tiêu` : `${targetCount} Subjects Target`}
+                  </div>
               </div>
 
               <div className="flex-1 flex flex-col p-8 gap-6 overflow-hidden">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Announcement Title</label>
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">{locale === "vi" ? "Tiêu đề thông báo" : "Announcement Title"}</label>
                     <Input
                      className="h-11 rounded-xl border-slate-200 text-sm font-semibold"
                      value={broadcastTitle}
                      onChange={(e) => setBroadcastTitle(e.target.value)}
-                     placeholder="Official Announcement"
+                     placeholder={locale === "vi" ? "Thông báo chính thức" : "Official Announcement"}
                     />
                   </div>
 
                  {/* Message Editor */}
                  <div className="flex-1 flex flex-col">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Live Content Preview</label>
+                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{locale === "vi" ? "Xem trước nội dung" : "Live Content Preview"}</label>
                     <textarea
                       className="w-full flex-1 bg-white border border-slate-200 rounded-xl p-6 text-sm sm:text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none shadow-inner leading-relaxed"
-                      placeholder="Type your announcement here..."
+                      placeholder={locale === "vi" ? "Nhập nội dung thông báo tại đây..." : "Type your announcement here..."}
                       value={customMsg}
                       onChange={(e) => setCustomMsg(e.target.value)}
                     />
                     <div className="mt-2 flex justify-between items-center px-2">
-                       <span className="text-[11px] text-slate-400 font-medium">{customMsg.length} characters</span>
+                       <span className="text-[11px] text-slate-400 font-medium">{locale === "vi" ? `${customMsg.length} ký tự` : `${customMsg.length} characters`}</span>
                        <span className="text-[11px] text-orange-600 font-bold flex items-center gap-1">
-                          <Activity className="w-3 h-3 animate-pulse" /> Live Preview Enabled
+                          <Activity className="w-3 h-3 animate-pulse" /> {locale === "vi" ? "Đang bật xem trước" : "Live Preview Enabled"}
                        </span>
                     </div>
                  </div>
@@ -570,7 +1029,7 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
                     onClick={onClose}
                     className="flex-1 h-11 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
                  >
-                    Cancel
+                    {commonT("cancel")}
                  </Button>
                  <Button 
                     onClick={handleSend}
@@ -578,9 +1037,9 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
                     className="flex-[2] h-11 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold gap-2 shadow-lg shadow-orange-200 disabled:opacity-50 active:scale-95 transition-all"
                  >
                     {sending ? (
-                       <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Sending...</>
+                       <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> {locale === "vi" ? "Đang gửi..." : "Sending..."}</>
                     ) : (
-                       <><Send className="w-4 h-4" /> Send Announcement</>
+                       <><Send className="w-4 h-4" /> {locale === "vi" ? "Gửi thông báo" : "Send Announcement"}</>
                     )}
                  </Button>
               </div>
@@ -714,8 +1173,14 @@ function FilterTab({ active, onClick, label }: any) {
   );
 }
 
-function SubjectCard({ subject, t, isSelected }: { subject: SubjectMonitorSummary, t: any, isSelected?: boolean }) {
+function SubjectCard({ subject, t, locale, isSelected }: { subject: SubjectMonitorSummary, t: any, locale: string, isSelected?: boolean }) {
   const hasTickets = subject.pendingTickets > 0;
+  const openTime = parseLocalDate(subject.examOpenTime);
+  const closeTime = parseLocalDate(subject.examCloseTime);
+  const displayTime =
+    openTime && closeTime
+      ? `${openTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${closeTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+      : (openTime || new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   
   return (
     <Card 
@@ -731,11 +1196,13 @@ function SubjectCard({ subject, t, isSelected }: { subject: SubjectMonitorSummar
 
       <div className="p-4 flex flex-col h-full gap-4">
         {/* Header: Distinct */}
-        <div className="flex justify-between items-start">
-           <div className="flex flex-col">
-             <div className="text-lg font-black text-slate-900 tracking-tighter uppercase leading-none group-hover:text-orange-600 transition-colors">{subject.subjectCode}</div>
-             <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{new Date(subject.examOpenTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-           </div>
+          <div className="flex justify-between items-start">
+             <div className="flex flex-col">
+               <div className="text-lg font-black text-slate-900 tracking-tighter uppercase leading-none group-hover:text-orange-600 transition-colors">{subject.subjectCode}</div>
+               <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
+                {displayTime}
+               </div>
+             </div>
            <StatusBadge subject={subject} t={t} isSmall />
         </div>
 
@@ -748,19 +1215,26 @@ function SubjectCard({ subject, t, isSelected }: { subject: SubjectMonitorSummar
 
         {/* Footer info: Compact */}
         <div className={cn(
-           "flex items-center justify-between p-2 rounded-2xl transition-all",
+           "flex items-center justify-between p-2 rounded-2xl transition-all gap-3",
            hasTickets ? "bg-orange-600 text-white shadow-lg animate-pulse" : "bg-slate-50 border border-slate-100"
         )}>
-           <CountdownTimer endTime={subject.examCloseTime} startTime={subject.examOpenTime} status={subject.status} size="small" inverse={hasTickets} />
+           <CountdownTimer
+             endTime={subject.examCloseTime}
+             startTime={subject.examOpenTime}
+             status={subject.status}
+             locale={locale}
+             size="small"
+             inverse={hasTickets}
+           />
            {hasTickets ? (
              <div className="flex items-center gap-1 font-black text-xs uppercase">
                <Ticket className="w-4 h-4" />
                {subject.pendingTickets}
              </div>
            ) : (
-             <div className="text-[9px] font-black text-slate-400 uppercase group-hover:text-orange-600 transition-colors">
-               Detail <ChevronRight className="inline w-3 h-3" />
-             </div>
+           <div className="text-[9px] font-black text-slate-400 uppercase group-hover:text-orange-600 transition-colors">
+                {locale === "vi" ? "Chi tiết" : "Detail"} <ChevronRight className="inline w-3 h-3" />
+              </div>
            )}
         </div>
       </div>
@@ -802,16 +1276,30 @@ function CircularMetric({ label, current, total, color }: { label: string, curre
 }
 
 function StatusBadge({ subject, t, isSmall = false }: { subject: SubjectMonitorSummary, t: any, isSmall?: boolean }) {
-  const phase = subject.status;
+  const locale = useLocale();
+  const phase = resolveMonitorPhase(subject);
+  const attendancePhase = resolveAttendancePhase(subject);
+  const now = new Date();
+  const openTime = parseLocalDate(subject.examOpenTime);
   
   const configs: Record<string, { label: string, color: string, icon: any }> = {
-    "Checking In": { label: t("phases.checkingIn") || "Checking In", color: "bg-blue-50 text-blue-600 border-blue-200 shadow-blue-50", icon: <UserPlus className="w-3.5 h-3.5" /> },
+    "Checking In": {
+      label: locale === "vi" ? "Mở điểm danh" : "Check-in Open",
+      color: "bg-blue-50 text-blue-600 border-blue-200 shadow-blue-50",
+      icon: <UserPlus className="w-3.5 h-3.5" />
+    },
     "Ongoing": { label: t("phases.ongoing") || "Ongoing", color: "bg-emerald-50 text-emerald-600 border-emerald-200 shadow-emerald-50", icon: <Activity className="w-3.5 h-3.5" /> },
     "Upcoming": { label: t("phases.upcoming") || "Upcoming", color: "bg-amber-50 text-amber-700 border-amber-200 shadow-amber-50", icon: <Clock className="w-3.5 h-3.5" /> },
     "Completed": { label: t("phases.completed") || "Completed", color: "bg-slate-50 text-slate-500 border-slate-200 shadow-slate-50", icon: <CheckCircle className="w-3.5 h-3.5" /> },
   };
 
-  const config = configs[phase] || configs["Upcoming"];
+  const displayPhase =
+    attendancePhase === "Completed"
+      ? "Completed"
+      : attendancePhase === "Open" && !!openTime && now < openTime
+        ? "Checking In"
+        : phase;
+  const config = configs[displayPhase] || configs["Upcoming"];
 
   if (isSmall) {
     return (
@@ -831,6 +1319,7 @@ function StatusBadge({ subject, t, isSmall = false }: { subject: SubjectMonitorS
 }
 
 function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
+  const locale = useLocale();
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState<Array<SessionActivityItem & { roomNumber: string }>>([]);
 
@@ -876,14 +1365,14 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
     <div className="grid grid-rows-2 gap-6 h-full min-h-0">
       <Card className="rounded-3xl border-slate-200/80 h-full min-h-0">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">Message Board</CardTitle>
+          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">{locale === "vi" ? "Bảng tin" : "Message Board"}</CardTitle>
         </CardHeader>
         <CardContent className="h-[calc(100%-64px)] min-h-0">
           <ScrollArea className="h-full pr-3">
             {loading ? (
-              <p className="text-sm text-slate-500">Loading messages...</p>
+              <p className="text-sm text-slate-500">{locale === "vi" ? "Đang tải thông báo..." : "Loading messages..."}</p>
             ) : broadcasts.length === 0 ? (
-              <p className="text-sm text-slate-500">No broadcast messages for this subject yet.</p>
+              <p className="text-sm text-slate-500">{locale === "vi" ? "Chưa có thông báo nào cho môn này." : "No broadcast messages for this subject yet."}</p>
             ) : (
               <div className="space-y-3">
                 {broadcasts.map((item) => (
@@ -893,7 +1382,7 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
                       <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString()}</span>
                     </div>
                     <p className="mt-1 text-xs text-slate-600">{item.message}</p>
-                    <p className="mt-2 text-[11px] text-indigo-600 font-semibold">Room {item.roomNumber}</p>
+                    <p className="mt-2 text-[11px] text-indigo-600 font-semibold">{locale === "vi" ? `Phòng ${item.roomNumber}` : `Room ${item.roomNumber}`}</p>
                   </div>
                 ))}
               </div>
@@ -904,14 +1393,14 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
 
       <Card className="rounded-3xl border-slate-200/80 h-full min-h-0">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">Activity Log</CardTitle>
+          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">{locale === "vi" ? "Nhật ký hoạt động" : "Activity Log"}</CardTitle>
         </CardHeader>
         <CardContent className="h-[calc(100%-64px)] min-h-0">
           <ScrollArea className="h-full pr-3">
             {loading ? (
-              <p className="text-sm text-slate-500">Loading activities...</p>
+              <p className="text-sm text-slate-500">{locale === "vi" ? "Đang tải hoạt động..." : "Loading activities..."}</p>
             ) : activities.length === 0 ? (
-              <p className="text-sm text-slate-500">No activity recorded for this subject yet.</p>
+              <p className="text-sm text-slate-500">{locale === "vi" ? "Chưa có hoạt động nào cho môn này." : "No activity recorded for this subject yet."}</p>
             ) : (
               <div className="space-y-3">
                 {activities.map((item) => (
@@ -921,7 +1410,7 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
                       <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
                     </div>
                     <p className="mt-1 text-xs text-slate-600">{item.message}</p>
-                    <p className="mt-2 text-[11px] font-semibold text-orange-600">Room {item.roomNumber}</p>
+                    <p className="mt-2 text-[11px] font-semibold text-orange-600">{locale === "vi" ? `Phòng ${item.roomNumber}` : `Room ${item.roomNumber}`}</p>
                   </div>
                 ))}
               </div>
@@ -933,56 +1422,155 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
   );
 }
 
-function CountdownTimer({ endTime, startTime, status, size = "normal", inverse = false }: { endTime: string, startTime: string, status: string, size?: "normal" | "small", inverse?: boolean }) {
-  const [timeLeft, setTimeLeft] = useState("");
+function CountdownTimer({
+  endTime,
+  startTime,
+  status,
+  locale,
+  size = "normal",
+  inverse = false,
+}: {
+  endTime: string,
+  startTime: string,
+  status: string,
+  locale: string,
+  size?: "normal" | "small",
+  inverse?: boolean
+}) {
+  const [attendanceLine, setAttendanceLine] = useState("--");
+  const [examLine, setExamLine] = useState<string | null>(null);
+  const [attendanceTone, setAttendanceTone] = useState<"normal" | "active" | "locked" | "done">("normal");
   const [isUrgent, setIsUrgent] = useState(false);
 
   useEffect(() => {
     const calculateTime = () => {
-      const now = new Date().getTime();
-      const end = new Date(endTime).getTime();
-      const diff = end - now;
+      const startDate = parseLocalDate(startTime);
+      const endDate = parseLocalDate(endTime);
+      const phase = resolveMonitorPhase({
+        subjectCode: "",
+        examOpenTime: startTime,
+        examCloseTime: endTime,
+        status,
+        totalProctors: 0,
+        presentProctors: 0,
+        totalHallInvigilators: 0,
+        presentHallInvigilators: 0,
+        totalStudents: 0,
+        checkedInStudents: 0,
+        pendingTickets: 0,
+        sessions: [],
+      });
+      const attendancePhase = resolveAttendancePhase({
+        subjectCode: "",
+        examOpenTime: startTime,
+        examCloseTime: endTime,
+        status,
+        totalProctors: 0,
+        presentProctors: 0,
+        totalHallInvigilators: 0,
+        presentHallInvigilators: 0,
+        totalStudents: 0,
+        checkedInStudents: 0,
+        pendingTickets: 0,
+        sessions: [],
+      });
 
-      if (status !== "Ongoing") {
-        setTimeLeft("-- : --");
+      if (!startDate || !endDate) {
+        setAttendanceLine("--");
+        setExamLine(null);
+        setAttendanceTone("normal");
         return;
       }
 
-      if (diff <= 0) {
-        setTimeLeft("00:00");
+      const now = Date.now();
+      const attendanceOpenAt = getAttendanceOpenAt(startDate)?.getTime() ?? 0;
+      const attendanceCloseAt = getAttendanceCloseAt(startDate)?.getTime() ?? 0;
+      const examOpenAt = startDate.getTime();
+      const examCloseAt = endDate.getTime();
+
+      if (phase === "Completed" || now >= examCloseAt) {
+        setAttendanceLine(locale === "vi" ? "Đã kết thúc" : "Completed");
+        setExamLine(null);
+        setAttendanceTone("done");
+        setIsUrgent(false);
         return;
       }
 
-      const m = Math.floor(diff / (1000 * 60));
-      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      if (attendancePhase === "NotOpen" && now < attendanceOpenAt) {
+        setAttendanceLine(
+          `${locale === "vi" ? "Mở điểm danh sau" : "Check-in opens in"}: ${formatCountdownMs(attendanceOpenAt - now)}`
+        );
+        setAttendanceTone("normal");
+      } else if (attendancePhase === "Open" && now < attendanceCloseAt) {
+        setAttendanceLine(
+          `${locale === "vi" ? "Đang mở điểm danh" : "Check-in open"}: ${formatCountdownMs(attendanceCloseAt - now)}`
+        );
+        setAttendanceTone("active");
+      } else {
+        setAttendanceLine(locale === "vi" ? "Đã khóa điểm danh" : "Check-in locked");
+        setAttendanceTone("locked");
+      }
 
-      setIsUrgent(diff < 5 * 60 * 1000);
-      setTimeLeft(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      if (now >= examOpenAt && now < examCloseAt) {
+        const remainingExam = examCloseAt - now;
+        setExamLine(
+          `${locale === "vi" ? "Thời gian thi" : "Exam time"}: ${formatCountdownMs(remainingExam)}`
+        );
+        setIsUrgent(remainingExam < 5 * 60 * 1000);
+      } else {
+        setExamLine(null);
+        setIsUrgent(false);
+      }
     };
 
     calculateTime();
     const timer = setInterval(calculateTime, 1000);
     return () => clearInterval(timer);
-  }, [endTime, status]);
+  }, [endTime, startTime, status, locale]);
 
   return (
-    <div className={cn(
-      "flex items-center gap-1.5 font-bold tabular-nums",
-      isUrgent && !inverse ? "text-red-600 animate-pulse" : inverse ? "text-white" : "text-slate-600",
-      size === "normal" ? "text-sm" : "text-[11px]"
-    )}>
-      <Clock className={cn(size === "normal" ? "w-4 h-4" : "w-3 h-3")} />
-      {timeLeft}
+    <div className="flex flex-col items-start gap-1 min-w-0">
+      <div className={cn(
+        "flex items-center gap-1.5 font-bold tabular-nums min-w-0",
+        inverse
+          ? "text-white"
+          : attendanceTone === "active"
+            ? "text-emerald-600"
+            : attendanceTone === "locked"
+              ? "text-rose-600"
+              : attendanceTone === "done"
+                ? "text-slate-500"
+                : "text-slate-700",
+        size === "normal" ? "text-sm" : "text-[11px]"
+      )}>
+        <Clock className={cn(size === "normal" ? "w-4 h-4" : "w-3 h-3")} />
+        <span className="truncate">{attendanceLine}</span>
+      </div>
+      {examLine && (
+        <div className={cn(
+          "flex items-center gap-1.5 font-semibold tabular-nums min-w-0",
+          isUrgent && !inverse ? "text-red-600 animate-pulse" : inverse ? "text-white/90" : "text-indigo-600",
+          size === "normal" ? "text-xs" : "text-[10px]"
+        )}>
+          <Clock className={cn(size === "normal" ? "w-3.5 h-3.5" : "w-3 h-3")} />
+          <span className="truncate">{examLine}</span>
+        </div>
+      )}
     </div>
   );
 }
 
 function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
+  const router = useRouter();
+  const locale = useLocale();
   const [activityOpen, setActivityOpen] = useState(false);
 
   return (
     <>
-      <Card className="shadow-lg border-slate-200/80 hover:border-orange-500/50 hover:shadow-orange-100/30 transition-all duration-300 overflow-hidden group/room">
+      <Card
+        className="shadow-lg border-slate-200/80 hover:border-orange-500/50 hover:shadow-orange-100/30 transition-all duration-300 overflow-hidden group/room cursor-pointer"
+        onClick={() => router.push(`/${locale}/exam-officer/exam-schedules/${session.sessionId}`)}
+      >
         <div className="p-4 border-b bg-slate-50/50 flex flex-row justify-between items-center group-hover/room:bg-orange-50/20 transition-colors">
           <div className="flex items-center gap-2">
              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
@@ -1000,10 +1588,10 @@ function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
           <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
             <div className="flex flex-col">
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                 {t("drilldown.proctor")} • {session.proctorOnline ? "Checked in" : "Not checked in"}
+                 {t("drilldown.proctor")} • {session.proctorOnline ? (locale === "vi" ? "Đã check-in" : "Checked in") : (locale === "vi" ? "Chưa check-in" : "Not checked in")}
                </span>
                <span className={cn("text-xs font-black", !session.proctorOnline && 'text-red-500')}>
-                 {session.proctorName || t("drilldown.notInRoom") || "Not Assigned"}
+                  {session.proctorName || t("drilldown.notInRoom") || (locale === "vi" ? "Chưa phân công" : "Not Assigned")}
                </span>
             </div>
             <span className={cn("w-2.5 h-2.5 rounded-full ring-4 shadow-sm", session.proctorOnline ? "bg-green-500 ring-green-50 shadow-green-100" : "bg-red-400 ring-red-50")} />
@@ -1013,7 +1601,7 @@ function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
             <div className="flex flex-col">
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("drilldown.hall")}</span>
                <span className={cn("text-xs font-black", !session.hallInvigilatorOnline && 'text-red-500')}>
-                 {session.hallInvigilatorName || t("drilldown.notInRoom") || "Not Assigned"}
+                  {session.hallInvigilatorName || t("drilldown.notInRoom") || (locale === "vi" ? "Chưa phân công" : "Not Assigned")}
                </span>
             </div>
             <span className={cn("w-2.5 h-2.5 rounded-full ring-4 shadow-sm", session.hallInvigilatorOnline ? "bg-green-500 ring-green-50 shadow-green-100" : "bg-red-400 ring-red-50")} />
@@ -1035,10 +1623,13 @@ function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
         <Button
           variant="outline"
           className="h-9 w-full rounded-lg border-slate-200 text-xs font-bold text-slate-600 gap-2"
-          onClick={() => setActivityOpen(true)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setActivityOpen(true);
+          }}
         >
           <History className="w-3.5 h-3.5" />
-          Activity Log
+          {locale === "vi" ? "Nhật ký hoạt động" : "Activity Log"}
         </Button>
       </CardContent>
       </Card>
@@ -1110,3 +1701,4 @@ function RoomActivityDialog({
     </Dialog>
   );
 }
+

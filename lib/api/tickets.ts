@@ -6,7 +6,7 @@ export type IssueType =
     | "Room Management"
     | "Face Mismatch";
 
-export type TicketPriority = "Low" | "Medium" | "High" | "Urgent";
+export type TicketPriority = "Normal" | "Urgent";
 export type TicketStatus = "Open" | "In Progress" | "Resolved" | "Closed" | "OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED";
 
 export interface TicketReporter {
@@ -35,6 +35,18 @@ export interface TicketFull {
     attachment?: string | null;
     resolveNote?: string | null;
     techNote?: string | null;
+    finalIssueName?: string | null;
+    finalIssueType?: IssueType | string | null;
+    finalIssueCustomText?: string | null;
+    resolutionCode?: string | null;
+    resolutionCustomText?: string | null;
+    resolutionStandardText?: string | null;
+    needsAiReview?: boolean;
+    aiTrainingStatus?: "PENDING_REVIEW" | "APPROVED" | "REJECTED" | string | null;
+    reviewNote?: string | null;
+    reviewedBy?: string | null;
+    reviewedAt?: string | null;
+    ocrText?: string | null;
     createdById?: string;
     reporterId?: string;
     studentCode?: string | null;
@@ -56,6 +68,7 @@ export interface CreateTicketData {
     studentCode?: string;
     /** studentExamId to link a student to this ticket (optional) */
     studentExamId?: string;
+    confirmedAssignmentType?: "HALL_INVIGILATOR" | "EXAM_OFFICER";
 }
 
 export interface ListTicketsParams {
@@ -67,22 +80,52 @@ export interface ListTicketsParams {
 }
 
 export interface ProcessTicketData {
-    action: "resolve" | "assign" | "start";
-    resolveNote: string;
+    action: "assign" | "reassign" | "change_status" | "resolve" | "start";
+    status?: "OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED" | "PENDING";
     assigneeId?: string;
+    note?: string;
+    resolveNote?: string;
+    finalIssueName?: string;
+    finalIssueType?: string;
+    finalIssueCustomText?: string | null;
+    resolutionCode?: string | null;
+    resolutionCustomText?: string | null;
+    resolutionStandardText?: string | null;
 }
 
 export interface BulkProcessTicketData {
     ticketIds: string[];
-    action: "resolve" | "assign";
-    resolveNote: string;
+    action: "assign" | "change_status" | "resolve";
+    note?: string;
+    status?: "OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED" | "PENDING";
     assigneeId?: string;
+    resolveNote?: string;
 }
 
 export interface BulkProcessResult {
     processed: number;
     failed: number;
     details: { ticketId: string; success: boolean; error?: string }[];
+}
+
+export interface ReviewTicketData {
+    aiTrainingStatus: "APPROVED" | "REJECTED";
+    finalIssueName?: string;
+    finalIssueType?: string;
+    resolutionCode?: string;
+    resolutionStandardText?: string | null;
+    reviewNote?: string;
+}
+
+export interface CommentTicketData {
+    content: string;
+    useForAiTraining?: boolean;
+    finalIssueName?: string;
+    finalIssueType?: string;
+    finalIssueCustomText?: string | null;
+    resolutionCode?: string | null;
+    resolutionCustomText?: string | null;
+    resolutionStandardText?: string | null;
 }
 
 export const ticketsApi = {
@@ -103,6 +146,16 @@ export const ticketsApi = {
 
     process: async (id: string, data: ProcessTicketData): Promise<TicketFull> => {
         const response = await apiClient.patch<{ data: TicketFull }>(`/tickets/${id}/process`, data);
+        return response.data?.data ?? (response.data as any);
+    },
+
+    review: async (id: string, data: ReviewTicketData): Promise<TicketFull> => {
+        const response = await apiClient.patch<{ data: TicketFull }>(`/tickets/${id}/review`, data);
+        return response.data?.data ?? (response.data as any);
+    },
+
+    comment: async (id: string, data: CommentTicketData): Promise<TicketFull> => {
+        const response = await apiClient.post<{ data: TicketFull }>(`/tickets/${id}/comments`, data);
         return response.data?.data ?? (response.data as any);
     },
 

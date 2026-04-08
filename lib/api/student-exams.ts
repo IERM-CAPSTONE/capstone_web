@@ -35,6 +35,7 @@ export interface ListStudentExamsParams {
     limit?: number;
     examSessionId?: string;
     studentId?: string;
+    studentCode?: string;
     status?: string;
 }
 

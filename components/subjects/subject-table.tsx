@@ -86,9 +86,11 @@ export function SubjectTable({
                         <th className="text-left px-8 py-6 font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]">
                             {t("parts")}
                         </th>
-                        <th className="text-right px-8 py-6 font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]">
-                            {tCommon("actions")}
-                        </th>
+                        {(onEdit || onDelete) && (
+                            <th className="text-right px-8 py-6 font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]">
+                                {tCommon("actions")}
+                            </th>
+                        )}
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -154,31 +156,33 @@ export function SubjectTable({
                                     )}
                                 </div>
                             </td>
-                            <td className="px-8 py-6">
-                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    {onEdit && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => onEdit(subject)}
-                                            className="h-10 px-4 border-slate-100 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition-all shadow-sm"
-                                        >
-                                            <Edit className="h-4 w-4 mr-2" />
-                                            <span className="text-xs font-bold">{tCommon("edit")}</span>
-                                        </Button>
-                                    )}
-                                    {onDelete && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => onDelete(subject.id)}
-                                            className="h-10 px-4 border-slate-100 hover:border-red-200 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all shadow-sm"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </td>
+                            {(onEdit || onDelete) && (
+                                <td className="px-8 py-6">
+                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        {onEdit && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onEdit(subject)}
+                                                className="h-10 px-4 border-slate-100 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition-all shadow-sm"
+                                            >
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                <span className="text-xs font-bold">{tCommon("edit")}</span>
+                                            </Button>
+                                        )}
+                                        {onDelete && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onDelete(subject.id)}
+                                                className="h-10 px-4 border-slate-100 hover:border-red-200 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all shadow-sm"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </td>
+                            )}
                         </tr>
                     ))}
                 </tbody>
