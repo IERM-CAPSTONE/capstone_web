@@ -532,7 +532,7 @@ export default function ExamOfficerReportsPage() {
                                 <>
                                     <p className="text-2xl font-black text-indigo-600">{totalScheduleChanges}</p>
                                     <p className="text-xs text-gray-500 font-medium mt-0.5">Total Schedule Change Requests</p>
-                                    <p className="text-[11px] text-indigo-500 font-semibold mt-1">Submitted by all Proctors (Giám thị A)</p>
+                                    <p className="text-[11px] text-indigo-500 font-semibold mt-1">Submitted by all Proctors</p>
                                 </>
                             )}
                         </div>
@@ -548,7 +548,7 @@ export default function ExamOfficerReportsPage() {
                                 <>
                                     <p className="text-2xl font-black text-teal-600">{totalHallTickets}</p>
                                     <p className="text-xs text-gray-500 font-medium mt-0.5">Tickets Handled by Hall Invigilators</p>
-                                    <p className="text-[11px] text-teal-500 font-semibold mt-1">Assigned to Giám thị hành lang (B)</p>
+                                    <p className="text-[11px] text-teal-500 font-semibold mt-1">Assigned to Hall Invigilators</p>
                                 </>
                             )}
                         </div>
@@ -783,7 +783,7 @@ export default function ExamOfficerReportsPage() {
                         <div className="flex items-center gap-2">
                             <ArrowLeftRight className="w-4 h-4 text-indigo-500" />
                             <div>
-                                <h2 className="text-sm font-black text-gray-800">Proctor (Giám thị A) — Schedule Change Requests</h2>
+                                <h2 className="text-sm font-black text-gray-800">Proctor — Schedule Change Requests</h2>
                                 <p className="text-[10px] text-gray-400">Number of schedule swap applications submitted by each proctor — ranked by most changes</p>
                             </div>
                         </div>
@@ -854,7 +854,7 @@ export default function ExamOfficerReportsPage() {
                         <div className="flex items-center gap-2">
                             <UserCheck className="w-4 h-4 text-teal-500" />
                             <div>
-                                <h2 className="text-sm font-black text-gray-800">Hall Invigilator (Giám thị hành lang B) — Ticket Handling</h2>
+                                <h2 className="text-sm font-black text-gray-800">Hall Invigilator — Ticket Handling</h2>
                                 <p className="text-[10px] text-gray-400">Number of tickets assigned and handled by each Hall Invigilator</p>
                             </div>
                         </div>
