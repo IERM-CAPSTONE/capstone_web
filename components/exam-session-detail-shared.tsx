@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -385,12 +385,16 @@ interface StudentPanelProps {
     seat: ExamSeat | null;
     isSelected: boolean;
     canCreateTicket: boolean;
+    canSwapSeat: boolean;
+    isSwapping: boolean;
+    locale: string;
     onToggleSelect: () => void;
     onClose: () => void;
     onCreateTicket: () => void;
+    onSwapModeStart: () => void;
 }
 
-function StudentPanel({ student, seat, isSelected, canCreateTicket, onToggleSelect, onClose, onCreateTicket }: StudentPanelProps) {
+function StudentPanel({ student, seat, isSelected, canCreateTicket, canSwapSeat, isSwapping, locale, onToggleSelect, onClose, onCreateTicket, onSwapModeStart }: StudentPanelProps) {
     const t = useTranslations("ProctorSession");
     if (!student) return null;
 
@@ -451,8 +455,22 @@ function StudentPanel({ student, seat, isSelected, canCreateTicket, onToggleSele
             </div>
 
             {/* Action buttons */}
-            {canCreateTicket && (
-                <div className="pt-3 space-y-2 border-t border-slate-100 mt-3">
+            <div className="pt-3 space-y-2 border-t border-slate-100 mt-3">
+                {canSwapSeat && seat && (
+                    <Button
+                        variant="outline"
+                        className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 gap-2 text-sm"
+                        onClick={onSwapModeStart}
+                        disabled={isSwapping}
+                    >
+                        {isSwapping
+                            ? (locale === "vi" ? "Đang đổi chỗ..." : "Swapping...")
+                            : (locale === "vi" ? "Đổi chỗ" : "Change seat")}
+                    </Button>
+                )}
+
+                {canCreateTicket && (
+                    <>
                     <button
                         onClick={onToggleSelect}
                         className={cn("w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all",
@@ -470,8 +488,9 @@ function StudentPanel({ student, seat, isSelected, canCreateTicket, onToggleSele
                     >
                         <Ticket className="w-4 h-4" /> {t("createTicketForStudent")}
                     </Button>
-                </div>
-            )}
+                    </>
+                )}
+            </div>
         </div>
     );
 }
@@ -484,18 +503,28 @@ interface SeatingFloorPlanProps {
     rows: number;
     selectedIds: Set<string>;
     onSeatClick: (seat: ExamSeat, student: StudentExam | null) => void;
+    onSeatLongPress?: (seat: ExamSeat, student: StudentExam | null) => void;
     activeSeatId: string | null;
+    swapSourceSeatId?: string | null;
+    swapModeEnabled?: boolean;
+    canSwapSeat?: boolean;
 }
 
-function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClick, activeSeatId }: SeatingFloorPlanProps) {
+function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClick, onSeatLongPress, activeSeatId, swapSourceSeatId = null, swapModeEnabled = false, canSwapSeat = false }: SeatingFloorPlanProps) {
     const t = useTranslations("ProctorSession");
-    const seatMap: Map<string, ExamSeat> = new Map();
-    seats.forEach(s => seatMap.set(`${s.row}-${s.col}`, s));
+    const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const suppressClickSeatIdRef = useRef<string | null>(null);
+    const [hoverSeatId, setHoverSeatId] = useState<string | null>(null);
 
-    const studentBySeat: Map<string, StudentExam> = new Map();
+    const studentBySeatPosition: Map<string, StudentExam> = new Map();
+    const studentByLegacySeat: Map<string, StudentExam> = new Map();
     students.forEach(st => {
-        if (!st.seatNumber) return;
-        studentBySeat.set(st.seatNumber, st);
+        if (st.seatPosition) {
+            studentBySeatPosition.set(st.seatPosition, st);
+        } else if (st.seatNumber) {
+            // Legacy fallback for records that do not have physical seat assignment yet.
+            studentByLegacySeat.set(st.seatNumber, st);
+        }
     });
 
     return (
@@ -523,19 +552,66 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                 {Array.from({ length: rows }, (_, r) =>
                     Array.from({ length: cols }, (_, c) => {
                         const row = r + 1, col = c + 1;
-                        const seat = seatMap.get(`${row}-${col}`);
+                        const seat = seats.find(s => s.row === row && s.col === col);
                         const seatNum = ((row - 1) * cols + col).toString();
                         const seatRowCol = `${row}-${col}`;
-                        const student = studentBySeat.get(seatRowCol) ?? studentBySeat.get(seatNum);
+                        const student = (seat?.id ? studentBySeatPosition.get(seat.id) : undefined)
+                            ?? studentByLegacySeat.get(seatRowCol)
+                            ?? studentByLegacySeat.get(seatNum)
+                            ?? null;
                         const normalizedSeatStatus = seat?.status === "Assigned" ? "Absent" : (seat?.status ?? "Available");
                         const style = SEAT_STYLE[normalizedSeatStatus];
                         const isActive = seat?.id === activeSeatId;
                         const isSelected = student ? selectedIds.has(student.id) : false;
+                        const isSwapSource = seat?.id === swapSourceSeatId;
+                        const isSwapTargetHover = seat?.id === hoverSeatId && !!swapSourceSeatId && seat?.id !== swapSourceSeatId;
+
+                        const clearLongPress = () => {
+                            if (pressTimerRef.current) {
+                                clearTimeout(pressTimerRef.current);
+                                pressTimerRef.current = null;
+                            }
+                        };
+
+                        const startLongPress = () => {
+                            if (!seat || !onSeatLongPress || !canSwapSeat) return;
+                            clearLongPress();
+                            pressTimerRef.current = setTimeout(() => {
+                                suppressClickSeatIdRef.current = seat.id;
+                                onSeatLongPress(seat, student ?? null);
+                            }, 450);
+                        };
 
                         return (
                             <div
                                 key={`${row}-${col}`}
-                                onClick={() => seat && onSeatClick(seat, student ?? null)}
+                                onClick={() => {
+                                    if (!seat) return;
+                                    if (suppressClickSeatIdRef.current === seat.id) {
+                                        suppressClickSeatIdRef.current = null;
+                                        return;
+                                    }
+                                    onSeatClick(seat, student ?? null);
+                                }}
+                                onMouseDown={startLongPress}
+                                onMouseUp={clearLongPress}
+                                onMouseLeave={() => {
+                                    clearLongPress();
+                                    setHoverSeatId(null);
+                                }}
+                                onMouseEnter={() => {
+                                    if (swapSourceSeatId && seat) {
+                                        setHoverSeatId(seat.id);
+                                    }
+                                }}
+                                onMouseUpCapture={() => {
+                                    if (!seat || !swapSourceSeatId || seat.id === swapSourceSeatId) return;
+                                    suppressClickSeatIdRef.current = seat.id;
+                                    onSeatClick(seat, student ?? null);
+                                }}
+                                onTouchStart={startLongPress}
+                                onTouchEnd={clearLongPress}
+                                onTouchCancel={clearLongPress}
                                 className={cn(
                                     "relative flex flex-col items-center justify-center rounded-xl border-2 transition-all cursor-pointer select-none",
                                     "h-[76px] px-1",
@@ -543,7 +619,10 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                                     !seat && "opacity-30 cursor-default",
                                     isActive && `ring-2 ${style.ring} ring-offset-1 scale-[1.06] z-10 shadow-lg`,
                                     isSelected && !isActive && "ring-2 ring-orange-300 ring-offset-1",
-                                    seat && "hover:scale-[1.04] hover:shadow-md hover:z-10"
+                                    seat && "hover:scale-[1.04] hover:shadow-md hover:z-10",
+                                    isSwapSource && "ring-2 ring-blue-500 ring-offset-1",
+                                    isSwapTargetHover && "ring-2 ring-emerald-400 ring-offset-1 scale-[1.04]",
+                                    swapModeEnabled && seat && !isSwapSource && "ring-1 ring-blue-200"
                                 )}
                             >
                                 {isSelected && (
@@ -655,7 +734,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
         isLoading: studentsLoading,
         refetch: refetchStudents,
     } = useStudentExamsBySession(scheduleId);
-    const { seats, loading: seatsLoading, fetchSeats } = useSeatManagement(scheduleId);
+    const { seats, loading: seatsLoading, fetchSeats, swapSeats } = useSeatManagement(scheduleId);
 
     const students = studentsResp?.data ?? [];
     const rows = schedule?.maxRows ?? 5;
@@ -663,9 +742,19 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
 
     const [viewMode, setViewMode] = useState<ViewMode>("seating");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [activeStudent, setActiveStudent] = useState<StudentExam | null>(null);
-    const [activeSeat, setActiveSeat] = useState<ExamSeat | null>(null);
+    const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
+    const [activeSeatId, setActiveSeatId] = useState<string | null>(null);
     const [showTicketDialog, setShowTicketDialog] = useState(false);
+    const [swapSourceSeat, setSwapSourceSeat] = useState<ExamSeat | null>(null);
+    const [isSwappingSeat, setIsSwappingSeat] = useState(false);
+    const activeStudent = activeStudentId
+        ? students.find(s => s.id === activeStudentId) ?? null
+        : null;
+    const activeSeat = activeStudent?.seatPosition
+        ? seats.find(s => s.id === activeStudent.seatPosition) ?? null
+        : activeSeatId
+            ? seats.find(s => s.id === activeSeatId) ?? null
+            : null;
 
     useEffect(() => { fetchSeats(); }, [scheduleId, fetchSeats]);
 
@@ -690,15 +779,65 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
     }, []);
 
     const handleSeatClick = (seat: ExamSeat, student: StudentExam | null) => {
-        setActiveSeat(seat);
-        setActiveStudent(student);
+        if (swapSourceSeat) {
+            void handleSwapTargetSelect(seat);
+            return;
+        }
+        setActiveSeatId(seat.id);
+        setActiveStudentId(student?.id ?? null);
+    };
+
+    const normalizedRole = String(user?.role || '').toLowerCase();
+    const canSwapSeat = ["admin", "exam_officer", "proctor"].includes(normalizedRole);
+
+    const startSwapModeFromSeat = (seat: ExamSeat, student: StudentExam | null) => {
+        if (!canSwapSeat) return;
+        setSwapSourceSeat(seat);
+        setActiveSeatId(seat.id);
+        setActiveStudentId(student?.id ?? null);
+        toast.info(locale === "vi"
+            ? `Đang chọn đổi chỗ từ R${seat.row}C${seat.col}. Hãy chọn ghế đích.`
+            : `Swap mode started from R${seat.row}C${seat.col}. Select target seat.`);
+    };
+
+    const cancelSwapMode = () => {
+        setSwapSourceSeat(null);
+        setIsSwappingSeat(false);
+    };
+
+    const handleSwapTargetSelect = async (targetSeat: ExamSeat) => {
+        if (!swapSourceSeat) return;
+        if (targetSeat.id === swapSourceSeat.id) {
+            toast.error(locale === "vi" ? "Vui lòng chọn ghế khác" : "Please select a different target seat");
+            return;
+        }
+
+        try {
+            setIsSwappingSeat(true);
+            const result = await swapSeats(swapSourceSeat.id, targetSeat.id);
+            if (!result.success) {
+                toast.error(result.error || (locale === "vi" ? "Đổi chỗ thất bại" : "Swap failed"));
+                return;
+            }
+
+            toast.success(locale === "vi"
+                ? `Đã đổi chỗ R${swapSourceSeat.row}C${swapSourceSeat.col} ↔ R${targetSeat.row}C${targetSeat.col}`
+                : `Swapped R${swapSourceSeat.row}C${swapSourceSeat.col} ↔ R${targetSeat.row}C${targetSeat.col}`);
+            setSwapSourceSeat(null);
+            await Promise.all([fetchSeats(), refetchStudents()]);
+        } catch {
+            toast.error(locale === "vi" ? "Có lỗi khi đổi chỗ" : "Unexpected error while swapping seats");
+        } finally {
+            setIsSwappingSeat(false);
+        }
     };
 
     const handleStudentClick = (student: StudentExam) => {
-        setActiveStudent(student);
-        const seatNum = student.seatNumber;
-        const seat = seats.find(s => ((s.row - 1) * cols + s.col).toString() === seatNum);
-        setActiveSeat(seat ?? null);
+        setActiveStudentId(student.id);
+        const seat = student.seatPosition
+            ? seats.find(s => s.id === student.seatPosition)
+            : seats.find(s => ((s.row - 1) * cols + s.col).toString() === student.seatNumber);
+        setActiveSeatId(seat?.id ?? null);
     };
 
     const selectedStudents = students.filter(s => selectedIds.has(s.id));
@@ -813,7 +952,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                         </Button>
                     )}
                     {canCreateTicket ? (
-                        <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm" onClick={() => { setSelectedIds(new Set()); setActiveStudent(null); setShowTicketDialog(true); }}>
+                        <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm" onClick={() => { setSelectedIds(new Set()); setActiveStudentId(null); setActiveSeatId(null); setShowTicketDialog(true); }}>
                             <Ticket className="h-4 w-4" />{t("createTicket")}
                         </Button>
                     ) : (
@@ -949,6 +1088,23 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                         </div>
 
                         <div className={cn("overflow-y-auto h-[calc(100%-64px)]", viewMode === "seating" ? "p-5" : "")}>
+                            {swapSourceSeat && (
+                                <div className="mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
+                                    <p className="text-xs text-blue-700 font-medium">
+                                        {locale === "vi"
+                                            ? `Chế độ đổi chỗ: nguồn R${swapSourceSeat.row}C${swapSourceSeat.col}. Chọn ghế đích.`
+                                            : `Swap mode: source R${swapSourceSeat.row}C${swapSourceSeat.col}. Select target seat.`}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={cancelSwapMode}
+                                        className="text-[11px] px-2.5 py-1 rounded border border-blue-300 text-blue-700 font-bold hover:bg-blue-100"
+                                    >
+                                        {locale === "vi" ? "Huỷ" : "Cancel"}
+                                    </button>
+                                </div>
+                            )}
+
                             {seatsLoading || studentsLoading ? (
                                 <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
                                     <Loader2 className="w-5 h-5 animate-spin" /><span className="text-sm">{t("loading")}</span>
@@ -961,7 +1117,11 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                     cols={cols}
                                     selectedIds={selectedIds}
                                     onSeatClick={handleSeatClick}
+                                    onSeatLongPress={startSwapModeFromSeat}
                                     activeSeatId={activeSeat?.id ?? null}
+                                    swapSourceSeatId={swapSourceSeat?.id ?? null}
+                                    swapModeEnabled={!!swapSourceSeat}
+                                    canSwapSeat={canSwapSeat}
                                 />
                             ) : (
                                 <StudentListView
@@ -1004,11 +1164,17 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                 seat={activeSeat}
                                 isSelected={selectedIds.has(activeStudent.id)}
                                 canCreateTicket={canCreateTicket}
+                                canSwapSeat={canSwapSeat}
+                                isSwapping={isSwappingSeat}
+                                locale={locale}
                                 onToggleSelect={() => toggleStudent(activeStudent.id)}
-                                onClose={() => { setActiveStudent(null); setActiveSeat(null); }}
+                                onClose={() => { setActiveStudentId(null); setActiveSeatId(null); }}
                                 onCreateTicket={() => {
                                     if (!selectedIds.has(activeStudent.id)) toggleStudent(activeStudent.id);
                                     setShowTicketDialog(true);
+                                }}
+                                onSwapModeStart={() => {
+                                    if (activeSeat) startSwapModeFromSeat(activeSeat, activeStudent);
                                 }}
                             />
                         </Card>
@@ -1017,7 +1183,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                             <div className="flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                                     <h3 className="font-bold text-slate-900 text-sm">{locale === "vi" ? "Chi tiết ghế" : "Seat detail"}</h3>
-                                    <button onClick={() => setActiveSeat(null)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                                    <button onClick={() => setActiveSeatId(null)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
