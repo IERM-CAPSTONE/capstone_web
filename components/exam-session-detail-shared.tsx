@@ -515,6 +515,7 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
     const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const suppressClickSeatIdRef = useRef<string | null>(null);
     const [hoverSeatId, setHoverSeatId] = useState<string | null>(null);
+    const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null);
 
     const studentBySeatPosition: Map<string, StudentExam> = new Map();
     const studentByLegacySeat: Map<string, StudentExam> = new Map();
@@ -526,6 +527,45 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
             studentByLegacySeat.set(st.seatNumber, st);
         }
     });
+
+    const dragSourceSeat = swapSourceSeatId
+        ? seats.find(s => s.id === swapSourceSeatId) ?? null
+        : null;
+    const dragSourceStudent = swapSourceSeatId
+        ? studentBySeatPosition.get(swapSourceSeatId) ?? null
+        : null;
+
+    useEffect(() => {
+        if (!swapModeEnabled) {
+            setDragPointer(null);
+            setHoverSeatId(null);
+            return;
+        }
+
+        const onMouseMove = (event: MouseEvent) => {
+            setDragPointer({ x: event.clientX, y: event.clientY });
+        };
+        const onTouchMove = (event: TouchEvent) => {
+            const touch = event.touches[0];
+            if (!touch) return;
+            setDragPointer({ x: touch.clientX, y: touch.clientY });
+        };
+        const onPointerEnd = () => {
+            setHoverSeatId(null);
+        };
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("touchmove", onTouchMove, { passive: true });
+        window.addEventListener("mouseup", onPointerEnd);
+        window.addEventListener("touchend", onPointerEnd);
+
+        return () => {
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("touchmove", onTouchMove);
+            window.removeEventListener("mouseup", onPointerEnd);
+            window.removeEventListener("touchend", onPointerEnd);
+        };
+    }, [swapModeEnabled]);
 
     return (
         <div>
@@ -573,9 +613,12 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                             }
                         };
 
-                        const startLongPress = () => {
+                        const startLongPress = (x?: number, y?: number) => {
                             if (!seat || !onSeatLongPress || !canSwapSeat) return;
                             clearLongPress();
+                            if (typeof x === "number" && typeof y === "number") {
+                                setDragPointer({ x, y });
+                            }
                             pressTimerRef.current = setTimeout(() => {
                                 suppressClickSeatIdRef.current = seat.id;
                                 onSeatLongPress(seat, student ?? null);
@@ -593,11 +636,16 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                                     }
                                     onSeatClick(seat, student ?? null);
                                 }}
-                                onMouseDown={startLongPress}
+                                onMouseDown={(event) => startLongPress(event.clientX, event.clientY)}
                                 onMouseUp={clearLongPress}
                                 onMouseLeave={() => {
                                     clearLongPress();
                                     setHoverSeatId(null);
+                                }}
+                                onMouseMove={(event) => {
+                                    if (swapModeEnabled) {
+                                        setDragPointer({ x: event.clientX, y: event.clientY });
+                                    }
                                 }}
                                 onMouseEnter={() => {
                                     if (swapSourceSeatId && seat) {
@@ -609,7 +657,10 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                                     suppressClickSeatIdRef.current = seat.id;
                                     onSeatClick(seat, student ?? null);
                                 }}
-                                onTouchStart={startLongPress}
+                                onTouchStart={(event) => {
+                                    const touch = event.touches[0];
+                                    startLongPress(touch?.clientX, touch?.clientY);
+                                }}
                                 onTouchEnd={clearLongPress}
                                 onTouchCancel={clearLongPress}
                                 className={cn(
@@ -659,6 +710,25 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                     {t("teacherDesk")}
                 </div>
             </div>
+
+            {swapModeEnabled && dragSourceSeat && dragPointer && (
+                <div
+                    className="fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: dragPointer.x, top: dragPointer.y }}
+                >
+                    <div className="min-w-[110px] rounded-xl border-2 border-blue-400 bg-white/95 shadow-2xl shadow-blue-200 px-3 py-2 rotate-2">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-blue-500">
+                            Dragging
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-700">
+                            R{dragSourceSeat.row}C{dragSourceSeat.col}
+                        </p>
+                        <p className="text-[11px] font-black text-blue-700 truncate max-w-[120px]">
+                            {dragSourceStudent?.studentCode || "Empty seat"}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
