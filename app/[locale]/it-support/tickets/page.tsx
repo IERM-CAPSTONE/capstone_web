@@ -243,8 +243,20 @@ export default function ITSupportTicketsPage() {
             const payload =
                 nextStatus === "SOLVED"
                     ? { ticketIds: ids, action: "resolve" as const, resolveNote: note.trim() || "Resolved by IT support" }
-                    : { ticketIds: ids, action: "change_status" as const, status: nextStatus, note: note.trim() };
-            const r = await ticketsApi.bulkProcess(payload);
+                    : {
+                        ticketIds: ids,
+                        action: "LIFECYCLE" as const,
+                        lifecycleAction:
+                            nextStatus === "OPEN"
+                                ? "REOPEN"
+                                : nextStatus === "IN_PROGRESS"
+                                    ? "START"
+                                    : "CLOSE",
+                        note: note.trim(),
+                    };
+            const r = nextStatus === "SOLVED"
+                ? await ticketsApi.bulkProcess(payload as any)
+                : await ticketsApi.bulkAction(payload as any);
             toast.success(`Updated ${r.processed} ticket(s).`);
             setSelectedIds(new Set());
             setNote("");
@@ -258,7 +270,7 @@ export default function ITSupportTicketsPage() {
         if (!note.trim()) return toast.warning("Enter a comment.");
         setProcessing("bulk");
         try {
-            await ticketsApi.comment([...selectedIds][0], { content: note.trim() });
+            await ticketsApi.comment([...selectedIds][0], { mode: "DISCUSSION", body: note.trim() });
             toast.success("Comment added.");
             setNote("");
             await fetchTickets();
@@ -451,12 +463,16 @@ export default function ITSupportTicketsPage() {
                                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                                     <span
                                                                                         className={cn("px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0", STATUS_CLS[ticket.status])}
-                                                                                        title={ticket.techNote || undefined}
+                                                                                        title={ticket.latestSummary || ticket.techNote || undefined}
                                                                                     >
                                                                                         {t(`status.${ticket.status}` as any)}
                                                                                     </span>
                                                                                     {isInProgress && timerStart && <TimerBadge startISO={timerStart} />}
-                                                                                    
+                                                                                    {(ticket.latestSummary || ticket.techNote) && (
+                                                                                        <span className="text-[9px] text-purple-700 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-md truncate max-w-[140px]" title={ticket.latestSummary || ticket.techNote || undefined}>
+                                                                                            {ticket.latestSummary || ticket.techNote}
+                                                                                        </span>
+                                                                                    )}
                                                                                 </div>
                                                                                 <div className="flex flex-col gap-0.5 items-end">
                                                                                     <span className="text-[11px] text-slate-400 tabular-nums font-mono">{format(new Date(ticket.createdAt), "HH:mm")}</span>

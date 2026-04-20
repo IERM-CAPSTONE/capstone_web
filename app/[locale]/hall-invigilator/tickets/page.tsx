@@ -253,14 +253,13 @@ export default function HallInvigilatorTicketsPage() {
         if (!ids.length) { setProcessing(null); return; }
         setProcessing("bulk");
         try {
-            if (ids.length === 1) {
-                await ticketsApi.process(ids[0], { action: "resolve", resolveNote: note || t("resolve.confirm") });
-                setTickets(prev => prev.map(tk => tk.id === ids[0] ? { ...tk, status: "SOLVED" as any, resolveNote: note } : tk));
-            } else {
-                await (ticketsApi as any).bulkProcess?.({ ticketIds: ids, action: "resolve", resolveNote: note }) ??
-                    Promise.all(ids.map(id => ticketsApi.process(id, { action: "resolve", resolveNote: note || t("resolve.confirm") })));
-                setTickets(prev => prev.map(tk => ids.includes(tk.id) ? { ...tk, status: "SOLVED" as any, resolveNote: note } : tk));
-            }
+            await (ticketsApi as any).bulkAction?.({
+                ticketIds: ids,
+                action: "COMMENT",
+                mode: "RESOLUTION",
+                body: note || t("resolve.confirm"),
+            }) ?? Promise.all(ids.map(id => ticketsApi.process(id, { action: "resolve", resolveNote: note || t("resolve.confirm") })));
+            setTickets(prev => prev.map(tk => ids.includes(tk.id) ? { ...tk, status: "SOLVED" as any, resolveNote: note, latestSummary: note } : tk));
             toast.success(`✅ ${t("toast.resolveSuccess")} (${ids.length})`);
             setSelectedIds(new Set());
         } catch { toast.error(t("toast.resolveError")); }
@@ -465,9 +464,9 @@ export default function HallInvigilatorTicketsPage() {
                                                                                         {ticket.status === "IN_PROGRESS" && (
                                                                                             <TimerBadge startISO={ticket.updatedAt} />
                                                                                         )}
-                                                                                        {ticket.resolveNote && (
-                                                                                            <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md truncate max-w-[80px]" title={ticket.resolveNote}>
-                                                                                                {ticket.resolveNote}
+                                                                                        {(ticket.latestSummary || ticket.resolveNote) && (
+                                                                                            <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md truncate max-w-[120px]" title={ticket.latestSummary || ticket.resolveNote || undefined}>
+                                                                                                {ticket.latestSummary || ticket.resolveNote}
                                                                                             </span>
                                                                                         )}
                                                                                     </div>

@@ -30,6 +30,9 @@ export default function SeatingPlan({
     totalSeats = 30,
     selectedPart = null
 }: SeatingPlanProps) {
+    const hasAnyCheckedInPart = (student?: { parts?: any[] } | null) =>
+        !!student?.parts?.some((part: any) => part?.isCheckedIn);
+
     // Auth and data hooks
     const { user } = useAuth();
     const { data: scheduleData, refetch: refetchSchedule } = useExamScheduleById(examSessionId);
@@ -81,7 +84,7 @@ export default function SeatingPlan({
     // Compute check-in count based on selected part
     const checkedInCount = selectedPart
         ? students.filter(s => s.parts?.some((p: any) => p.examPartCode === selectedPart && p.isCheckedIn)).length
-        : students.filter(s => s.status === 'CHECKEDIN').length;
+        : students.filter(s => hasAnyCheckedInPart(s) || s.status === 'CHECKEDIN').length;
 
     // Fetch seats on mount
     useEffect(() => {

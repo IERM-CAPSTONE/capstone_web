@@ -26,6 +26,9 @@ export function SeatGrid({
   userRole = 'GUEST',
   selectedPart = null,
 }: SeatGridProps) {
+  const hasAnyCheckedInPart = (student?: StudentExam | null) =>
+    !!student?.parts?.some((part: any) => part?.isCheckedIn);
+
   // Map students to seats for easy lookup
   const studentMap = new Map<string, StudentExam>();
   students.forEach(st => {
@@ -54,6 +57,8 @@ export function SeatGrid({
       } else {
         computedStatus = 'Assigned';
       }
+    } else if (student && seat?.status !== 'Locked') {
+      computedStatus = hasAnyCheckedInPart(student) ? 'Present' : (seat?.status ?? 'Assigned');
     }
 
     return (
