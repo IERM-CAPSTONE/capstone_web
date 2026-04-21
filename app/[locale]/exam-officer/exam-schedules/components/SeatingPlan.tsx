@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Users } from "lucide-react";
 import { useStudentExamsBySession } from "@/hooks/use-student-exams";
 import { useSeatManagement, ExamSeat } from "@/hooks/use-seat-management";
@@ -30,9 +30,6 @@ export default function SeatingPlan({
     totalSeats = 30,
     selectedPart = null
 }: SeatingPlanProps) {
-    const hasAnyCheckedInPart = (student?: { parts?: any[] } | null) =>
-        !!student?.parts?.some((part: any) => part?.isCheckedIn);
-
     // Auth and data hooks
     const { user } = useAuth();
     const { data: scheduleData, refetch: refetchSchedule } = useExamScheduleById(examSessionId);
@@ -67,24 +64,42 @@ export default function SeatingPlan({
         fetchSeats,
         lockSeat,
         unlockSeat,
+        applyTemplate,
+        swapSeats,
     } = useSeatManagement(examSessionId);
 
     // UI state
     const [isEditing, setIsEditing] = useState(false);
-    const [selectedStudent, setSelectedStudent] = useState<any>(null);
-    const [selectedSeat, setSelectedSeat] = useState<ExamSeat | null>(null);
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
     const [isFinalizingSeats, setIsFinalizingSeats] = useState(false);
+    const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+    const [swapSourceSeat, setSwapSourceSeat] = useState<ExamSeat | null>(null);
+    const [isSwappingSeat, setIsSwappingSeat] = useState(false);
 
     const students = studentsResponse?.data || [];
     const rows = maxRows || 5;
     const cols = maxColumns || 6;
     const unassignedStudentsCount = students.filter(s => !s.seatPosition).length;
+    const hasStudentsImported = !!scheduleData?.hasStudentsImported;
+    const normalizedRole = String(user?.role || '').toLowerCase();
+    const canSwapSeat = ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
 
     // Compute check-in count based on selected part
     const checkedInCount = selectedPart
         ? students.filter(s => s.parts?.some((p: any) => p.examPartCode === selectedPart && p.isCheckedIn)).length
-        : students.filter(s => hasAnyCheckedInPart(s) || s.status === 'CHECKEDIN').length;
+        : students.filter(s => s.status === 'CHECKEDIN').length;
+
+    const selectedStudent = useMemo(
+        () => (selectedStudentId ? students.find(s => s.id === selectedStudentId) ?? null : null),
+        [selectedStudentId, students]
+    );
+    const selectedSeat = useMemo(
+        () => (selectedStudent?.seatPosition
+            ? seats.find(seat => seat.id === selectedStudent.seatPosition) ?? null
+            : null),
+        [selectedStudent, seats]
+    );
 
     // Fetch seats on mount
     useEffect(() => {
@@ -95,12 +110,54 @@ export default function SeatingPlan({
     const handleSeatSelect = (seat: ExamSeat | undefined) => {
         if (!seat) return;
 
-        setSelectedSeat(seat);
+        if (swapSourceSeat) {
+            void handleSwapTargetSelect(seat);
+            return;
+        }
 
-        // Find corresponding student
-        const seatNumber = (seat.row - 1) * cols + seat.col;
-        const student = students.find(s => s.seatNumber === seatNumber.toString());
-        setSelectedStudent(student || null);
+        // Find corresponding student by the physical seat assignment only.
+        const linkedStudent = students.find(s => s.seatPosition === seat.id);
+        setSelectedStudentId(linkedStudent?.id ?? null);
+    };
+
+    const startSwapFromSeat = (seat: ExamSeat) => {
+        if (!canSwapSeat) return;
+        setActionError(null);
+        setSwapSourceSeat(seat);
+        setSelectedStudentId(null);
+        toast.info(`Swap mode enabled from R${seat.row}C${seat.col}. Select target seat.`);
+    };
+
+    const cancelSwapMode = () => {
+        setSwapSourceSeat(null);
+        setIsSwappingSeat(false);
+    };
+
+    const handleSwapTargetSelect = async (targetSeat: ExamSeat) => {
+        if (!swapSourceSeat) return;
+        if (targetSeat.id === swapSourceSeat.id) {
+            setActionError('Please select a different seat as swap target');
+            return;
+        }
+
+        try {
+            setActionError(null);
+            setIsSwappingSeat(true);
+            const result = await swapSeats(swapSourceSeat.id, targetSeat.id);
+            if (!result.success) {
+                setActionError(result.error || 'Failed to swap seats');
+                return;
+            }
+
+            toast.success(`Swapped seats R${swapSourceSeat.row}C${swapSourceSeat.col} and R${targetSeat.row}C${targetSeat.col}`);
+            setSwapSourceSeat(null);
+            await refetchStudents();
+            await refetchSchedule();
+        } catch {
+            setActionError('An unexpected error occurred while swapping seats');
+        } finally {
+            setIsSwappingSeat(false);
+        }
     };
 
     // Handle seat lock/unlock - toggle directly without confirmation
@@ -150,10 +207,59 @@ export default function SeatingPlan({
         }
     };
 
+    const handleApplyCheckerboardTemplate = async () => {
+        try {
+            setActionError(null);
+            setIsApplyingTemplate(true);
+            const result = await applyTemplate('CHECKERBOARD');
+            if (!result.success) {
+                setActionError(result.error || 'Failed to apply checkerboard template');
+                return;
+            }
+            toast.success('Checkerboard template applied');
+        } catch {
+            setActionError('An unexpected error occurred while applying template');
+        } finally {
+            setIsApplyingTemplate(false);
+        }
+    };
+
+    const handleResetTemplate = async () => {
+        try {
+            setActionError(null);
+            setIsApplyingTemplate(true);
+            const result = await applyTemplate('RESET');
+            if (!result.success) {
+                setActionError(result.error || 'Failed to reset seat locks');
+                return;
+            }
+            toast.success('Seat locks reset');
+        } catch {
+            setActionError('An unexpected error occurred while resetting template');
+        } finally {
+            setIsApplyingTemplate(false);
+        }
+    };
+
     const isLoading = studentsLoading || seatsLoading;
 
     return (
         <div className="space-y-6">
+            {swapSourceSeat && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3">
+                    <p className="text-[12px] text-blue-700 font-medium">
+                        Swap mode: source seat <span className="font-bold">R{swapSourceSeat.row}C{swapSourceSeat.col}</span>. Select a target seat to complete swap.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={cancelSwapMode}
+                        className="text-[11px] px-3 py-1.5 rounded border border-blue-300 text-blue-700 font-bold hover:bg-blue-100"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -183,11 +289,14 @@ export default function SeatingPlan({
                 onEditToggle={setIsEditing}
                 onRefresh={fetchSeats}
                 onFinalize={handleFinalizeSeats}
-                userRole={user?.role}
+                onApplyCheckerboardTemplate={handleApplyCheckerboardTemplate}
+                onResetTemplate={handleResetTemplate}
+                userRole={normalizedRole}
                 error={actionError || seatsError}
-                hasStudentsImported={false}
+                hasStudentsImported={hasStudentsImported}
                 hasUnassignedStudents={unassignedStudentsCount > 0}
                 isFinalizingSeats={isFinalizingSeats}
+                isApplyingTemplate={isApplyingTemplate}
             />
 
             {/* Legend */}
@@ -217,7 +326,7 @@ export default function SeatingPlan({
                     onSeatSelect={handleSeatSelect}
                     onSeatLockToggle={handleSeatLockToggle}
                     isEditing={isEditing}
-                    userRole={user?.role}
+                    userRole={normalizedRole}
                     selectedPart={selectedPart}
                 />
             )}
@@ -228,10 +337,15 @@ export default function SeatingPlan({
                 seat={selectedSeat}
                 isOpen={!!selectedStudent}
                 onClose={() => {
-                    setSelectedStudent(null);
-                    setSelectedSeat(null);
+                    setSelectedStudentId(null);
                 }}
                 selectedPart={selectedPart}
+                canChangeSeat={canSwapSeat && !isSwappingSeat}
+                onChangeSeat={() => {
+                    if (selectedSeat) {
+                        startSwapFromSeat(selectedSeat);
+                    }
+                }}
             />
         </div>
     );
