@@ -6,6 +6,10 @@
   --radius: 0.5rem;
 }
 
+html {
+  font-size: 15px;
+}
+
 /* Dark mode removed to force light theme */
 
 body {

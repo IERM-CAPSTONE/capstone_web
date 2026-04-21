@@ -94,7 +94,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
             <Card className="w-full max-w-lg animate-in fade-in zoom-in duration-200">
                 <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
-                        <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+                        <FileSpreadsheet className="h-5 w-5 text-orange-600" />
                         Import Accounts
                     </CardTitle>
                     <Button variant="ghost" size="sm" onClick={onClose} disabled={importMutation.isPending} className="h-8 w-8 p-0">
@@ -133,7 +133,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                             onClick={() => fileInputRef.current?.click()}
                             className={cn(
                                 "border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all",
-                                file ? "border-emerald-500 bg-emerald-50" : "border-gray-200 hover:border-[#F37021]/50 hover:bg-orange-50/30"
+                                file ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-[#F37021]/50 hover:bg-orange-50/30"
                             )}
                         >
                             <input
@@ -145,12 +145,12 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                             />
                             {file ? (
                                 <>
-                                    <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center border border-emerald-200 shadow-sm">
-                                        <FileSpreadsheet className="h-7 w-7 text-emerald-600" />
+                                    <div className="h-14 w-14 rounded-full bg-orange-100 flex items-center justify-center border border-orange-200 shadow-sm">
+                                        <FileSpreadsheet className="h-7 w-7 text-orange-600" />
                                     </div>
                                     <div className="text-center">
                                         <p className="text-sm font-semibold text-gray-900">{file.name}</p>
-                                        <p className="text-xs text-emerald-600 font-medium mt-1">Ready to import • {(file.size / 1024).toFixed(1)} KB</p>
+                                        <p className="text-xs text-orange-600 font-medium mt-1">Ready to import • {(file.size / 1024).toFixed(1)} KB</p>
                                     </div>
                                 </>
                             ) : (

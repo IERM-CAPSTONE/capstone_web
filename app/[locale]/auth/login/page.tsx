@@ -10,10 +10,9 @@ import { AuthLoadingSkeleton } from "@/components/ui/page-loading";
 
 export default function LoginPage() {
   const t = useTranslations("Login");
-  const commonT = useTranslations("Common");
 
-  // Sử dụng hook để kiểm tra auth, không redirect nếu đã đăng nhập
-  const { isLoading } = useCheckAuth({ redirectIfAuthenticated: false });
+  // If already authenticated, immediately route to role-based dashboard.
+  const { isLoading } = useCheckAuth({ redirectIfAuthenticated: true });
 
   // Show skeleton while checking authentication
   if (isLoading) {
@@ -62,19 +61,6 @@ export default function LoginPage() {
             </svg>
             {t("loginButton")}
           </Button>
-
-          {/* Warning/Info Box */}
-          <div className="rounded-lg bg-[#fff7ed] border-l-4 border-[#f97316] p-4">
-            <div className="flex gap-3">
-              <div className="mt-0.5 shrink-0">
-              </div>
-              <div className="text-xs text-gray-600 space-y-1">
-                <p>
-                  {t("emailNote")}
-                </p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

@@ -50,6 +50,14 @@ export default function AuthCallbackPage() {
             router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
           } else if (role === "admin") {
             router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
+          } else if (role === "proctor") {
+            router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+          } else if (role === "hall_invigilator") {
+            router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
+          } else if (role === "it_support") {
+            router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
+          } else if (role === "student") {
+            router.replace(`/${locale}${ROUTES.DASHBOARD_STUDENT}`);
           } else {
             router.replace(`/${locale}${ROUTES.LOGIN}`);
           }
@@ -73,6 +81,7 @@ export default function AuthCallbackPage() {
           username: userData.username || undefined,
           role: normalizeRole(userData.role) as UserRole,
           avatar: userData.avatarUrl || userData.avatar || undefined,
+          campus: userData.campus || null,
           createdAt: userData.createdAt || "",
           updatedAt: userData.updatedAt || "",
         };
@@ -88,6 +97,14 @@ export default function AuthCallbackPage() {
           router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
         } else if (role === "admin") {
           router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
+        } else if (role === "proctor") {
+          router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+        } else if (role === "hall_invigilator") {
+          router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
+        } else if (role === "it_support") {
+          router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
+        } else if (role === "student") {
+          router.replace(`/${locale}${ROUTES.DASHBOARD_STUDENT}`);
         } else {
           router.replace(`/${locale}${ROUTES.LOGIN}`);
         }

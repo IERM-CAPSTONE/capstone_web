@@ -166,4 +166,60 @@ export const usersApi = {
     });
     return response.data.success ? response.data.data : { message: "Failed to start import" };
   },
+
+  // Get hall invigilators (accessible by Admin, Exam Officer)
+  getProctors: async (params?: Omit<ListUsersParams, 'role'>): Promise<PaginatedUserResponse> => {
+    try {
+      const queryParams: any = {};
+      if (params?.page) queryParams.page = String(params.page);
+      if (params?.limit) queryParams.limit = String(params.limit);
+      if (params?.isActive !== undefined) queryParams.isActive = String(params.isActive);
+      if (params?.search) queryParams.search = params.search;
+
+      const response = await apiClient.get<ApiResponse<User[]>>("/users/proctors", {
+        params: queryParams,
+      });
+
+      if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+        const apiResponse = response.data as ApiResponse<User[]>;
+        if (apiResponse.success && apiResponse.meta) {
+          return {
+            data: Array.isArray(apiResponse.data) ? apiResponse.data : [],
+            total: apiResponse.meta.total || 0,
+            page: apiResponse.meta.page || 1,
+            limit: apiResponse.meta.limit || 10,
+            totalPages: apiResponse.meta.totalPages || 0,
+          };
+        }
+      }
+
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      };
+    } catch (error: any) {
+      console.error("Error fetching proctors:", error);
+      throw error;
+    }
+  },
+
+  // Get assignable users (IT Support + Hall Invigilator) for ticket assignment
+  // Accessible by EXAM_OFFICER and ADMIN
+  getAssignees: async (): Promise<User[]> => {
+    try {
+      const response = await apiClient.get("/users/assignees");
+      const raw = response.data as any;
+      // TransformInterceptor wraps: { success, statusCode, data: [...] }
+      if (raw?.data && Array.isArray(raw.data)) return raw.data;
+      // Fallback: direct array
+      if (Array.isArray(raw)) return raw;
+      return [];
+    } catch (error: any) {
+      console.error("Error fetching assignees:", error?.response?.status, error?.response?.data);
+      return [];
+    }
+  },
 };

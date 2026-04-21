@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor";
+export type UserRole = "admin" | "staff" | "student" | "exam_officer" | "proctor" | "it_support" | "hall_invigilator";
 
 export type RoomStatus = "available" | "occupied" | "maintenance";
 
@@ -11,19 +11,20 @@ export interface User {
   username?: string;
   role: UserRole;
   avatar?: string;
+  campus?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Room {
   id: string;
-  name: string;
-  capacity: number;
-  location: string;
-  status: RoomStatus;
-  equipment?: string[];
-  imageUrl?: string;
-  layout?: SeatLayout;
+  roomNumber: string;
+  capacity: number | null;
+  status: string;
+  campus?: string | null;
+  max_rows?: number;
+  max_columns?: number;
+  total_seats?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +41,11 @@ export interface Seat {
   column: number;
   number: string;
   isAvailable: boolean;
+}
+
+export interface SeatAssignment {
+  seatNumber: number;
+  studentId: string;
 }
 
 // Các types khác sẽ được thêm sau khi cần
@@ -75,3 +81,40 @@ export interface PaginationParams {
   order?: "asc" | "desc";
 }
 
+export interface ExamPart {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface SubjectPart {
+  id: string;
+  subjectId: string;
+  examPartId: string;
+  duration: number | null;
+  examPart?: ExamPart;
+}
+
+export interface Subject {
+  id: string;
+  code: string;
+  name: string | null;
+  semesterId: string | null;
+  semester?: Semester;
+  department: string | null;
+  isCoursera: boolean;
+  parts: SubjectPart[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Semester {
+  id: string;
+  code: string;
+  name: string | null;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+}

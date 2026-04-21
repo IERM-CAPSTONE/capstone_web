@@ -18,7 +18,7 @@ export default function DashboardLayout({
     redirectIfNotAuthenticated: true
   });
 
-  const allowedRoles = ["admin", "exam_officer", "staff", "student"];
+  const allowedRoles = ["admin", "exam_officer", "staff", "student", "proctor"];
 
   if (isLoading || !isAuthenticated || (user && !allowedRoles.includes(user.role))) {
     return <DashboardLoadingSkeleton />;

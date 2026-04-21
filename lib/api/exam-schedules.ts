@@ -4,42 +4,66 @@ export interface ExamSchedule {
   id: string;
   examCode?: string | null;
   semester?: string | null;
+  semesterName?: string | null;
   openCode?: string | null;
   note?: string | null;
   examRoomId: string | null;
-  examRoomNumber: string | null;
+  roomNumber: string | null;
   proctorId: string | null;
+  proctorName: string | null;
   hallInvigilatorId: string | null;
   hallInvigilatorName: string | null;
+  hallInvigilatorUsername?: string | null;
   subjectCode: string | null;
   examOpenTime: string | null;
   examCloseTime: string | null;
   status?: string | null;
-  examType?: string[];
+  isArchived?: boolean | null;
+  examPart?: string[];
+  hasStudentsImported?: boolean;
   createdAt: string;
   updatedAt: string;
+  maxRows?: number | null;
+  maxColumns?: number | null;
+  totalSeats?: number | null;
+  campus?: string | null;
+  examType?: string | null; // PE | FE | TE | RE
+  studentCount: number;
 }
 
 export interface PaginatedExamScheduleResponse {
   data: ExamSchedule[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface ListExamSchedulesParams {
   page?: number;
   limit?: number;
   subjectCode?: string;
+  examCode?: string;
+  date?: string;
+  time?: string;
+  status?: string;
+  fromDate?: string;
+  toDate?: string;
+  startTime?: string;
+  endTime?: string;
   examRoomId?: string;
   proctorId?: string;
+  studentId?: string;
+  campus?: string;
+  examType?: string; // PE | FE | TE | RE
 }
 
 export interface CreateExamScheduleData {
   examCode?: string;
   semester?: string;
-  examType?: string;
+  examPart?: string[];
   openCode?: string;
   note?: string;
   examRoomId?: string;
@@ -53,7 +77,7 @@ export interface CreateExamScheduleData {
 export interface UpdateExamScheduleData {
   examCode?: string;
   semester?: string;
-  examType?: string;
+  examPart?: string;
   openCode?: string;
   note?: string;
   examRoomId?: string;
@@ -62,6 +86,18 @@ export interface UpdateExamScheduleData {
   subjectCode?: string;
   examOpenTime?: string;
   examCloseTime?: string;
+}
+
+export interface AutoGenerateScheduleData {
+  semesterId: string;
+  campus: string[];
+  finalWeek?: number;
+  retakeWeek?: number;
+  practicalWeek?: number;
+  courseraWeek?: number;
+  courseraRetakeWeek?: number;
+  roomIds: string[];
+  fileData: string;
 }
 
 export const examSchedulesApi = {
@@ -93,21 +129,23 @@ export const examSchedulesApi = {
     return response.data.data;
   },
 
-  // Update exam schedule
-  update: async (
-    id: string,
-    data: UpdateExamScheduleData
-  ): Promise<ExamSchedule> => {
-    const response = await apiClient.patch<{ data: ExamSchedule }>(
-      `/exam-sessions/${id}`,
-      data
-    );
-    return response.data.data;
+  // Auto-generate exam schedule
+  autoGenerate: async (data: AutoGenerateScheduleData): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post("/exam-sessions/auto-generate", data);
+    return response.data?.data ?? response.data;
   },
+
+
 
   // Delete exam schedule
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/exam-sessions/${id}`);
+  },
+
+  // Publish exam schedules
+  publish: async (data: { sessionIds?: string[]; semesterId?: string; campus?: string }): Promise<{ success: boolean; count: number }> => {
+    const response = await apiClient.post("/exam-sessions/publish", data);
+    return response.data?.data ?? response.data;
   },
 
   // Archive exam schedule (only for completed exams)
@@ -116,6 +154,12 @@ export const examSchedulesApi = {
       `/exam-sessions/${id}/archive`
     );
     return response.data.data;
+  },
+
+  // Finalize seat assignments for a session
+  finalizeSeats: async (id: string): Promise<{ success: boolean; message: string; data: { studentsAssigned: number; seatsUsed: number } }> => {
+    const response = await apiClient.post(`/exam-sessions/${id}/finalize-seats`);
+    return response.data?.data ?? response.data;
   },
 
   // Import exam schedules (legacy - file upload)
@@ -153,6 +197,29 @@ export const examSchedulesApi = {
   importCodes: async (payload: { importType: string; codes: any[] }): Promise<any> => {
     const response = await apiClient.post("/exam-sessions/import-codes", payload);
     return response.data;
+  },
+
+  // Export Exam Sessions to Excel
+  export: async (params: any): Promise<Blob> => {
+    const response = await apiClient.get("/exam-sessions/export", {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Update exam session fields (e.g. proctorId, status, note)
+  update: async (id: string, data: Partial<{
+    proctorId: string | null;
+    hallInvigilatorId: string | null;
+    status: string;
+    note: string;
+    openCode: string;
+    examRoomId: string | null;
+    semesterId: string | null;
+  }>): Promise<ExamSchedule> => {
+    const response = await apiClient.patch<any>(`/exam-sessions/${id}`, data);
+    return response.data?.data ?? response.data;
   },
 };
 

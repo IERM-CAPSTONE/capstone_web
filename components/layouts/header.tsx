@@ -17,6 +17,24 @@ export function Header() {
   const t = useTranslations("Common");
 
   const { user, logout: logoutStore } = useAuthStore();
+    const rolePortalMap: Record<string, string> = {
+      admin: "Admin Portal",
+      exam_officer: "Exam Officer Portal",
+      proctor: "Proctor Portal",
+      hall_invigilator: "Hall Invigilator Portal",
+      it_support: "IT Support Portal",
+      student: "Student Portal",
+    };
+
+    const roleLabelMap: Record<string, string> = {
+      admin: "System Administrator",
+      exam_officer: "Exam Officer",
+      proctor: "Proctor",
+      hall_invigilator: "Hall Invigilator",
+      it_support: "IT Support",
+      student: "Student",
+    };
+
   const { toggleSidebar } = useUIStore();
 
   const handleLocaleChange = (newLocale: string) => {
@@ -58,7 +76,7 @@ export function Header() {
 
   return (
     <header className="bg-[#F37021] border-b border-[#e16010] text-white shadow-md z-50">
-      <div className="flex h-16 items-center justify-between px-6">
+      <div className="flex h-14 items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -66,7 +84,7 @@ export function Header() {
             onClick={toggleSidebar}
             className="lg:hidden text-white hover:bg-orange-600"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5 text-white" />
           </Button>
 
           <div className="flex items-center gap-3">
@@ -75,7 +93,9 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold leading-none">IERM</span>
-              <span className="text-xs font-medium opacity-90">Admin Portal</span>
+              <span className="text-xs font-medium opacity-90">
+                {rolePortalMap[user?.role || ""] ?? "IERM Portal"}
+              </span>
             </div>
           </div>
         </div>
@@ -108,8 +128,10 @@ export function Header() {
                   <User className="h-5 w-5" />
                 </div>
                 <div className="hidden md:block text-right">
-                  <p className="text-sm font-semibold leading-tight">{user?.name || "Admin User"}</p>
-                  <p className="text-xs opacity-90">System Administrator</p>
+                  <p className="text-sm font-semibold leading-tight">{user?.name || "System User"}</p>
+                  <p className="text-xs opacity-90">
+                    {roleLabelMap[user?.role || ""] ?? "System User"}
+                  </p>
                 </div>
               </div>
 

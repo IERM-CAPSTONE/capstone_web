@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import apiClient from "@/lib/api/client";
+import { ROUTES } from "@/lib/constants/routes";
 import { UserRole, User } from "@/types";
 
 interface UseCheckAuthOptions {
@@ -29,6 +30,8 @@ export const normalizeRole = (roleValue?: string | null): UserRole => {
     if (value === "admin") return "admin";
     if (value === "exam_officer") return "exam_officer";
     if (value === "proctor") return "proctor";
+    if (value === "it_support") return "it_support";
+    if (value === "hall_invigilator") return "hall_invigilator";
     return "student";
 };
 
@@ -52,7 +55,7 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
 
     const checkAuth = useCallback(async () => {
         try {
-            const response = await apiClient.get("/users/me");
+            const response = await apiClient.get("/auth/me");
             const data = (response.data as { data?: any })?.data || response.data;
 
             if (data && data.email) {
@@ -62,6 +65,7 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                     name: data.fullName || data.name || data.email || "User",
                     role: normalizeRole(data.role),
                     avatar: data.avatarUrl || data.avatar || undefined,
+                    campus: data.campus || undefined,
                     createdAt: data.createdAt || "",
                     updatedAt: data.updatedAt || "",
                 };
@@ -78,11 +82,19 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
                 if (redirectIfAuthenticated) {
                     const locale = getCurrentLocale();
                     if (userObj.role === "admin") {
-                        router.replace(`/${locale}/dashboard/admin`);
+                        router.replace(`/${locale}${ROUTES.ADMIN_ACCOUNTS}`);
                     } else if (userObj.role === "exam_officer") {
-                        router.replace(`/${locale}/dashboard/exam-officer`);
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
+                    } else if (userObj.role === "proctor") {
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+                    } else if (userObj.role === "hall_invigilator") {
+                        router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
+                    } else if (userObj.role === "it_support") {
+                        router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
+                    } else if (userObj.role === "student") {
+                        router.replace(`/${locale}${ROUTES.DASHBOARD_STUDENT}`);
                     } else {
-                        router.replace(`/${locale}/dashboard`);
+                        router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                     }
                 }
             } else if (redirectIfNotAuthenticated) {
@@ -125,11 +137,19 @@ export function useCheckAuth(options: UseCheckAuthOptions = {}): UseCheckAuthRet
             if (redirectIfAuthenticated) {
                 const locale = getCurrentLocale();
                 if (user.role === "admin") {
-                    router.replace(`/${locale}/dashboard/admin`);
+                    router.replace(`/${locale}${ROUTES.ADMIN_ACCOUNTS}`);
                 } else if (user.role === "exam_officer") {
-                    router.replace(`/${locale}/dashboard/exam-officer`);
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_EXAM_OFFICER}`);
+                } else if (user.role === "proctor") {
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+                } else if (user.role === "hall_invigilator") {
+                    router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR}`);
+                } else if (user.role === "it_support") {
+                    router.replace(`/${locale}${ROUTES.IT_SUPPORT}`);
+                } else if (user.role === "student") {
+                    router.replace(`/${locale}${ROUTES.DASHBOARD_STUDENT}`);
                 } else {
-                    router.replace(`/${locale}/dashboard`);
+                    router.replace(`/${locale}${ROUTES.DASHBOARD}`);
                 }
             }
             return;
