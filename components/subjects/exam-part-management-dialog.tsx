@@ -27,12 +27,14 @@ import {
 import { ExamPart } from "@/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 interface ExamPartManagementDialogProps {
     onClose: () => void;
 }
 
 export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogProps) {
+    const t = useTranslations("Subjects.examParts");
     const { data: examParts = [], isLoading, refetch } = useExamParts();
     const createExamPart = useCreateExamPart();
     const updateExamPart = useUpdateExamPart();
@@ -66,7 +68,7 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
         e.preventDefault();
 
         if (!formData.code.trim()) {
-            toast.error("Code is required");
+            toast.error(t("toasts.codeRequired"));
             return;
         }
 
@@ -76,32 +78,32 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                     id: editingId,
                     data: formData
                 });
-                toast.success("Exam type updated successfully");
+                toast.success(t("toasts.updateSuccess"));
             } else {
                 await createExamPart.mutateAsync(formData);
-                toast.success("Exam type created successfully");
+                toast.success(t("toasts.createSuccess"));
             }
             handleResetForm();
             refetch();
         } catch (error: any) {
             console.error("Error saving exam type:", error);
-            const message = error?.response?.data?.message || "Failed to save exam type";
+            const message = error?.response?.data?.message || t("toasts.saveFailed");
             toast.error(message);
         }
     };
 
     const handleDelete = async (id: string, code: string) => {
-        if (!confirm(`Are you sure you want to delete "${code}"? This might affect subjects using this type.`)) {
+        if (!confirm(t("deleteConfirm", { code }))) {
             return;
         }
 
         try {
             await deleteExamPart.mutateAsync(id);
-            toast.success("Exam type deleted successfully");
+            toast.success(t("toasts.deleteSuccess"));
             refetch();
         } catch (error: any) {
             console.error("Error deleting exam type:", error);
-            toast.error(error?.response?.data?.message || "Failed to delete exam type");
+            toast.error(error?.response?.data?.message || t("toasts.deleteFailed"));
         }
     };
 
@@ -114,8 +116,8 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                             <Settings className="h-6 w-6 text-orange-600" />
                         </div>
                         <div>
-                            <CardTitle className="text-2xl font-bold tracking-tight">Manage Exam Types</CardTitle>
-                            <p className="text-sm text-slate-500 font-medium">Add or modify dynamic exam components</p>
+                            <CardTitle className="text-2xl font-bold tracking-tight">{t("title")}</CardTitle>
+                            <p className="text-sm text-slate-500 font-medium">{t("subtitle")}</p>
                         </div>
                     </div>
                     <Button
@@ -134,14 +136,14 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                         {(isAdding || editingId) ? (
                             <form onSubmit={handleSubmit} className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-4 animate-in slide-in-from-top-4 duration-300">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2 px-1">
-                                    {editingId ? "Edit Exam Type" : "Add New Exam Type"}
+                                    {editingId ? t("editTitle") : t("addNewTitle")}
                                 </h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">Code *</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t("code")} *</label>
                                         <Input
-                                            placeholder="e.g. MC, L, R"
+                                            placeholder={t("codePlaceholder")}
                                             value={formData.code}
                                             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                                             className="rounded-xl border-slate-200 focus:ring-orange-500"
@@ -149,9 +151,9 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">Full Name</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t("name")}</label>
                                         <Input
-                                            placeholder="e.g. Multiple Choice"
+                                            placeholder={t("namePlaceholder")}
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                             className="rounded-xl border-slate-200 focus:ring-orange-500"
@@ -159,9 +161,9 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Description</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t("description")}</label>
                                     <Input
-                                        placeholder="Optional description..."
+                                        placeholder={t("descriptionPlaceholder")}
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         className="rounded-xl border-slate-200 focus:ring-orange-500"
@@ -174,27 +176,27 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                                         onClick={handleResetForm}
                                         className="rounded-xl"
                                     >
-                                        Cancel
+                                        {t("cancel")}
                                     </Button>
                                     <Button
                                         type="submit"
                                         className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white px-6"
                                         disabled={createExamPart.isPending || updateExamPart.isPending}
                                     >
-                                        {(createExamPart.isPending || updateExamPart.isPending) ? "Saving..." : (editingId ? "Save Changes" : "Create Type")}
+                                        {(createExamPart.isPending || updateExamPart.isPending) ? t("saving") : (editingId ? t("saveChanges") : t("createType"))}
                                     </Button>
                                 </div>
                             </form>
                         ) : (
                             <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-bold text-slate-800">Available Types</h3>
+                                <h3 className="text-lg font-bold text-slate-800">{t("availableTypes")}</h3>
                                 <Button
                                     onClick={() => setIsAdding(true)}
                                     className="rounded-full bg-slate-900 hover:bg-slate-800 text-white h-9"
                                     size="sm"
                                 >
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Add Type
+                                    {t("addType")}
                                 </Button>
                             </div>
                         )}
@@ -202,11 +204,11 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                         {/* List Area */}
                         <div className="space-y-3">
                             {isLoading ? (
-                                <div className="py-8 text-center text-slate-400">Loading exam types...</div>
+                                <div className="py-8 text-center text-slate-400">{t("loading")}</div>
                             ) : examParts.length === 0 ? (
                                 <div className="py-12 text-center rounded-3xl border-2 border-dashed border-slate-100">
                                     <AlertCircle className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                                    <p className="text-slate-400 font-medium">No exam types found</p>
+                                    <p className="text-slate-400 font-medium">{t("empty")}</p>
                                 </div>
                             ) : (
                                 <div className="grid gap-3">
@@ -263,7 +265,7 @@ export function ExamPartManagementDialog({ onClose }: ExamPartManagementDialogPr
                         onClick={onClose}
                         className="rounded-xl px-8 font-semibold text-slate-600"
                     >
-                        Close
+                        {t("close")}
                     </Button>
                 </div>
             </Card>

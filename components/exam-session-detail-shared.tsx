@@ -4,15 +4,16 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     ChevronRight, Calendar, Clock, FileText, AlertCircle,
     LayoutGrid, CheckCircle2, BookOpen, Loader2, Ticket, X,
     User, MapPin, AlertTriangle, Users, CheckSquare,
-    Square, LayoutList, Map as MapIcon, Search,
+    Square, LayoutList, Map as MapIcon, Search, Pencil, Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
-import { useExamScheduleById } from "@/hooks/use-exam-schedules";
+import { useDeleteExamSchedule, useExamScheduleById, useUpdateExamSchedule } from "@/hooks/use-exam-schedules";
 import { useStudentExamsBySession } from "@/hooks/use-student-exams";
 import { useSeatManagement, ExamSeat } from "@/hooks/use-seat-management";
 import { useSocket } from "@/hooks/use-socket";
@@ -21,6 +22,7 @@ import { ticketsApi, IssueType, TicketPriority } from "@/lib/api/tickets";
 import { ROUTES } from "@/lib/constants/routes";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
 import { parseLocalDate } from "@/app/[locale]/exam-officer/exam-schedules/utils";
+import { AssignProctorDialog } from "@/app/[locale]/exam-officer/exam-schedules/components/AssignProctorDialog";
 import { cn } from "@/lib/utils/cn";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
@@ -402,7 +404,7 @@ function StudentPanel({ student, seat, isSelected, canCreateTicket, onToggleSele
         REMOVED:    { bg: "bg-red-100",     text: "text-red-700",     dot: "bg-red-500" },
     };
     const sc = statusColors[student.status ?? "REGISTERED"] ?? statusColors.REGISTERED;
-    const initial = (student.studentName ?? student.studentCode ?? "?")[0].toUpperCase();
+    const initial = (student.studentCode ?? "?")[0].toUpperCase();
 
     return (
         <div className="flex flex-col h-full">
@@ -422,8 +424,9 @@ function StudentPanel({ student, seat, isSelected, canCreateTicket, onToggleSele
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white text-2xl font-black mx-auto mb-3 shadow-lg shadow-orange-200">
                     {initial}
                 </div>
-                <p className="font-bold text-slate-900 text-sm leading-tight">{student.studentName || "—"}</p>
-                <p className="text-xs text-slate-400 mt-0.5 font-mono tracking-wide">{student.studentCode}</p>
+                <p className="font-bold text-slate-900 text-sm leading-tight font-mono tracking-wide">
+                    {student.studentCode || "—"}
+                </p>
                 <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-2.5", sc.bg, sc.text)}>
                     <span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />
                     {student.status === "REGISTERED"
@@ -489,6 +492,8 @@ interface SeatingFloorPlanProps {
 
 function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClick, activeSeatId }: SeatingFloorPlanProps) {
     const t = useTranslations("ProctorSession");
+    const hasAnyCheckedInPart = (student?: StudentExam | null) =>
+        !!student?.parts?.some((part: any) => part?.isCheckedIn);
     const seatMap: Map<string, ExamSeat> = new Map();
     seats.forEach(s => seatMap.set(`${s.row}-${s.col}`, s));
 
@@ -527,7 +532,12 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                         const seatNum = ((row - 1) * cols + col).toString();
                         const seatRowCol = `${row}-${col}`;
                         const student = studentBySeat.get(seatRowCol) ?? studentBySeat.get(seatNum);
-                        const normalizedSeatStatus = seat?.status === "Assigned" ? "Absent" : (seat?.status ?? "Available");
+                        const normalizedSeatStatus =
+                            student && hasAnyCheckedInPart(student)
+                                ? "Present"
+                                : seat?.status === "Assigned"
+                                    ? "Absent"
+                                    : (seat?.status ?? "Available");
                         const style = SEAT_STYLE[normalizedSeatStatus];
                         const isActive = seat?.id === activeSeatId;
                         const isSelected = student ? selectedIds.has(student.id) : false;
@@ -558,9 +568,6 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                                     <>
                                         <p className={cn("text-[10px] leading-tight text-center truncate w-full px-0.5", style.text)}>
                                             {student.studentCode}
-                                        </p>
-                                        <p className="text-[8.5px] text-slate-400 truncate w-full text-center px-0.5 mt-0.5">
-                                            {student.studentName?.split(" ").slice(-1)[0]}
                                         </p>
                                     </>
                                 ) : (
@@ -650,6 +657,8 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
     const { user } = useAuthStore();
 
     const { data: schedule, isLoading, error, refetch } = useExamScheduleById(scheduleId);
+    const deleteMutation = useDeleteExamSchedule();
+    const updateScheduleMutation = useUpdateExamSchedule();
     const {
         data: studentsResp,
         isLoading: studentsLoading,
@@ -666,6 +675,9 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
     const [activeStudent, setActiveStudent] = useState<StudentExam | null>(null);
     const [activeSeat, setActiveSeat] = useState<ExamSeat | null>(null);
     const [showTicketDialog, setShowTicketDialog] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showAssignProctorDialog, setShowAssignProctorDialog] = useState(false);
+    const [showAssignHallInvigilatorDialog, setShowAssignHallInvigilatorDialog] = useState(false);
 
     useEffect(() => { fetchSeats(); }, [scheduleId, fetchSeats]);
 
@@ -702,6 +714,30 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
     };
 
     const selectedStudents = students.filter(s => selectedIds.has(s.id));
+
+    const handleDeleteSchedule = async () => {
+        try {
+            await deleteMutation.mutateAsync(scheduleId);
+            toast.success(locale === "vi" ? "Đã xóa lịch thi" : "Exam schedule deleted");
+            router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
+        } catch (err: any) {
+            toast.error(
+                err?.response?.data?.message ||
+                err?.message ||
+                (locale === "vi" ? "Xóa lịch thi thất bại" : "Failed to delete exam schedule")
+            );
+        }
+    };
+
+    const handleAssignSessionStaff = async (field: "proctorId" | "hallInvigilatorId", userId: string | null) => {
+        await updateScheduleMutation.mutateAsync({
+            id: scheduleId,
+            data: {
+                [field]: userId,
+            },
+        });
+        await refetch();
+    };
 
     if (isLoading) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -759,10 +795,12 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
         Completed: { color: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-400", label: t("status.completed") },
     };
     const sc = STATUS_CFG[status];
-    const checkedInCount = students.filter(s => s.status === "CHECKEDIN").length;
+    const checkedInCount = students.filter(
+        s => s.status === "CHECKEDIN" || s.parts?.some((part: any) => part?.isCheckedIn)
+    ).length;
 
     return (
-        <div className="max-w-[1600px] mx-auto p-4 md:p-6 bg-slate-50/50 min-h-screen space-y-4">
+        <div className="max-w-[1600px] mx-auto p-4 md:p-6 bg-[#f0f2f5] min-h-screen space-y-4">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-slate-500">
                 <LayoutGrid className="h-4 w-4" />
@@ -772,22 +810,25 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
             </nav>
 
             {/* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="p-2.5 bg-purple-50 rounded-xl shrink-0">
-                        <FileText className="h-5 w-5 text-purple-500" />
+                    <div className="flex h-14 w-14 items-center justify-center rounded-[1.35rem] bg-orange-500/10 shrink-0">
+                        <FileText className="h-6 w-6 text-orange-500" />
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-lg font-bold text-slate-900">{schedule.subjectCode || "N/A"}</h1>
-                            <span className="text-slate-300">·</span>
+                            <h1 className="text-[1.75rem] leading-none font-black tracking-tight text-[#0f172a]">{schedule.subjectCode || "N/A"}</h1>
+                            <span className="text-slate-300 text-lg">·</span>
                             <span className="text-sm text-slate-500 font-mono">{schedule.examCode || "N/A"}</span>
                             <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border", sc.color)}>
                                 <span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />
                                 {sc.label}
                             </span>
                         </div>
-                        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.35em] text-slate-400">
+                            {locale === "vi" ? "Hệ thống điều hành thi" : "Exam operations system"}
+                        </p>
+                        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
                             {open && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(open, "dd/MM/yyyy")}</span>}
                             {open && close && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(open, "HH:mm")} - {format(close, "HH:mm")}</span>}
                             {schedule.roomNumber && <span className="font-semibold text-slate-700">{t("room")} {schedule.roomNumber}</span>}
@@ -800,7 +841,28 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                     {isExamOfficer && (
                         <Button
                             variant="outline"
-                            className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                            className="h-11 rounded-2xl gap-2 border-red-200 bg-red-50/50 text-red-700 hover:bg-white hover:shadow-md text-sm font-bold px-4"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            disabled={deleteMutation.isPending}
+                        >
+                            {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            {locale === "vi" ? "Xóa" : "Delete"}
+                        </Button>
+                    )}
+                    {isExamOfficer && (
+                        <Button
+                            variant="outline"
+                            className="h-11 rounded-2xl gap-2 border-slate-200 text-slate-700 hover:bg-white hover:shadow-md text-sm font-bold px-4"
+                            onClick={() => router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE_EDIT(scheduleId)}`)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                            {locale === "vi" ? "Chỉnh sửa" : "Edit"}
+                        </Button>
+                    )}
+                    {isExamOfficer && (
+                        <Button
+                            variant="outline"
+                            className="h-11 rounded-2xl gap-2 border-slate-200 text-slate-700 hover:bg-white hover:shadow-md text-sm font-bold px-4"
                             onClick={() => refetch?.()}
                         >
                             <Clock className="h-4 w-4" />
@@ -808,16 +870,16 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                         </Button>
                     )}
                     {canCreateTicket && selectedIds.size > 0 && (
-                        <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2 text-sm" onClick={() => setShowTicketDialog(true)}>
+                        <Button className="h-11 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white gap-2 text-sm font-bold px-4 shadow-sm shadow-orange-200" onClick={() => setShowTicketDialog(true)}>
                             <Ticket className="h-4 w-4" />{t("ticketFor")} ({selectedIds.size})
                         </Button>
                     )}
                     {canCreateTicket ? (
-                        <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm" onClick={() => { setSelectedIds(new Set()); setActiveStudent(null); setShowTicketDialog(true); }}>
+                        <Button variant="outline" className="h-11 rounded-2xl gap-2 border-orange-100 bg-orange-50/40 text-orange-700 hover:bg-white hover:shadow-md text-sm font-bold px-4" onClick={() => { setSelectedIds(new Set()); setActiveStudent(null); setShowTicketDialog(true); }}>
                             <Ticket className="h-4 w-4" />{t("createTicket")}
                         </Button>
                     ) : (
-                        <Button variant="outline" className="gap-2 border-slate-200 text-slate-400 cursor-not-allowed text-sm" disabled>
+                        <Button variant="outline" className="h-11 rounded-2xl gap-2 border-slate-200 text-slate-400 cursor-not-allowed text-sm font-bold px-4" disabled>
                             <Ticket className="h-4 w-4" />{t("createTicket")}
                         </Button>
                     )}
@@ -845,12 +907,19 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
 
                 {/* Left: session info */}
                 <div className="xl:col-span-3 xl:sticky xl:top-4 self-start max-h-[calc(100vh-190px)] overflow-y-auto space-y-4 pr-1">
-                    <Card className="border-none shadow-sm overflow-hidden">
-                        {/* Colored header */}
-                        <div className="bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-3">
-                            <h2 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
-                                <FileText className="h-3.5 w-3.5" />{t("sessionInfo")}
-                            </h2>
+                    <Card className="border-none shadow-sm bg-white rounded-[2rem] overflow-hidden">
+                        <div className="border-b border-slate-100 px-5 py-4 bg-white">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+                                    <FileText className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h2 className="font-black text-[#0f172a] text-[1.05rem] leading-none">{t("sessionInfo")}</h2>
+                                    <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.28em] text-slate-400">
+                                        {locale === "vi" ? "Thông tin vận hành" : "Operations overview"}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                         <CardContent className="p-0">
                             {[
@@ -863,16 +932,45 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                 { icon: <Clock className="h-3.5 w-3.5 text-amber-500" />, label: locale === "vi" ? "Khóa điểm danh" : "Attendance closes", value: attendanceCloseAt ? format(attendanceCloseAt, "HH:mm") : "N/A" },
                                 { icon: <MapPin className="h-3.5 w-3.5 text-emerald-500" />, label: t("room"), value: schedule.roomNumber || "N/A", bold: true },
                                 { icon: <Ticket className="h-3.5 w-3.5 text-rose-500" />, label: locale === "vi" ? "Phần thi" : "Exam Part", value: schedule.examPart?.length ? schedule.examPart.join(", ") : "N/A" },
-                                { icon: <User className="h-3.5 w-3.5 text-orange-500" />, label: t("proctor"), value: schedule.proctorName || schedule.proctorId || "N/A" },
-                                { icon: <Users className="h-3.5 w-3.5 text-slate-400" />, label: t("hallInvigilator"), value: getHallInvigilatorDisplay(schedule) },
+                                {
+                                    icon: <User className="h-3.5 w-3.5 text-orange-500" />,
+                                    label: t("proctor"),
+                                    value: schedule.proctorName || schedule.proctorId || "N/A",
+                                    action: isExamOfficer ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 rounded-xl text-[11px] font-bold"
+                                            onClick={() => setShowAssignProctorDialog(true)}
+                                        >
+                                            {locale === "vi" ? "Phân công" : "Assign"}
+                                        </Button>
+                                    ) : null,
+                                },
+                                {
+                                    icon: <Users className="h-3.5 w-3.5 text-slate-400" />,
+                                    label: t("hallInvigilator"),
+                                    value: getHallInvigilatorDisplay(schedule),
+                                    action: isExamOfficer ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 rounded-xl text-[11px] font-bold"
+                                            onClick={() => setShowAssignHallInvigilatorDialog(true)}
+                                        >
+                                            {locale === "vi" ? "Phân công" : "Assign"}
+                                        </Button>
+                                    ) : null,
+                                },
                                 { icon: <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />, label: t("openCode"), value: schedule.openCode || "N/A" },
-                            ].map(({ icon, label, value, bold }, idx, arr) => (
-                                <div key={label} className={cn("flex items-center gap-3 px-4 py-3", idx !== arr.length - 1 && "border-b border-slate-50")}>
-                                    <span className="shrink-0">{icon}</span>
+                            ].map(({ icon, label, value, bold, action }, idx, arr) => (
+                                <div key={label} className={cn("flex items-center gap-3 px-5 py-4", idx !== arr.length - 1 && "border-b border-slate-100")}>
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-50">{icon}</span>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{label}</p>
-                                        <p className={cn("text-xs text-slate-800 truncate mt-0.5", bold && "font-bold")}>{value}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.22em]">{label}</p>
+                                        <p className={cn("text-sm text-slate-800 truncate mt-1", bold && "font-black text-[#0f172a]")}>{value}</p>
                                     </div>
+                                    {action}
                                 </div>
                             ))}
                         </CardContent>
@@ -880,23 +978,31 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
 
                     {/* Stats mini-cards */}
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-3 py-3 text-center">
+                        <div className="bg-white rounded-[1.75rem] border border-slate-100 shadow-sm px-3 py-4 text-center">
                             <p className="text-2xl font-black text-emerald-600">{checkedInCount}</p>
-                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{t("checkedIn")}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.22em] mt-1">{t("checkedIn")}</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-3 py-3 text-center">
+                        <div className="bg-white rounded-[1.75rem] border border-slate-100 shadow-sm px-3 py-4 text-center">
                             <p className="text-2xl font-black text-slate-700">{students.length}</p>
-                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{t("students")}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.22em] mt-1">{t("students")}</p>
                         </div>
                     </div>
 
                     {/* Note / Open Code */}
                     {(schedule.note || schedule.openCode) && (
-                        <Card className="border-none shadow-sm overflow-hidden">
-                            <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-4 py-3">
-                                <h2 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
-                                    <BookOpen className="h-3.5 w-3.5" />{t("notes")}
-                                </h2>
+                        <Card className="border-none shadow-sm bg-white rounded-[2rem] overflow-hidden">
+                            <div className="border-b border-slate-100 px-5 py-4 bg-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+                                        <BookOpen className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-black text-[#0f172a] text-[1.05rem] leading-none">{t("notes")}</h2>
+                                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.28em] text-slate-400">
+                                            {locale === "vi" ? "Ghi chú & mã mở ca" : "Notes & open code"}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                             <CardContent className="p-4 space-y-3">
                                 {schedule.note && <p className="text-xs text-slate-600 leading-relaxed">{schedule.note}</p>}
@@ -916,7 +1022,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
 
                 {/* Center: seating plan / list */}
                 <div className="xl:col-span-6 min-h-0">
-                    <Card className="border-none shadow-sm overflow-hidden h-[calc(100vh-190px)]">
+                    <Card className="border-none shadow-sm bg-white rounded-[2rem] overflow-hidden h-[calc(100vh-190px)]">
                         {/* View toggle + header */}
                         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
                             <div className="flex items-center gap-2.5">
@@ -998,7 +1104,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                 {/* Right: student detail panel */}
                 <div className="xl:col-span-3 xl:sticky xl:top-4 self-start h-[calc(100vh-190px)]">
                     {activeStudent ? (
-                        <Card className="border-none shadow-sm p-5 h-full overflow-y-auto">
+                        <Card className="border-none shadow-sm bg-white rounded-[2rem] p-5 h-full overflow-y-auto">
                             <StudentPanel
                                 student={activeStudent}
                                 seat={activeSeat}
@@ -1013,7 +1119,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                             />
                         </Card>
                     ) : activeSeat ? (
-                        <Card className="border-none shadow-sm p-5 h-full overflow-y-auto">
+                        <Card className="border-none shadow-sm bg-white rounded-[2rem] p-5 h-full overflow-y-auto">
                             <div className="flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                                     <h3 className="font-bold text-slate-900 text-sm">{locale === "vi" ? "Chi tiết ghế" : "Seat detail"}</h3>
@@ -1021,11 +1127,11 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 p-5 text-center mb-4">
-                                    <div className="w-12 h-12 rounded-xl bg-slate-300 flex items-center justify-center text-slate-500 text-xl mx-auto mb-3">
+                                <div className="rounded-[1.75rem] bg-[#f8fafc] border border-slate-200 p-5 text-center mb-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl mx-auto mb-3">
                                         <User className="w-6 h-6" />
                                     </div>
-                                    <p className="font-bold text-slate-600 text-sm">{locale === "vi" ? "Ghế" : "Seat"} {activeSeat.status}</p>
+                                    <p className="font-black text-[#0f172a] text-sm">{locale === "vi" ? "Ghế" : "Seat"} {activeSeat.status}</p>
                                     <p className="text-xs text-slate-400 mt-0.5 font-mono">R{activeSeat.row}C{activeSeat.col}</p>
                                 </div>
                                 <div className="space-y-1 text-xs">
@@ -1033,7 +1139,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                         { label: locale === "vi" ? "Trạng thái" : "Status", value: activeSeat.status },
                                         { label: locale === "vi" ? "Vị trí" : "Position", value: locale === "vi" ? `Hàng ${activeSeat.row}, Cột ${activeSeat.col}` : `Row ${activeSeat.row}, Col ${activeSeat.col}` },
                                     ].map(({ label, value }) => (
-                                        <div key={label} className="flex items-center justify-between py-2 px-2.5 rounded-xl bg-slate-50">
+                                        <div key={label} className="flex items-center justify-between py-2.5 px-3 rounded-2xl bg-slate-50">
                                             <span className="text-slate-400 font-medium">{label}</span>
                                             <span className="font-bold text-slate-700">{value}</span>
                                         </div>
@@ -1043,12 +1149,12 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                             </div>
                         </Card>
                     ) : (
-                        <Card className="border-none shadow-sm h-full flex items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-white">
+                        <Card className="border-none shadow-sm bg-white rounded-[2rem] h-full flex items-center justify-center p-8">
                             <div className="text-center text-slate-400">
-                                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                                    <Users className="w-8 h-8 opacity-30" />
+                                <div className="w-16 h-16 rounded-[1.5rem] bg-orange-500/10 flex items-center justify-center mx-auto mb-4 text-orange-400">
+                                    <Users className="w-8 h-8 opacity-80" />
                                 </div>
-                                <p className="text-sm font-semibold text-slate-500">{t("clickSeatOrStudent")}</p>
+                                <p className="text-sm font-bold text-slate-600">{t("clickSeatOrStudent")}</p>
                                 <p className="text-xs mt-1.5 opacity-60 leading-relaxed">{t("toViewDetail")}</p>
                             </div>
                         </Card>
@@ -1066,6 +1172,67 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                     onSuccess={() => setSelectedIds(new Set())}
                 />
             )}
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={async () => {
+                    setShowDeleteConfirm(false);
+                    await handleDeleteSchedule();
+                }}
+                title={locale === "vi" ? "Xóa lịch thi" : "Delete exam schedule"}
+                description={
+                    locale === "vi"
+                        ? "Bạn có chắc muốn xóa lịch thi này không? Thao tác này không thể hoàn tác."
+                        : "Are you sure you want to delete this exam schedule? This action cannot be undone."
+                }
+                confirmLabel={locale === "vi" ? "Xóa" : "Delete"}
+                cancelLabel={locale === "vi" ? "Hủy" : "Cancel"}
+                isLoading={deleteMutation.isPending}
+            />
+
+            <AssignProctorDialog
+                isOpen={showAssignProctorDialog}
+                onClose={() => setShowAssignProctorDialog(false)}
+                currentProctorId={schedule.proctorId}
+                currentProctorName={schedule.proctorName}
+                title={locale === "vi" ? "Phân công giám thị" : "Assign Proctor"}
+                currentLabel={locale === "vi" ? "Hiện tại" : "Current"}
+                searchPlaceholder={locale === "vi" ? "Tìm theo tên, mã hoặc email..." : "Search by name, code, or email..."}
+                unassignLabel={locale === "vi" ? "Không gán giám thị" : "No Proctor (Unassign)"}
+                loadingLabel={locale === "vi" ? "Đang tải danh sách giám thị..." : "Loading proctors..."}
+                emptyLabel={locale === "vi" ? "Không tìm thấy giám thị." : "No proctors found."}
+                confirmLabel={locale === "vi" ? "Phân công giám thị" : "Assign Proctor"}
+                assigningLabel={locale === "vi" ? "Đang phân công..." : "Assigning..."}
+                loadErrorLabel={locale === "vi" ? "Không thể tải danh sách giám thị." : "Failed to load proctors."}
+                assignErrorLabel={locale === "vi" ? "Phân công giám thị thất bại." : "Failed to assign proctor."}
+                onConfirm={async (proctorId) => {
+                    await handleAssignSessionStaff("proctorId", proctorId);
+                    toast.success(locale === "vi" ? "Đã cập nhật giám thị." : "Proctor updated.");
+                }}
+            />
+
+            <AssignProctorDialog
+                isOpen={showAssignHallInvigilatorDialog}
+                onClose={() => setShowAssignHallInvigilatorDialog(false)}
+                currentProctorId={schedule.hallInvigilatorId}
+                currentProctorName={schedule.hallInvigilatorName || schedule.hallInvigilatorUsername}
+                roleFilter="HALL_INVIGILATOR"
+                title={locale === "vi" ? "Phân công giám thị hành lang" : "Assign Hall Invigilator"}
+                currentLabel={locale === "vi" ? "Hiện tại" : "Current"}
+                searchPlaceholder={locale === "vi" ? "Tìm theo tên, mã hoặc email..." : "Search by name, code, or email..."}
+                unassignLabel={locale === "vi" ? "Không gán giám thị hành lang" : "No Hall Invigilator (Unassign)"}
+                loadingLabel={locale === "vi" ? "Đang tải danh sách giám thị hành lang..." : "Loading hall invigilators..."}
+                emptyLabel={locale === "vi" ? "Không tìm thấy giám thị hành lang." : "No hall invigilators found."}
+                confirmLabel={locale === "vi" ? "Phân công giám thị hành lang" : "Assign Hall Invigilator"}
+                assigningLabel={locale === "vi" ? "Đang phân công..." : "Assigning..."}
+                loadErrorLabel={locale === "vi" ? "Không thể tải danh sách giám thị hành lang." : "Failed to load hall invigilators."}
+                assignErrorLabel={locale === "vi" ? "Phân công giám thị hành lang thất bại." : "Failed to assign hall invigilator."}
+                onConfirm={async (hallInvigilatorId) => {
+                    await handleAssignSessionStaff("hallInvigilatorId", hallInvigilatorId);
+                    toast.success(locale === "vi" ? "Đã cập nhật giám thị hành lang." : "Hall invigilator updated.");
+                }}
+            />
         </div>
     );
 }

@@ -41,11 +41,11 @@ export function Sidebar() {
     { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },
     { icon: Calendar, label: t("semesters"), href: ROUTES.ADMIN_SEMESTERS },
   ];
-
   const examOfficerMenuItems = [
-    { icon: Monitor, label: "Monitor", href: "/exam-officer/monitor" },
+    { icon: Monitor, label: t("monitor"), href: "/exam-officer/monitor" },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
     { icon: Ticket, label: t("tickets"), href: ROUTES.EXAM_OFFICER_TICKETS },
+    { icon: FileText, label: t("auditLog"), href: ROUTES.EXAM_OFFICER_AUDIT_LOG },
     { icon: BarChart2, label: t("reports"), href: ROUTES.EXAM_OFFICER_REPORTS },
     { icon: ClipboardList, label: t("applications"), href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
     { icon: Building2, label: t("rooms"), href: ROUTES.EXAM_OFFICER_ROOMS },

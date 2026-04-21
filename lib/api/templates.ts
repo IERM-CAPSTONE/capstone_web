@@ -40,7 +40,17 @@ export interface BroadcastMessageItem {
 
 export const templatesApi = {
   getTemplates: async (params?: { page?: number; limit?: number; search?: string; campus?: string }): Promise<AnnouncementTemplate[]> => {
-    const response = await apiClient.get<ApiResponse<{ items: AnnouncementTemplate[]; total: number }> | { items: AnnouncementTemplate[]; total: number }>("/announcement-templates", { params });
+    const response = await apiClient.get<ApiResponse<{ items: AnnouncementTemplate[]; total: number }> | { items: AnnouncementTemplate[]; total: number }>("/announcement-templates", {
+      params: {
+        ...params,
+        _ts: Date.now(),
+      },
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
     const raw = response.data as any;
 
     if (raw?.success && raw?.data) {
@@ -82,6 +92,12 @@ export const templatesApi = {
       params: {
         subjectCodes: params?.subjectCodes?.join(","),
         limit: params?.limit,
+        _ts: Date.now(),
+      },
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
     const raw = response.data as any;

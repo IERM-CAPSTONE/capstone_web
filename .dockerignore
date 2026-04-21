@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+*.log
+.env*
+Book1.xlsx
+README.md
+ROUTING_GUIDE.md
+SETUP_INSTRUCTIONS.md
+CODE_STRUCTURE.md
+EXAMPLE_TEMPLATE.md
