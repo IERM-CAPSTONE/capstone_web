@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ticketsApi, TicketFull } from "@/lib/api/tickets";
 import { examSchedulesApi, ExamSchedule } from "@/lib/api/exam-schedules";
+import { proctorApplicationsApi, ProctorApplication } from "@/lib/api/proctor-applications";
 import { format, differenceInMinutes, parseISO, startOfDay, subDays } from "date-fns";
 import * as XLSX from "xlsx";
 import {
@@ -13,7 +14,7 @@ import {
 import {
     BarChart2, RefreshCw, Download, FileText, Filter, X,
     Ticket, CheckCircle2, TrendingUp, Clock, ChevronDown,
-    Loader2, AlertCircle,
+    Loader2, AlertCircle, Users, Search, ArrowLeftRight, UserCheck, CalendarClock, ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -91,6 +92,7 @@ export default function ExamOfficerReportsPage() {
     // ── State ──
     const [allTickets, setAllTickets] = useState<TicketFull[]>([]);
     const [sessions, setSessions] = useState<ExamSchedule[]>([]);
+    const [proctorApplications, setProctorApplications] = useState<ProctorApplication[]>([]);
     const [loading, setLoading] = useState(true);
     const [filtersOpen, setFiltersOpen] = useState(true);
     const [page, setPage] = useState(1);
@@ -113,7 +115,7 @@ export default function ExamOfficerReportsPage() {
     const fetchData = useCallback(async (filters: typeof applied) => {
         setLoading(true);
         try {
-            const [tks, scheds] = await Promise.all([
+            const [tks, scheds, apps] = await Promise.all([
                 ticketsApi.list({
                     sessionId: filters.sessionId || undefined,
                     fromDate: filters.fromDate || undefined,
@@ -122,10 +124,15 @@ export default function ExamOfficerReportsPage() {
                     status: filters.status || undefined,
                 }),
                 examSchedulesApi.list({ limit: 200 }),
+                proctorApplicationsApi.getAllApplications({ limit: 500 }).catch(() => ({ data: [] })),
             ]);
             setAllTickets(tks);
             const arr = Array.isArray(scheds) ? scheds : (scheds as any).data ?? [];
             setSessions(arr);
+            const appsArr: ProctorApplication[] = Array.isArray(apps)
+                ? apps
+                : (apps as any)?.data ?? [];
+            setProctorApplications(appsArr);
         } catch { }
         finally { setLoading(false); }
     }, []);
@@ -172,6 +179,12 @@ export default function ExamOfficerReportsPage() {
         return `${Math.round(total / solved.length)} min`;
     }, [filtered]);
 
+    // Extra summary stats
+    const totalScheduleChanges = proctorApplications.length;
+    const totalHallTickets = useMemo(() => {
+        return allTickets.filter(t => t.assignee?.role === "HALL_INVIGILATOR").length;
+    }, [allTickets]);
+
     // Pie chart data
     const statusGroups = useMemo(() => {
         const map: Record<string, number> = {};
@@ -188,6 +201,75 @@ export default function ExamOfficerReportsPage() {
         });
         return Object.entries(map).map(([name, value]) => ({ name, value }));
     }, [filtered]);
+
+    // ── Proctor Slot Statistics ──
+    const [proctorSearch, setProctorSearch] = useState("");
+    const proctorSlotData = useMemo(() => {
+        const map: Record<string, { name: string; slots: number }> = {};
+        sessions.forEach(s => {
+            const pid = s.proctorId ?? "__unknown";
+            const name = s.proctorName ?? s.proctorId ?? "Unassigned";
+            if (!map[pid]) map[pid] = { name, slots: 0 };
+            map[pid].slots += 1;
+        });
+        return Object.values(map)
+            .filter(d => d.name !== "Unassigned" || d.slots > 0)
+            .sort((a, b) => b.slots - a.slots);
+    }, [sessions]);
+
+    const filteredProctorData = useMemo(() => {
+        if (!proctorSearch.trim()) return proctorSlotData;
+        return proctorSlotData.filter(d =>
+            d.name.toLowerCase().includes(proctorSearch.toLowerCase())
+        );
+    }, [proctorSlotData, proctorSearch]);
+
+    // ── Schedule Change Statistics (Proctor Applications) ──
+    const [scheduleSearch, setScheduleSearch] = useState("");
+    const scheduleChangesData = useMemo(() => {
+        const map: Record<string, { name: string; code: string | null; total: number; approved: number; rejected: number; pending: number }> = {};
+        proctorApplications.forEach(a => {
+            const key = a.teacherId;
+            const name = a.teacherName ?? a.teacherId;
+            if (!map[key]) map[key] = { name, code: a.teacherCode, total: 0, approved: 0, rejected: 0, pending: 0 };
+            map[key].total += 1;
+            if (a.status === "APPROVED") map[key].approved += 1;
+            else if (a.status === "REJECTED") map[key].rejected += 1;
+            else if (a.status === "PENDING") map[key].pending += 1;
+        });
+        return Object.values(map).sort((a, b) => b.total - a.total);
+    }, [proctorApplications]);
+
+    const filteredScheduleData = useMemo(() => {
+        if (!scheduleSearch.trim()) return scheduleChangesData;
+        return scheduleChangesData.filter(d =>
+            d.name.toLowerCase().includes(scheduleSearch.toLowerCase()) ||
+            (d.code ?? "").toLowerCase().includes(scheduleSearch.toLowerCase())
+        );
+    }, [scheduleChangesData, scheduleSearch]);
+
+    // ── Hall Invigilator Ticket Handling ──
+    const [hallSearch, setHallSearch] = useState("");
+    const hallInvigilatorData = useMemo(() => {
+        const map: Record<string, { name: string; role: string; total: number; solved: number; inProgress: number }> = {};
+        allTickets.forEach(t => {
+            const a = t.assignee;
+            if (!a) return;
+            const key = a.id;
+            if (!map[key]) map[key] = { name: a.fullName, role: a.role, total: 0, solved: 0, inProgress: 0 };
+            map[key].total += 1;
+            if (t.status === "SOLVED") map[key].solved += 1;
+            else if (t.status === "IN_PROGRESS") map[key].inProgress += 1;
+        });
+        return Object.values(map).sort((a, b) => b.total - a.total);
+    }, [allTickets]);
+
+    const filteredHallData = useMemo(() => {
+        if (!hallSearch.trim()) return hallInvigilatorData;
+        return hallInvigilatorData.filter(d =>
+            d.name.toLowerCase().includes(hallSearch.toLowerCase())
+        );
+    }, [hallInvigilatorData, hallSearch]);
 
     // Line chart: trend over last 14 days
     const trendData = useMemo(() => {
@@ -437,6 +519,42 @@ export default function ExamOfficerReportsPage() {
                     />
                 </div>
 
+                {/* ── Extra Summary Stat Cards ── */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-xl border border-indigo-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
+                        <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                            <CalendarClock className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-gray-300 mt-1" />
+                            ) : (
+                                <>
+                                    <p className="text-2xl font-black text-indigo-600">{totalScheduleChanges}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Total Schedule Change Requests</p>
+                                    <p className="text-[11px] text-indigo-500 font-semibold mt-1">Submitted by all Proctors</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-teal-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
+                        <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                            <ShieldCheck className="w-5 h-5 text-teal-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-gray-300 mt-1" />
+                            ) : (
+                                <>
+                                    <p className="text-2xl font-black text-teal-600">{totalHallTickets}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Tickets Handled by Hall Invigilators</p>
+                                    <p className="text-[11px] text-teal-500 font-semibold mt-1">Assigned to Hall Invigilators</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 {/* ── Charts Row 1: Pie + Line ── */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     {/* Pie: Status Distribution */}
@@ -549,6 +667,304 @@ export default function ExamOfficerReportsPage() {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                    )}
+                </div>
+
+                {/* ── Proctor Slot Statistics ── */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-[#F37021]" />
+                            <div>
+                                <h2 className="text-sm font-black text-gray-800">Proctor Slot Statistics</h2>
+                                <p className="text-[10px] text-gray-400">Number of exam slots each proctor is assigned to</p>
+                            </div>
+                        </div>
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search proctor..."
+                                value={proctorSearch}
+                                onChange={e => setProctorSearch(e.target.value)}
+                                className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 w-48"
+                            />
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="h-52 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+                        </div>
+                    ) : filteredProctorData.length === 0 ? (
+                        <div className="h-52 flex items-center justify-center text-sm text-gray-400">No proctor data available</div>
+                    ) : (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                            {/* Bar Chart */}
+                            <ResponsiveContainer width="100%" height={Math.max(180, filteredProctorData.length * 36)}>
+                                <BarChart
+                                    layout="vertical"
+                                    data={filteredProctorData.slice(0, 15)}
+                                    margin={{ top: 4, right: 40, left: 10, bottom: 4 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                                    <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        width={130}
+                                        tick={{ fontSize: 10, fill: "#64748b" }}
+                                        tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 17) + "…" : v}
+                                    />
+                                    <ReTooltip formatter={(val: number) => [`${val} slot(s)`, "Assigned Slots"]} />
+                                    <Bar dataKey="slots" name="Slots" radius={[0, 4, 4, 0]}>
+                                        {filteredProctorData.slice(0, 15).map((_, idx) => (
+                                            <Cell key={idx} fill={TYPE_COLORS[idx % TYPE_COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+
+                            {/* Ranked Table */}
+                            <div className="overflow-y-auto max-h-80">
+                                <table className="w-full text-sm">
+                                    <thead className="sticky top-0 bg-white">
+                                        <tr className="border-b border-gray-100 bg-gray-50">
+                                            <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-wide">#</th>
+                                            <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-wide">Proctor Name</th>
+                                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-wide">Slots Assigned</th>
+                                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-wide">Share</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredProctorData.map((d, idx) => {
+                                            const totalSlots = proctorSlotData.reduce((s, x) => s + x.slots, 0);
+                                            const pct = totalSlots > 0 ? Math.round((d.slots / totalSlots) * 100) : 0;
+                                            return (
+                                                <tr key={d.name} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
+                                                    <td className="px-4 py-2.5">
+                                                        <span className={cn(
+                                                            "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+                                                            idx === 0 ? "bg-amber-100 text-amber-700" :
+                                                            idx === 1 ? "bg-gray-100 text-gray-600" :
+                                                            idx === 2 ? "bg-orange-100 text-orange-600" :
+                                                            "bg-gray-50 text-gray-400"
+                                                        )}>{idx + 1}</span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-xs font-semibold text-gray-700">{d.name}</td>
+                                                    <td className="px-4 py-2.5 text-right">
+                                                        <span className="text-sm font-black text-[#F37021]">{d.slots}</span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                                                                <div
+                                                                    className="h-1.5 rounded-full bg-[#F37021]"
+                                                                    style={{ width: `${pct}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-500 w-8 text-right">{pct}%</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Schedule Change Statistics ── */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <ArrowLeftRight className="w-4 h-4 text-indigo-500" />
+                            <div>
+                                <h2 className="text-sm font-black text-gray-800">Proctor — Schedule Change Requests</h2>
+                                <p className="text-[10px] text-gray-400">Number of schedule swap applications submitted by each proctor — ranked by most changes</p>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search proctor..."
+                                value={scheduleSearch}
+                                onChange={e => setScheduleSearch(e.target.value)}
+                                className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 w-48"
+                            />
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="h-44 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+                        </div>
+                    ) : filteredScheduleData.length === 0 ? (
+                        <div className="h-44 flex items-center justify-center text-sm text-gray-400">No schedule change data available</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-gray-100 bg-gray-50">
+                                        {["#", "Proctor", "Code", "Total Requests", "Approved", "Rejected", "Pending"].map(h => (
+                                            <th key={h} className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredScheduleData.map((d, idx) => (
+                                        <tr key={d.name} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
+                                            <td className="px-4 py-2.5">
+                                                <span className={cn(
+                                                    "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+                                                    idx === 0 ? "bg-amber-100 text-amber-700" :
+                                                    idx === 1 ? "bg-gray-100 text-gray-600" :
+                                                    idx === 2 ? "bg-orange-100 text-orange-600" : "bg-gray-50 text-gray-400"
+                                                )}>{idx + 1}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-xs font-semibold text-gray-700">{d.name}</td>
+                                            <td className="px-4 py-2.5 text-xs font-mono text-gray-400">{d.code ?? "—"}</td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <span className="text-sm font-black text-[#F37021]">{d.total}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">{d.approved}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">{d.rejected}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">{d.pending}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Hall Invigilator Ticket Handling ── */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <UserCheck className="w-4 h-4 text-teal-500" />
+                            <div>
+                                <h2 className="text-sm font-black text-gray-800">Hall Invigilator — Ticket Handling</h2>
+                                <p className="text-[10px] text-gray-400">Number of tickets assigned and handled by each Hall Invigilator</p>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search staff..."
+                                value={hallSearch}
+                                onChange={e => setHallSearch(e.target.value)}
+                                className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 w-48"
+                            />
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="h-44 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+                        </div>
+                    ) : filteredHallData.length === 0 ? (
+                        <div className="h-44 flex items-center justify-center text-sm text-gray-400">No ticket assignment data available</div>
+                    ) : (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                            {/* Bar Chart */}
+                            <ResponsiveContainer width="100%" height={Math.max(180, filteredHallData.length * 40)}>
+                                <BarChart
+                                    layout="vertical"
+                                    data={filteredHallData.slice(0, 15)}
+                                    margin={{ top: 4, right: 40, left: 10, bottom: 4 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                                    <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        width={130}
+                                        tick={{ fontSize: 10, fill: "#64748b" }}
+                                        tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 17) + "…" : v}
+                                    />
+                                    <ReTooltip formatter={(val: number, name: string) => [val, name === "total" ? "Total" : name === "solved" ? "Resolved" : "In Progress"]} />
+                                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
+                                    <Bar dataKey="total" name="Total" fill="#F37021" radius={[0, 4, 4, 0]} />
+                                    <Bar dataKey="solved" name="Resolved" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                                    <Bar dataKey="inProgress" name="In Progress" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+
+                            {/* Table */}
+                            <div className="overflow-y-auto max-h-80">
+                                <table className="w-full text-sm">
+                                    <thead className="sticky top-0 bg-white">
+                                        <tr className="border-b border-gray-100 bg-gray-50">
+                                            {["#", "Staff Name", "Role", "Total", "Resolved", "In Progress"].map(h => (
+                                                <th key={h} className="px-3 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredHallData.map((d, idx) => {
+                                            const solvedPct = d.total > 0 ? Math.round((d.solved / d.total) * 100) : 0;
+                                            const roleLabel: Record<string, string> = {
+                                                HALL_INVIGILATOR: "Hall Invigilator",
+                                                IT_SUPPORT: "IT Support",
+                                                EXAM_OFFICER: "Exam Officer",
+                                                ADMIN: "Admin",
+                                            };
+                                            const roleColor: Record<string, string> = {
+                                                HALL_INVIGILATOR: "bg-blue-100 text-blue-700",
+                                                IT_SUPPORT: "bg-purple-100 text-purple-700",
+                                                EXAM_OFFICER: "bg-orange-100 text-orange-700",
+                                                ADMIN: "bg-gray-100 text-gray-700",
+                                            };
+                                            return (
+                                                <tr key={d.name + idx} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
+                                                    <td className="px-3 py-2.5">
+                                                        <span className={cn(
+                                                            "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+                                                            idx === 0 ? "bg-amber-100 text-amber-700" :
+                                                            idx === 1 ? "bg-gray-100 text-gray-600" :
+                                                            idx === 2 ? "bg-orange-100 text-orange-600" : "bg-gray-50 text-gray-400"
+                                                        )}>{idx + 1}</span>
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-xs font-semibold text-gray-700">{d.name}</td>
+                                                    <td className="px-3 py-2.5">
+                                                        <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold", roleColor[d.role] ?? "bg-gray-100 text-gray-500")}>
+                                                            {roleLabel[d.role] ?? d.role}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center">
+                                                        <span className="text-sm font-black text-[#F37021]">{d.total}</span>
+                                                    </td>
+                                                    <td className="px-3 py-2.5">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-xs font-bold text-green-600">{d.solved}</span>
+                                                            <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                                                                <div className="h-1.5 rounded-full bg-green-500" style={{ width: `${solvedPct}%` }} />
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-400">{solvedPct}%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center">
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">{d.inProgress}</span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     )}
                 </div>
 
