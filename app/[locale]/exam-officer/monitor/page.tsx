@@ -47,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { templatesApi, BroadcastMessageItem } from "@/lib/api/templates";
 
 type ActiveStudentMatch = {
   studentExam: StudentExam;
@@ -147,7 +148,7 @@ export default function MonitorDashboardPage() {
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [ticketStudentCode, setTicketStudentCode] = useState("");
   const [ticketIssueType, setTicketIssueType] = useState<IssueType>("Academic Violation");
-  const [ticketIssueName, setTicketIssueName] = useState("Sinh viÃªn vi pháº¡m trong giá» thi");
+  const [ticketIssueName, setTicketIssueName] = useState("Sinh viên vi phạm trong giờ thi");
   const [ticketDescription, setTicketDescription] = useState("");
   const [ticketPriority, setTicketPriority] = useState<TicketPriority>("Normal");
   const [studentLookupLoading, setStudentLookupLoading] = useState(false);
@@ -425,7 +426,6 @@ export default function MonitorDashboardPage() {
 
           <div className="flex flex-wrap items-center gap-6">
              <MinimalStat icon={<UserCheck className="w-4 h-4 text-indigo-500" />} label={t("stats.totalProctors")} current={globalStats.proctors} total={globalStats.totalProctors} />
-             <MinimalStat icon={<Users className="w-4 h-4 text-blue-500" />} label={t("stats.totalHall")} current={globalStats.hall} total={globalStats.totalHall} />
              <MinimalStat icon={<Activity className="w-4 h-4 text-emerald-500" />} label={t("stats.totalStudents")} current={globalStats.students} total={globalStats.totalStudents} />
              <MinimalStat 
                 icon={<Ticket className="w-4 h-4" />} 
@@ -605,8 +605,6 @@ export default function MonitorDashboardPage() {
                   
                   <div className="flex gap-4 px-6 py-3 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
                      <CompactStat label="Proctors" current={selectedSubject.presentProctors} total={selectedSubject.totalProctors} color="text-indigo-600" />
-                     <div className="w-px h-10 bg-slate-200" />
-                     <CompactStat label="Hall" current={selectedSubject.presentHallInvigilators} total={selectedSubject.totalHallInvigilators} color="text-blue-600" />
                      <div className="w-px h-10 bg-slate-200" />
                      <CompactStat label="Students" current={selectedSubject.checkedInStudents} total={selectedSubject.totalStudents} color="text-emerald-600" />
                   </div>
@@ -882,7 +880,11 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
   const commonT = useTranslations("Common");
   const [broadcastTitle, setBroadcastTitle] = useState("Official Announcement");
   const [customMsg, setCustomMsg] = useState("");
+  const [templateParams, setTemplateParams] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templates, setTemplates] = useState<Array<{ id: string; title: string; content: string; type: "INFO" | "WARNING" | "URGENT"; campus?: string }>>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [sentHistory, setSentHistory] = useState<Array<{ id: string; sentAt: string; title: string; content: string; deliveries: Array<{ sessionId: string; subjectCode: string; roomNumber: string; campus: string }> }>>([]);
 
   const targetSubjectCodesKey = targetSubjectCodes.join(",");
@@ -890,9 +892,15 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
   useEffect(() => {
     if (!isOpen) return;
 
+    setTemplateLoading(true);
+
     import("@/lib/api/templates")
-      .then((m) => m.templatesApi.getBroadcastMessages({ subjectCodes: targetSubjectCodes, limit: 100 }))
-      .then((messages) => {
+      .then(async (m) => {
+        const [messages, availableTemplates] = await Promise.all([
+          m.templatesApi.getBroadcastMessages({ subjectCodes: targetSubjectCodes, limit: 100 }),
+          m.templatesApi.getTemplates({ limit: 100 }),
+        ]);
+
         setSentHistory(
           messages.map((item) => ({
             id: item.id,
@@ -902,11 +910,68 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
             deliveries: item.deliveries || [],
           })),
         );
+        setTemplates(availableTemplates);
       })
       .catch((error) => {
-        console.error("Failed to load persisted broadcast messages:", error);
+        console.error("Failed to load broadcast modal data:", error);
+        setTemplates([]);
+      })
+      .finally(() => {
+        setTemplateLoading(false);
       });
   }, [isOpen, targetSubjectCodesKey]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setSelectedTemplateId("");
+    setBroadcastTitle("Official Announcement");
+    setCustomMsg("");
+    setTemplateParams({});
+  }, [isOpen]);
+
+  const placeholderKeys = Array.from(
+    new Set(
+      `${broadcastTitle}\n${customMsg}`
+        .match(/\{([a-zA-Z0-9_]+)\}/g)?.map((token) => token.slice(1, -1)) ?? [],
+    ),
+  );
+
+  const applyTemplateParams = (value: string) =>
+    value.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key: string) => templateParams[key] ?? `{${key}}`);
+
+  const renderedBroadcastTitle = applyTemplateParams(broadcastTitle);
+  const renderedBroadcastMessage = applyTemplateParams(customMsg);
+
+  const getParamLabel = (key: string) => {
+    const labels: Record<string, { vi: string; en: string }> = {
+      room: { vi: "Phòng", en: "Room" },
+      minute: { vi: "Số phút", en: "Minutes" },
+      minutes: { vi: "Số phút", en: "Minutes" },
+      time: { vi: "Thời gian", en: "Time" },
+      subject: { vi: "Môn học", en: "Subject" },
+    };
+
+    const found = labels[key.toLowerCase()];
+    if (found) return locale === "vi" ? found.vi : found.en;
+    return key;
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+
+    const selectedTemplate = templates.find((template) => template.id === templateId);
+    if (!selectedTemplate) {
+      setBroadcastTitle("Official Announcement");
+      setCustomMsg("");
+      setTemplateParams({});
+      return;
+    }
+
+    setBroadcastTitle(selectedTemplate.title);
+    setCustomMsg(selectedTemplate.content);
+    setTemplateParams({});
+  };
 
   const handleSend = async () => {
     if (targetSubjectCodes.length === 0) {
@@ -919,9 +984,9 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
       const { templatesApi } = await import("@/lib/api/templates");
       const result = await templatesApi.broadcast({
         subjectCodes: targetSubjectCodes,
-        content: customMsg,
+        content: renderedBroadcastMessage,
         type: "INFO",
-        title: broadcastTitle,
+        title: renderedBroadcastTitle,
       });
 
       toast.success(locale === "vi" ? `Đã gửi thông báo tới ${targetCount} môn thành công!` : `Announcement sent to ${targetCount} subjects successfully!`);
@@ -946,7 +1011,7 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-5xl p-0 border-none rounded-3xl shadow-2xl overflow-hidden bg-white">
-        <div className="flex h-[80vh]">
+        <div className="flex h-[80vh] overflow-hidden">
           {/* Sidebar: Message Board */}
            <div className="w-[40%] min-w-[340px] max-w-[500px] bg-slate-50 border-r border-slate-100 flex flex-col">
               <div className="p-6 border-b border-slate-100">
@@ -980,9 +1045,9 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
            </div>
 
            {/* Content Area */}
-           <div className="flex-1 flex flex-col bg-white">
+           <div className="flex-1 flex min-h-0 flex-col bg-white">
               {/* Modal Header */}
-              <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+              <div className="shrink-0 px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
                  <div>
                     <h2 className="text-xl font-bold text-slate-900">{locale === "vi" ? "Phát thông báo" : "Broadcast Announcement"}</h2>
                     <p className="text-xs text-slate-500 mt-0.5">{locale === "vi" ? `Thông điệp sẽ được gửi tới ${targetCount} môn đang hoạt động.` : `Your message will be sent to ${targetCount} active subjects.`}</p>
@@ -993,7 +1058,31 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
                   </div>
               </div>
 
-              <div className="flex-1 flex flex-col p-8 gap-6 overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
+                <div className="flex flex-col gap-6 pb-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
+                      {locale === "vi" ? "Mẫu thông báo" : "Template"}
+                    </label>
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => handleTemplateChange(e.target.value)}
+                      disabled={templateLoading}
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                    >
+                      <option value="">
+                        {templateLoading
+                          ? (locale === "vi" ? "Đang tải mẫu..." : "Loading templates...")
+                          : (locale === "vi" ? "Chọn mẫu để điền nhanh" : "Choose a template")}
+                      </option>
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">{locale === "vi" ? "Tiêu đề thông báo" : "Announcement Title"}</label>
                     <Input
@@ -1004,9 +1093,37 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
                     />
                   </div>
 
+                  {placeholderKeys.length > 0 && (
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
+                        {locale === "vi" ? "Tham số mẫu" : "Template Parameters"}
+                      </label>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {placeholderKeys.map((key) => (
+                          <div key={key} className="space-y-1.5">
+                            <label className="text-[11px] font-semibold text-slate-500">
+                              {getParamLabel(key)} <span className="text-slate-300">{`{${key}}`}</span>
+                            </label>
+                            <Input
+                              className="h-11 rounded-xl border-slate-200 text-sm"
+                              value={templateParams[key] ?? ""}
+                              onChange={(e) =>
+                                setTemplateParams((prev) => ({
+                                  ...prev,
+                                  [key]: e.target.value,
+                                }))
+                              }
+                              placeholder={locale === "vi" ? `Nhập ${getParamLabel(key).toLowerCase()}` : `Enter ${getParamLabel(key).toLowerCase()}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                  {/* Message Editor */}
                  <div className="flex-1 flex flex-col">
-                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{locale === "vi" ? "Xem trước nội dung" : "Live Content Preview"}</label>
+                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{locale === "vi" ? "Nội dung mẫu" : "Template Content"}</label>
                     <textarea
                       className="w-full flex-1 bg-white border border-slate-200 rounded-xl p-6 text-sm sm:text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none shadow-inner leading-relaxed"
                       placeholder={locale === "vi" ? "Nhập nội dung thông báo tại đây..." : "Type your announcement here..."}
@@ -1014,16 +1131,27 @@ function BroadcastModal({ isOpen, onClose, targetCount, targetSubjectCodes, t }:
                       onChange={(e) => setCustomMsg(e.target.value)}
                     />
                     <div className="mt-2 flex justify-between items-center px-2">
-                       <span className="text-[11px] text-slate-400 font-medium">{locale === "vi" ? `${customMsg.length} ký tự` : `${customMsg.length} characters`}</span>
+                       <span className="text-[11px] text-slate-400 font-medium">{locale === "vi" ? `${renderedBroadcastMessage.length} ký tự sau khi điền` : `${renderedBroadcastMessage.length} rendered characters`}</span>
                        <span className="text-[11px] text-orange-600 font-bold flex items-center gap-1">
                           <Activity className="w-3 h-3 animate-pulse" /> {locale === "vi" ? "Đang bật xem trước" : "Live Preview Enabled"}
                        </span>
                     </div>
                  </div>
+
+                 <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-orange-700">
+                      {locale === "vi" ? "Bản xem trước sẽ gửi" : "Final Preview"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{renderedBroadcastTitle || (locale === "vi" ? "Chưa có tiêu đề" : "No title")}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                      {renderedBroadcastMessage || (locale === "vi" ? "Chưa có nội dung" : "No content")}
+                    </p>
+                 </div>
+                </div>
               </div>
 
               {/* Action Footer */}
-              <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex gap-3">
+              <div className="shrink-0 px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex gap-3">
                  <Button 
                     variant="outline" 
                     onClick={onClose}
@@ -1100,6 +1228,7 @@ function FilterBtn({ active, onClick, label }: any) {
 
 function StatCard({ icon, label, current, total, color, onClick, active, alert, showTotal = true }: any) {
   const percentage = total > 0 ? (current / total) * 100 : 0;
+  const percentageLabel = `${percentage > 0 ? Math.max(1, Math.round(percentage)) : 0}%`;
   
   const colors: any = {
     blue: "from-blue-500 to-cyan-500 text-blue-600 bg-blue-50 border-blue-100 shadow-blue-100",
@@ -1130,7 +1259,7 @@ function StatCard({ icon, label, current, total, color, onClick, active, alert, 
           <div className="flex flex-col items-end">
              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Utilization</span>
              <span className={cn("text-xs font-black", percentage >= 90 ? "text-emerald-500" : percentage >= 50 ? "text-indigo-500" : "text-orange-500")}>
-                {Math.round(percentage)}%
+                {percentageLabel}
              </span>
           </div>
         </div>
@@ -1207,9 +1336,8 @@ function SubjectCard({ subject, t, locale, isSelected }: { subject: SubjectMonit
         </div>
 
         {/* High Impact Stats Row */}
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-evenly px-1">
            <CircularMetric label={t("table.proctorRate")} current={subject.presentProctors} total={subject.totalProctors} color="indigo" />
-           <CircularMetric label={t("table.hallRate")} current={subject.presentHallInvigilators} total={subject.totalHallInvigilators} color="blue" />
            <CircularMetric label={t("table.studentRate")} current={subject.checkedInStudents} total={subject.totalStudents} color="emerald" />
         </div>
 
@@ -1243,7 +1371,8 @@ function SubjectCard({ subject, t, locale, isSelected }: { subject: SubjectMonit
 }
 
 function CircularMetric({ label, current, total, color }: { label: string, current: number, total: number, color: string }) {
-  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+  const percentage = total > 0 ? (current / total) * 100 : 0;
+  const percentageLabel = `${percentage > 0 ? Math.max(1, Math.round(percentage)) : 0}%`;
   const radius = 22;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
@@ -1264,7 +1393,7 @@ function CircularMetric({ label, current, total, color }: { label: string, curre
           <circle cx="28" cy="28" r={radius} strokeWidth="5" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" fill="transparent" className={cn("transition-all duration-1000 drop-shadow-sm", config.main)} />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-           <span className={cn("text-xs font-black tabular-nums leading-none tracking-tighter", config.text)}>{Math.round(percentage)}%</span>
+           <span className={cn("text-xs font-black tabular-nums leading-none tracking-tighter", config.text)}>{percentageLabel}</span>
         </div>
       </div>
       <div className="flex flex-col items-center leading-none">
@@ -1320,46 +1449,86 @@ function StatusBadge({ subject, t, isSmall = false }: { subject: SubjectMonitorS
 
 function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
   const locale = useLocale();
+  const { on } = useSocket();
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState<Array<SessionActivityItem & { roomNumber: string }>>([]);
+  const [broadcastMessages, setBroadcastMessages] = useState<BroadcastMessageItem[]>([]);
+
+  const loadBoardData = useCallback(async (keepExisting = false) => {
+    if (!keepExisting) {
+      setLoading(true);
+    }
+
+    const [activityGroups, broadcasts] = await Promise.all([
+      Promise.all(
+        subject.sessions.map((session) =>
+          monitorApi.getSessionActivities(session.sessionId, { limit: 80 }).then((items) =>
+            items.map((item) => ({
+              ...item,
+              roomNumber: session.roomNumber,
+            })),
+          ),
+        ),
+      ),
+      templatesApi.getBroadcastMessages({ subjectCodes: [subject.subjectCode], limit: 100 }),
+    ]);
+
+    const merged = activityGroups
+      .flat()
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    setActivities(merged);
+    setBroadcastMessages(
+      [...broadcasts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    );
+  }, [subject.sessions, subject.subjectCode]);
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
 
-    Promise.all(
-      subject.sessions.map((session) =>
-        monitorApi.getSessionActivities(session.sessionId, { limit: 80 }).then((items) =>
-          items.map((item) => ({
-            ...item,
-            roomNumber: session.roomNumber,
-          })),
-        ),
-      ),
-    )
-      .then((result) => {
-        if (!isMounted) return;
-        const merged = result
-          .flat()
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setActivities(merged);
-      })
-      .catch((error) => {
-        console.error('Failed to load subject activities', error);
+    const run = async () => {
+      try {
+        await loadBoardData();
+      } catch (error) {
+        console.error("Failed to load subject activities", error);
         if (isMounted) {
           setActivities([]);
+          setBroadcastMessages([]);
         }
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) setLoading(false);
-      });
+      }
+    };
+
+    run();
 
     return () => {
       isMounted = false;
     };
-  }, [subject]);
+  }, [loadBoardData]);
 
-  const broadcasts = activities.filter((item) => item.event === 'BROADCAST_SENT');
+  useEffect(() => {
+    const refreshBoard = () => {
+      loadBoardData(true).catch((error) => {
+        console.error("Failed to refresh subject board", error);
+      });
+    };
+
+    const cleanup = on?.("monitor:broadcast_sent", refreshBoard);
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [loadBoardData, on]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadBoardData(true).catch((error) => {
+        console.error("Failed to poll subject board", error);
+      });
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [loadBoardData]);
 
   return (
     <div className="grid grid-rows-2 gap-6 h-full min-h-0">
@@ -1371,18 +1540,27 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
           <ScrollArea className="h-full pr-3">
             {loading ? (
               <p className="text-sm text-slate-500">{locale === "vi" ? "Đang tải thông báo..." : "Loading messages..."}</p>
-            ) : broadcasts.length === 0 ? (
+            ) : broadcastMessages.length === 0 ? (
               <p className="text-sm text-slate-500">{locale === "vi" ? "Chưa có thông báo nào cho môn này." : "No broadcast messages for this subject yet."}</p>
             ) : (
               <div className="space-y-3">
-                {broadcasts.map((item) => (
+                {broadcastMessages.map((item) => (
                   <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-slate-800">{item.title}</p>
                       <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString()}</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-600">{item.message}</p>
-                    <p className="mt-2 text-[11px] text-indigo-600 font-semibold">{locale === "vi" ? `Phòng ${item.roomNumber}` : `Room ${item.roomNumber}`}</p>
+                    <p className="mt-1 text-xs text-slate-600 whitespace-pre-wrap">{item.content}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {(item.deliveries || []).map((delivery) => (
+                        <span
+                          key={`${item.id}-${delivery.sessionId}-${delivery.roomNumber}`}
+                          className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600"
+                        >
+                          {locale === "vi" ? `Phòng ${delivery.roomNumber}` : `Room ${delivery.roomNumber}`}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

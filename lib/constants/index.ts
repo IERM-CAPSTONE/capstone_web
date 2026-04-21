@@ -1,6 +1,15 @@
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "IERM";
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const browserApiUrl =
+  typeof window !== "undefined" ? `${window.location.origin}/api` : undefined;
+const serverApiUrl =
+  configuredApiUrl && !configuredApiUrl.includes("localhost")
+    ? configuredApiUrl
+    : "http://capstone_api:3000/api";
+
+export const API_URL = browserApiUrl || serverApiUrl;
 
 export const ROLES = {
   ADMIN: "admin",
@@ -26,5 +35,4 @@ export const PAGINATION = {
   DEFAULT_LIMIT: 10,
   MAX_LIMIT: 100,
 } as const;
-
 

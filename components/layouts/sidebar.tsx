@@ -37,14 +37,15 @@ export function Sidebar() {
   const adminMenuItems = [
     { icon: Users, label: t("accounts"), href: ROUTES.ADMIN_ACCOUNTS },
     { icon: Building2, label: t("rooms"), href: ROUTES.ROOMS },
+    { icon: Monitor, label: t("devices"), href: ROUTES.ADMIN_DEVICES, showBadge: true },
     { icon: BookOpen, label: t("subjects"), href: ROUTES.SUBJECTS },
     { icon: Calendar, label: t("semesters"), href: ROUTES.ADMIN_SEMESTERS },
   ];
-
   const examOfficerMenuItems = [
-    { icon: Monitor, label: "Monitor", href: "/exam-officer/monitor" },
+    { icon: Monitor, label: t("monitor"), href: "/exam-officer/monitor" },
     { icon: Calendar, label: t("schedules"), href: ROUTES.EXAMS_SCHEDULE },
     { icon: Ticket, label: t("tickets"), href: ROUTES.EXAM_OFFICER_TICKETS },
+    { icon: FileText, label: t("auditLog"), href: ROUTES.EXAM_OFFICER_AUDIT_LOG },
     { icon: BarChart2, label: t("reports"), href: ROUTES.EXAM_OFFICER_REPORTS },
     { icon: ClipboardList, label: t("applications"), href: ROUTES.EXAM_OFFICER_PROCTOR_APPLICATIONS },
     { icon: Building2, label: t("rooms"), href: ROUTES.EXAM_OFFICER_ROOMS },
@@ -152,7 +153,7 @@ export function Sidebar() {
                   <Icon className={cn("h-5 w-5", isActive ? "text-[#F37021]" : "text-gray-500")} />
                   <span className="flex items-center gap-2">
                     {item.label}
-                    {item.href === ROUTES.ADMIN_DEVICES && pendingApplicationsCount > 0 && (
+                    {item.showBadge && pendingApplicationsCount > 0 && (
                       <span className="inline-flex items-center justify-center rounded-full bg-[#F37021] px-2 py-0.5 text-[10px] font-bold text-white">
                         {pendingApplicationsCount}
                       </span>

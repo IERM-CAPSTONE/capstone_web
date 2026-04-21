@@ -50,6 +50,8 @@ export function SeatGrid({
       } else {
         computedStatus = 'Assigned';
       }
+    } else if (student && seat?.status !== 'Locked') {
+      computedStatus = hasAnyCheckedInPart(student) ? 'Present' : (seat?.status ?? 'Assigned');
     }
 
     return (

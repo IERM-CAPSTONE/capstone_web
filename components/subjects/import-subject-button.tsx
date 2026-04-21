@@ -47,6 +47,7 @@ export function ImportSubjectButton() {
     const t = useTranslations("Subjects");
     const tCommon = useTranslations("Common");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const processingToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const importSubjects = useImportSubjects();
     const queryClient = useQueryClient();
     const [isUploading, setIsUploading] = useState(false);
@@ -60,6 +61,13 @@ export function ImportSubjectButton() {
     const semesters = semestersData?.data || [];
     const { on } = useSocket();
 
+    const clearProcessingToastTimeout = () => {
+        if (processingToastTimeoutRef.current) {
+            clearTimeout(processingToastTimeoutRef.current);
+            processingToastTimeoutRef.current = null;
+        }
+    };
+
     // Listen for import completion or failure via socket
     useEffect(() => {
         if (!on) return;
@@ -68,18 +76,20 @@ export function ImportSubjectButton() {
             if (data.action === "subjects") {
                 // Refresh the list immediately
                 queryClient.invalidateQueries({ queryKey: ["subjects"] });
+                clearProcessingToastTimeout();
                 toast.dismiss("import-processing");
-                toast.success(data.message || "Subjects imported successfully!", {
+                toast.success(data.message || t("importCompleted"), {
                     icon: <Check className="h-4 w-4 text-emerald-500" />,
-                    description: `Success: ${data.successCount}, Error: ${data.errorCount}`,
+                    description: t("importSummary", { successCount: data.successCount, errorCount: data.errorCount }),
                 });
             }
         };
 
         const onFailed = (data: any) => {
             if (data.action === "subjects") {
+                clearProcessingToastTimeout();
                 toast.dismiss("import-processing");
-                toast.error(data.message || "Import failed", {
+                toast.error(data.message || t("importFailedShort"), {
                     icon: <AlertCircle className="h-4 w-4 text-red-500" />,
                 });
             }
@@ -92,7 +102,13 @@ export function ImportSubjectButton() {
             cleanupSuccess();
             cleanupError();
         };
-    }, [on, queryClient]);
+    }, [on, queryClient, t]);
+
+    useEffect(() => {
+        return () => {
+            clearProcessingToastTimeout();
+        };
+    }, []);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -107,7 +123,7 @@ export function ImportSubjectButton() {
         const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
 
         if (!validExtensions.includes(fileExtension)) {
-            toast.error("Invalid file format. Please upload an Excel or CSV file.");
+            toast.error(t("invalidFileFormat"));
             if (fileInputRef.current) fileInputRef.current.value = "";
             return;
         }
@@ -168,7 +184,7 @@ export function ImportSubjectButton() {
             };
             reader.readAsArrayBuffer(file);
         } catch (error) {
-            toast.error("Error reading file preview");
+            toast.error(t("previewReadError"));
             console.error(error);
         }
     };
@@ -183,14 +199,23 @@ export function ImportSubjectButton() {
                 file: selectedFile,
                 semesterId: selectedSemesterId
             });
-            toast.info(result.message || "Processing subjects in background...", {
+            toast.info(result.message || t("importProcessing"), {
                 id: "import-processing",
                 icon: <Loader2 className="h-4 w-4 animate-spin" />,
                 duration: Infinity,
             });
+            clearProcessingToastTimeout();
+            processingToastTimeoutRef.current = setTimeout(() => {
+                toast.dismiss("import-processing");
+                queryClient.invalidateQueries({ queryKey: ["subjects"] });
+                toast.info(t("importProcessingFallback"), {
+                    description: t("importProcessingFallbackDescription"),
+                });
+            }, 15000);
         } catch (error: any) {
+            clearProcessingToastTimeout();
             console.error("Import failed:", error);
-            toast.error(error.response?.data?.message || "Failed to import subjects. Please try again.", {
+            toast.error(error.response?.data?.message || t("importFailed"), {
                 icon: <AlertCircle className="h-4 w-4 text-red-500" />
             });
         } finally {
@@ -244,7 +269,7 @@ export function ImportSubjectButton() {
                             
                             {totalRows > 0 && (
                                 <div className="px-4 py-1.5 bg-orange-50 border border-orange-100 rounded-full flex items-center gap-2">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 opacity-60">Total Items</span>
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 opacity-60">{t("previewTotalItems")}</span>
                                     <span className="text-sm font-black text-orange-700">{totalRows}</span>
                                 </div>
                             )}
@@ -257,14 +282,14 @@ export function ImportSubjectButton() {
                             <div className="flex-1 space-y-1">
                                 <label className="text-xs font-bold text-orange-800 uppercase tracking-wider flex items-center gap-1.5">
                                     <CalendarDays className="h-3.5 w-3.5" />
-                                    Target Semester
+                                    {t("targetSemester")}
                                 </label>
                                 <select
                                     className="w-full h-10 px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                                     value={selectedSemesterId}
                                     onChange={(e) => setSelectedSemesterId(e.target.value)}
                                 >
-                                    <option value="">Select semester to import into</option>
+                                    <option value="">{t("selectSemesterToImport")}</option>
                                     {semesters.map((sem) => (
                                         <option key={sem.id} value={sem.id}>
                                             {sem.name} ({sem.code})
@@ -273,7 +298,7 @@ export function ImportSubjectButton() {
                                 </select>
                             </div>
                             <div className="text-[10px] text-orange-600 max-w-[200px] italic">
-                                * Existing subjects in this semester will be updated, new ones will be created.
+                                * {t("importSemesterHint")}
                             </div>
                         </div>
                     </DialogHeader>
@@ -299,7 +324,9 @@ export function ImportSubjectButton() {
 
                     <div className="flex-1 overflow-hidden px-6">
                         <div className="mb-2 text-[11px] text-slate-400 font-medium">
-                            {currentData.length < totalRows ? `* Showing first ${currentData.length} items for preview` : `* Showing all ${totalRows} items`}
+                            {currentData.length < totalRows
+                                ? `* ${t("previewShowingFirst", { count: currentData.length })}`
+                                : `* ${t("previewShowingAll", { count: totalRows })}`}
                         </div>
                         <ScrollArea className="h-[55vh] border rounded-md">
                             <Table className="min-w-[800px]">

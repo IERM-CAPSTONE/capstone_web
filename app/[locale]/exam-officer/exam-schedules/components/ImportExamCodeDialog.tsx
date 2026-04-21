@@ -1,6 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,9 @@ interface ImportExamCodeDialogProps {
 }
 
 export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCodeDialogProps) {
+    const t = useTranslations("Dashboard.examOfficer.importExamCodeDialog");
+    const tCommon = useTranslations("Common");
+
     const {
         selectedFile,
         fileInputRef,
@@ -74,7 +78,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
 
     const handleImport = async () => {
         if (!selectedFile) {
-            setImportError("Please select a file first");
+            setImportError(t("selectFileFirst"));
             return;
         }
 
@@ -85,7 +89,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
             setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
 
             for (let i = 0; i < codeChunks.length; i++) {
-                setImportStatus(`Sending exam codes: batch ${i + 1}/${codeChunks.length}...`);
+                setImportStatus(t("sendingBatch", { current: i + 1, total: codeChunks.length }));
                 await codesMutation.mutateAsync({
                     importType: "examcode" as any,
                     codes: codeChunks[i],
@@ -94,12 +98,12 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                 } as any);
             }
 
-            setImportStatus("Data sent to server. Processing in background...");
+            setImportStatus(t("processingBackground"));
             setIsWaitingForWorker(true);
             setImportError("");
         } catch (err: any) {
             console.error(err);
-            setImportError(err?.response?.data?.message || err?.message || "Failed to import.");
+            setImportError(err?.response?.data?.message || err?.message || t("importFailed"));
             setImportStatus("");
         }
     };
@@ -130,8 +134,8 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                 <Import className="h-5 w-5 text-purple-500" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Import Exam Code & Open Code</h3>
-                                <p className="text-sm text-slate-500">Upload exam code and open code file</p>
+                                <h3 className="text-lg font-bold text-slate-900">{t("title")}</h3>
+                                <p className="text-sm text-slate-500">{t("description")}</p>
                             </div>
                         </div>
                         <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -153,12 +157,12 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                     </div>
                                 </div>
                                 <h4 className="text-lg font-semibold text-slate-900 mb-2">
-                                    {workerProgress.errors > 0 ? 'Import Completed with Errors' : 'Import Successful!'}
+                                    {workerProgress.errors > 0 ? t("successWithErrorsTitle") : t("successTitle")}
                                 </h4>
                                 <p className="text-sm text-slate-600 mb-6">
-                                    Processed {workerProgress.success + workerProgress.errors} items:
-                                    <span className="text-green-600 font-medium ml-1">{workerProgress.success} success</span>,
-                                    <span className="text-red-600 font-medium ml-1">{workerProgress.errors} failures</span>.
+                                    {t("processedSummary", { count: workerProgress.success + workerProgress.errors })}
+                                    <span className="text-green-600 font-medium ml-1">{t("successCount", { count: workerProgress.success })}</span>,
+                                    <span className="text-red-600 font-medium ml-1">{t("failureCount", { count: workerProgress.errors })}</span>.
                                 </p>
                             </div>
 
@@ -166,7 +170,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                 <div className="text-left border rounded-lg overflow-hidden flex flex-col flex-1 min-h-0 bg-white shadow-sm">
                                     <div className="bg-slate-50 px-4 py-2 border-b">
                                         <span className="text-xs font-semibold uppercase tracking-wider text-red-600">
-                                            Exam Code Errors ({workerProgress.failedItems.length})
+                                            {t("errorSectionTitle", { count: workerProgress.failedItems.length })}
                                         </span>
                                     </div>
 
@@ -174,15 +178,15 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                         <table className="w-full text-xs">
                                             <thead className="bg-slate-50 sticky top-0">
                                                 <tr>
-                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">Row Data</th>
-                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium">Error Message</th>
+                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">{t("rowData")}</th>
+                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium">{t("errorMessage")}</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
                                                 {paginatedErrors.map((fail, idx) => (
                                                     <tr key={idx} className="hover:bg-red-50/30">
                                                         <td className="px-4 py-2 font-mono text-slate-600 break-all">
-                                                            {(fail.data?.examRoom || fail.item?.examRoom || 'Unknown') + ' - ' + (fail.data?.dateExam || fail.item?.dateExam || '')}
+                                                            {(fail.data?.examRoom || fail.item?.examRoom || t("unknown")) + ' - ' + (fail.data?.dateExam || fail.item?.dateExam || '')}
                                                         </td>
                                                         <td className="px-4 py-2 text-red-600 italic">
                                                             {fail.message || fail.error}
@@ -203,10 +207,10 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                                 onClick={() => setErrorPage(p => p - 1)}
                                                 className="h-7 text-[10px]"
                                             >
-                                                Prev
+                                                {t("prev")}
                                             </Button>
                                             <span className="text-[10px] text-slate-500">
-                                                Page {errorPage} of {totalErrorPages}
+                                                {tCommon("page")} {errorPage} {tCommon("of")} {totalErrorPages}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -215,7 +219,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                                 onClick={() => setErrorPage(p => p + 1)}
                                                 className="h-7 text-[10px]"
                                             >
-                                                Next
+                                                {t("next")}
                                             </Button>
                                         </div>
                                     )}
@@ -237,10 +241,10 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-700">
-                                                    Click to upload or drag and drop
+                                                    {t("uploadCta")}
                                                 </p>
                                                 <p className="text-xs text-slate-500 mt-1">
-                                                    CSV or Excel files only (Max 10MB)
+                                                    {t("uploadHint")}
                                                 </p>
                                             </div>
                                         </div>
@@ -280,12 +284,12 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                         <CardContent className="p-4">
                                             <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
                                                 <FileText className="h-4 w-4" />
-                                                File Format Requirements
+                                                {t("fileFormatTitle")}
                                             </h4>
                                             <ul className="text-xs text-blue-700 space-y-1">
-                                                <li>• Required columns: Start Date, Exam Code, Rooms</li>
-                                                <li>• Start Date format: DD/MM/YYYY HH:mm</li>
-                                                <li>• Exam Code supports "CODE (OPEN)" specific format</li>
+                                                <li>• {t("requiredColumns")}</li>
+                                                <li>• {t("dateFormat")}</li>
+                                                <li>• {t("examCodeFormat")}</li>
                                             </ul>
                                         </CardContent>
                                     </Card>
@@ -295,7 +299,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                 <>
                                     <div className="flex gap-4 border-b border-slate-200 mb-4">
                                         <button className="px-4 py-2 font-medium text-sm text-purple-600 border-b-2 border-purple-600">
-                                            Exam Codes ({codePreview.length})
+                                            {t("tabLabel", { count: codePreview.length })}
                                         </button>
                                     </div>
 
@@ -317,7 +321,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                         <table className="w-full text-sm">
                                             <thead className="bg-slate-50 sticky top-0">
                                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">No.</th>
+                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">{t("index")}</th>
                                                     {codePreview.length > 0 && Object.keys(codePreview[0])
                                                         .filter(k => k !== "stt")
                                                         .map(key => {
@@ -329,7 +333,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                                                 </th>
                                                             );
                                                         })}
-                                                    <th className="px-4 py-2 text-center font-semibold text-slate-700">Actions</th>
+                                                    <th className="px-4 py-2 text-center font-semibold text-slate-700">{t("actions")}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -361,22 +365,22 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                                             <td className="px-4 py-2 text-center">
                                                                 {isEditing ? (
                                                                     <div className="flex items-center justify-center gap-2">
-                                                                        <Button size="sm" onClick={() => handleSaveEdit()}>Save</Button>
-                                                                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                                                                        <Button size="sm" onClick={() => handleSaveEdit()}>{t("save")}</Button>
+                                                                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>{tCommon("cancel")}</Button>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="flex items-center justify-center gap-2">
                                                                         <button
                                                                             onClick={() => handleEditRow(row, actualIndex)}
                                                                             className="p-1 hover:bg-blue-100 rounded text-blue-600 transition-colors"
-                                                                            title="Edit"
+                                                                            title={t("edit")}
                                                                         >
                                                                             <Edit2 className="h-4 w-4" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDeleteRow(actualIndex)}
                                                                             className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
-                                                                            title="Delete"
+                                                                            title={tCommon("delete")}
                                                                         >
                                                                             <Trash2 className="h-4 w-4" />
                                                                         </button>
@@ -393,23 +397,27 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                     {/* Pagination */}
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="text-sm text-slate-500">
-                                            Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, codePreview.length)} to {Math.min(currentPage * ITEMS_PER_PAGE, codePreview.length)} of {codePreview.length} entries
+                                            {t("showingEntries", {
+                                                from: Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, codePreview.length),
+                                                to: Math.min(currentPage * ITEMS_PER_PAGE, codePreview.length),
+                                                total: codePreview.length
+                                            })}
                                         </div>
                                         <div className="flex gap-2">
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                                                First
+                                                {t("first")}
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>
-                                                Previous
+                                                {tCommon("previous")}
                                             </Button>
                                             <div className="flex items-center px-4 text-sm font-medium">
-                                                Page {currentPage} of {totalPages}
+                                                {tCommon("page")} {currentPage} {tCommon("of")} {totalPages}
                                             </div>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>
-                                                Next
+                                                {tCommon("next")}
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                                                Last
+                                                {t("last")}
                                             </Button>
                                         </div>
                                     </div>
@@ -420,7 +428,7 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                                             onClick={() => fileInputRef.current?.click()}
                                             className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                                         >
-                                            ← Change file
+                                            ← {t("changeFile")}
                                         </button>
                                     </div>
                                 </>
@@ -429,19 +437,19 @@ export default function ImportExamCodeDialog({ isOpen, onClose }: ImportExamCode
                             {/* Action Buttons */}
                             <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
                                 <Button variant="outline" onClick={handleClose} disabled={isPending}>
-                                    Cancel
+                                    {tCommon("cancel")}
                                 </Button>
                                 {previewLoaded && (
                                     <Button onClick={handleImport} disabled={isPending || codePreview.length === 0}>
                                         {isPending ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Importing...
+                                                {t("importing")}
                                             </>
                                         ) : (
                                             <>
                                                 <Import className="mr-2 h-4 w-4" />
-                                                Import Exam Codes
+                                                {t("title")}
                                             </>
                                         )}
                                     </Button>
