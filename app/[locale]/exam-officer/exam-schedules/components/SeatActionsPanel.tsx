@@ -6,11 +6,14 @@ interface SeatActionsPanelProps {
   onEditToggle: (editing: boolean) => void;
   onRefresh: () => void;
   onFinalize?: () => void;
+  onApplyCheckerboardTemplate?: () => void;
+  onResetTemplate?: () => void;
   userRole?: string;
   error?: string | null;
   hasStudentsImported?: boolean;
   hasUnassignedStudents?: boolean;
   isFinalizingSeats?: boolean;
+  isApplyingTemplate?: boolean;
 }
 
 export function SeatActionsPanel({
@@ -18,13 +21,17 @@ export function SeatActionsPanel({
   onEditToggle,
   onRefresh,
   onFinalize,
+  onApplyCheckerboardTemplate,
+  onResetTemplate,
   userRole = 'GUEST',
   error,
   hasStudentsImported = false,
   hasUnassignedStudents = false,
   isFinalizingSeats = false,
+  isApplyingTemplate = false,
 }: SeatActionsPanelProps) {
-  const canEdit = ['admin', 'exam_officer', 'proctor'].includes(userRole);
+  const normalizedRole = String(userRole || '').toLowerCase();
+  const canEdit = ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
 
   if (!canEdit) {
     return null;
@@ -93,6 +100,26 @@ export function SeatActionsPanel({
               <X className="h-4 w-4" />
               Cancel
             </Button>
+            {onApplyCheckerboardTemplate && (
+              <Button
+                onClick={onApplyCheckerboardTemplate}
+                variant="outline"
+                className="gap-2"
+                disabled={isApplyingTemplate}
+              >
+                Checkerboard Lock
+              </Button>
+            )}
+            {onResetTemplate && (
+              <Button
+                onClick={onResetTemplate}
+                variant="outline"
+                className="gap-2"
+                disabled={isApplyingTemplate}
+              >
+                Reset Locks
+              </Button>
+            )}
           </div>
         )}
         <Button

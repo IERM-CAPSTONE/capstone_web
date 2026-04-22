@@ -1,23 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   FileText,
   Plus,
   Search,
-  MoreVertical,
   Edit,
   Trash2,
-  AlertCircle,
   Bell,
   Megaphone,
-  CheckCircle2,
   AlertTriangle,
   History,
-  LayoutGrid,
-  List as ListIcon,
-  ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { templatesApi, AnnouncementTemplate } from "@/lib/api/templates";
@@ -38,6 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function TemplatesPage() {
   const t = useTranslations("Templates");
   const commonT = useTranslations("Common");
+  const locale = useLocale();
   
   const [templates, setTemplates] = useState<AnnouncementTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,11 +57,11 @@ export default function TemplatesPage() {
       console.log('FETCHED TEMPLATES:', data);
       setTemplates(data);
     } catch (error) {
-      toast.error("Failed to load templates");
+      toast.error(locale === "vi" ? "Không thể tải mẫu thông báo" : "Failed to load templates");
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, selectedCampus]);
+  }, [locale, searchTerm, selectedCampus]);
 
   useEffect(() => {
     fetchTemplates();
@@ -78,7 +73,7 @@ export default function TemplatesPage() {
       setFormData({
         title: template.title,
         content: template.content,
-        type: template.type,
+        type: "INFO",
         campus: template.campus || ""
       });
     } else {
@@ -90,33 +85,38 @@ export default function TemplatesPage() {
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.content) {
-      toast.error("Please fill in all fields");
+      toast.error(locale === "vi" ? "Vui lòng nhập đầy đủ thông tin" : "Please fill in all fields");
       return;
     }
 
     try {
+      const payload = {
+        ...formData,
+        type: "INFO" as const,
+      };
+
       if (editingTemplate) {
-        await templatesApi.updateTemplate(editingTemplate.id, formData);
-        toast.success("Template updated successfully");
+        await templatesApi.updateTemplate(editingTemplate.id, payload);
+        toast.success(locale === "vi" ? "Cập nhật mẫu thành công" : "Template updated successfully");
       } else {
-        await templatesApi.createTemplate(formData);
-        toast.success("Template created successfully");
+        await templatesApi.createTemplate(payload);
+        toast.success(locale === "vi" ? "Tạo mẫu thành công" : "Template created successfully");
       }
       setIsDialogOpen(false);
       fetchTemplates();
     } catch (error) {
-      toast.error("Process failed");
+      toast.error(locale === "vi" ? "Thao tác thất bại" : "Process failed");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this template?")) {
+    if (confirm(locale === "vi" ? "Bạn có chắc muốn xóa mẫu thông báo này?" : "Are you sure you want to delete this template?")) {
       try {
         await templatesApi.deleteTemplate(id);
-        toast.success("Deleted successfully");
+        toast.success(locale === "vi" ? "Xóa thành công" : "Deleted successfully");
         fetchTemplates();
       } catch (error) {
-        toast.error("Delete failed");
+        toast.error(locale === "vi" ? "Xóa thất bại" : "Delete failed");
       }
     }
   };
@@ -154,11 +154,11 @@ export default function TemplatesPage() {
                <FileText className="w-5 h-5" />
              </div>
              <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">
-               Broadcast Templates
+               {locale === "vi" ? "Mẫu thông báo" : "Broadcast Templates"}
              </h1>
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
-             Pre-defined announcement library for instant communication
+             {locale === "vi" ? "Thư viện mẫu thông báo dùng sẵn để liên lạc nhanh" : "Pre-defined announcement library for instant communication"}
           </p>
         </div>
         
@@ -167,16 +167,16 @@ export default function TemplatesPage() {
           className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl h-11 px-6 shadow-lg shadow-orange-100 transition-all active:scale-95 group"
         >
           <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
-          <span className="font-black uppercase tracking-widest text-[10px]">Create New Template</span>
+          <span className="font-black uppercase tracking-widest text-[10px]">{locale === "vi" ? "Tạo mẫu mới" : "Create New Template"}</span>
         </Button>
       </div>
 
       {/* Analytics/Summary Cards: Compact */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
          {[
-           { label: "Informational", count: (templates || []).filter(t => t.type === "INFO").length, color: "blue", icon: <Bell className="w-4 h-4" /> },
-           { label: "Warnings", count: (templates || []).filter(t => t.type === "WARNING").length, color: "orange", icon: <AlertTriangle className="w-4 h-4" /> },
-           { label: "Urgent Alerts", count: (templates || []).filter(t => t.type === "URGENT").length, color: "red", icon: <Megaphone className="w-4 h-4" /> }
+           { label: locale === "vi" ? "Thông tin" : "Informational", count: (templates || []).filter(t => t.type === "INFO").length, color: "blue", icon: <Bell className="w-4 h-4" /> },
+           { label: locale === "vi" ? "Cảnh báo" : "Warnings", count: (templates || []).filter(t => t.type === "WARNING").length, color: "orange", icon: <AlertTriangle className="w-4 h-4" /> },
+           { label: locale === "vi" ? "Khẩn cấp" : "Urgent Alerts", count: (templates || []).filter(t => t.type === "URGENT").length, color: "red", icon: <Megaphone className="w-4 h-4" /> }
          ].map((stat, i) => (
            <Card key={i} className="border-none shadow-sm bg-white overflow-hidden rounded-[22px] group hover:shadow-md transition-all duration-500 ring-1 ring-slate-100">
               <div className="p-4 flex items-center justify-between">
@@ -202,7 +202,7 @@ export default function TemplatesPage() {
          <div className="relative flex-1 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
             <Input 
-              placeholder="Search by title or content..."
+              placeholder={locale === "vi" ? "Tìm theo tiêu đề hoặc nội dung..." : "Search by title or content..."}
               className="pl-11 h-10 bg-slate-50/50 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-slate-900/10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -217,7 +217,7 @@ export default function TemplatesPage() {
                 selectedCampus === "" ? "bg-white text-orange-500 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              All
+              {locale === "vi" ? "Tất cả" : "All"}
             </button>
             {["HCM", "HN", "DN", "QN", "CT"].map(campus => (
               <button 
@@ -281,7 +281,11 @@ export default function TemplatesPage() {
                         template.type === 'WARNING' ? "bg-orange-50 text-orange-500" : 
                         "bg-red-50 text-red-500"
                       )}>
-                        {template.type}
+                        {template.type === "INFO"
+                          ? (locale === "vi" ? "Thông tin" : "INFO")
+                          : template.type === "WARNING"
+                            ? (locale === "vi" ? "Cảnh báo" : "WARNING")
+                            : (locale === "vi" ? "Khẩn cấp" : "URGENT")}
                       </span>
                       {template.campus && (
                         <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
@@ -304,10 +308,10 @@ export default function TemplatesPage() {
            <div className="p-6 bg-white rounded-[40px] shadow-sm mb-6">
               <History className="w-12 h-12 text-slate-200" />
            </div>
-           <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">No templates found</h3>
-           <p className="text-slate-400 text-sm max-w-xs font-medium uppercase tracking-widest">Create pre-defined messages to start broadcasting to all exam rooms</p>
+           <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">{locale === "vi" ? "Chưa có mẫu thông báo" : "No templates found"}</h3>
+           <p className="text-slate-400 text-sm max-w-xs font-medium uppercase tracking-widest">{locale === "vi" ? "Tạo sẵn mẫu nội dung để phát thông báo nhanh cho các phòng thi" : "Create pre-defined messages to start broadcasting to all exam rooms"}</p>
            <Button variant="outline" onClick={() => handleOpenDialog()} className="mt-8 rounded-2xl border-2 px-8 font-black uppercase tracking-widest text-xs h-12">
-              Add First Template
+              {locale === "vi" ? "Tạo mẫu đầu tiên" : "Add First Template"}
            </Button>
         </Card>
       )}
@@ -322,19 +326,21 @@ export default function TemplatesPage() {
                   {editingTemplate ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 </div>
                 <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase">
-                  {editingTemplate ? "Update Template" : "New Template"}
+                  {editingTemplate ? (locale === "vi" ? "Cập nhật mẫu" : "Update Template") : (locale === "vi" ? "Mẫu mới" : "New Template")}
                 </DialogTitle>
               </div>
               <DialogDescription className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">
-                {editingTemplate ? "Modify your existing announcement kịch bản" : "Design a new communication template for exam proctors"}
+                {editingTemplate
+                  ? (locale === "vi" ? "Chỉnh sửa mẫu thông báo hiện có" : "Modify your existing announcement template")
+                  : (locale === "vi" ? "Tạo mẫu giao tiếp mới cho kỳ thi" : "Design a new communication template for exam proctors")}
               </DialogDescription>
             </DialogHeader>
  
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">Template Title</label>
+                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">{locale === "vi" ? "Tiêu đề mẫu" : "Template Title"}</label>
                 <Input 
-                  placeholder="e.g., Exam Start Instructions"
+                  placeholder={locale === "vi" ? "Ví dụ: Hướng dẫn bắt đầu thi" : "e.g., Exam Start Instructions"}
                   className="h-11 bg-slate-50/50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-slate-900/10 px-5 shadow-inner"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -342,29 +348,9 @@ export default function TemplatesPage() {
               </div>
  
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">Type of Signal</label>
-                <div className="grid grid-cols-3 gap-3">
-                   {["INFO", "WARNING", "URGENT"].map((type) => (
-                     <button
-                        key={type}
-                        onClick={() => setFormData({...formData, type: type as any})}
-                        className={cn(
-                          "h-11 rounded-xl border-2 font-black text-[9px] uppercase tracking-widest transition-all active:scale-95",
-                          formData.type === type 
-                           ? "border-orange-500 bg-orange-500 text-white shadow-lg shadow-orange-100"
-                           : "border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200"
-                        )}
-                     >
-                        {type}
-                     </button>
-                   ))}
-                </div>
-              </div>
- 
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">Message Content</label>
+                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">{locale === "vi" ? "Nội dung thông báo" : "Message Content"}</label>
                 <textarea 
-                  placeholder="Example: The exam in {room} is delayed by {time} mins because {reason}..."
+                  placeholder={locale === "vi" ? "Ví dụ: Ca thi tại {room} sẽ trễ {time} phút vì {reason}..." : "Example: The exam in {room} is delayed by {time} mins because {reason}..."}
                   className="w-full min-h-[140px] bg-slate-50/50 border-none rounded-[22px] p-5 text-xs font-bold focus:ring-2 focus:ring-orange-500/10 shadow-inner resize-none"
                   value={formData.content}
                   onChange={(e) => setFormData({...formData, content: e.target.value})}
@@ -372,7 +358,7 @@ export default function TemplatesPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">Target Campus (Optional)</label>
+                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest ml-1">{locale === "vi" ? "Cơ sở áp dụng (tùy chọn)" : "Target Campus (Optional)"}</label>
                 <div className="flex flex-wrap gap-2">
                    {["HCM", "HN", "DN", "QN", "CT"].map((campus) => (
                      <button
@@ -398,13 +384,13 @@ export default function TemplatesPage() {
                 onClick={() => setIsDialogOpen(false)}
                 className="flex-1 h-11 rounded-xl font-black uppercase tracking-widest text-[10px] text-slate-400"
                >
-                 Cancel
+                 {locale === "vi" ? "Hủy" : "Cancel"}
                </Button>
                <Button 
                 onClick={handleSubmit}
                 className="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-orange-100 active:scale-95"
                >
-                 {editingTemplate ? "Save Changes" : "Create Template"}
+                 {editingTemplate ? (locale === "vi" ? "Lưu thay đổi" : "Save Changes") : (locale === "vi" ? "Tạo mẫu" : "Create Template")}
                </Button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils/cn";
 import { ExamSeat } from "@/hooks/use-seat-management";
 import { Lock, Unlock } from "lucide-react";
+import { useRef } from "react";
 
 interface SeatCellProps {
   seat?: ExamSeat;
@@ -9,9 +10,14 @@ interface SeatCellProps {
   stt?: number | null;
   studentCode?: string;
   onSelect: (seat: ExamSeat | undefined) => void;
+  onLongPress?: (seat: ExamSeat) => void;
   onLockToggle?: (seat: ExamSeat) => void;
+  onHover?: (seat: ExamSeat | undefined) => void;
   isEditing?: boolean;
   userRole?: string;
+  isSwapSource?: boolean;
+  isSwapTarget?: boolean;
+  isSwapModeEnabled?: boolean;
 }
 
 export function SeatCell({
@@ -21,12 +27,18 @@ export function SeatCell({
   stt,
   studentCode,
   onSelect,
+  onLongPress,
   onLockToggle,
+  onHover,
   isEditing = false,
   userRole = 'GUEST',
+  isSwapSource = false,
+  isSwapTarget = false,
+  isSwapModeEnabled = false,
 }: SeatCellProps) {
-  const seatId = `${row}-${col}`;
   const label = stt ? `#${stt}` : `R${row}C${col}`;
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
 
   // Determine seat styling based on status
   let seatStyles = "bg-[#F8FAFC] border-slate-100";
@@ -75,10 +87,32 @@ export function SeatCell({
 
   const canManage = isEditing && ['admin', 'exam_officer', 'proctor'].includes(userRole);
   const canLock = canManage && seat && (seat.status === 'Available' || seat.status === 'Locked');
+  const canSwap = !!seat && ['admin', 'exam_officer', 'proctor'].includes((userRole || '').toLowerCase());
+
+  const clearLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const startLongPress = () => {
+    if (!seat || !onLongPress || !canSwap) return;
+    longPressTriggeredRef.current = false;
+    clearLongPress();
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      onLongPress(seat);
+    }, 450);
+  };
 
   return (
     <div
       onClick={() => {
+        if (longPressTriggeredRef.current) {
+          longPressTriggeredRef.current = false;
+          return;
+        }
         if (canLock && seat) {
           onLockToggle?.(seat);
           return;
@@ -87,12 +121,39 @@ export function SeatCell({
           onSelect(seat);
         }
       }}
+      onMouseDown={startLongPress}
+      onMouseUp={clearLongPress}
+      onMouseLeave={() => {
+        clearLongPress();
+        onHover?.(undefined);
+      }}
+      onMouseEnter={() => {
+        if (seat) {
+          onHover?.(seat);
+        }
+      }}
+      onTouchStart={startLongPress}
+      onTouchEnd={clearLongPress}
+      onTouchCancel={clearLongPress}
       className={cn(
-        "relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 h-[70px] group",
+        "relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 ease-out h-[70px] group",
         seat ? "cursor-pointer hover:scale-105 hover:shadow-md z-10" : "cursor-default",
-        seatStyles
+        seatStyles,
+        isSwapSource && "scale-[1.12] -translate-y-2 rotate-1 shadow-2xl ring-4 ring-blue-500 ring-offset-2 bg-blue-50/90 animate-[pulse_1.2s_ease-in-out_infinite]",
+        isSwapTarget && "scale-[1.08] shadow-lg ring-4 ring-emerald-400 ring-offset-2 bg-emerald-50/80 animate-[pulse_0.9s_ease-in-out_infinite]",
+        isSwapModeEnabled && !isSwapSource && "ring-1 ring-blue-200"
       )}
     >
+      {isSwapSource && (
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest shadow-md animate-bounce">
+          Picked up
+        </div>
+      )}
+
+      {isSwapTarget && (
+        <div className="absolute inset-0 rounded-xl bg-emerald-500/10 animate-pulse pointer-events-none" />
+      )}
+
       {/* Lock/Unlock button - appears on hover in edit mode */}
       {canLock && (
         <button

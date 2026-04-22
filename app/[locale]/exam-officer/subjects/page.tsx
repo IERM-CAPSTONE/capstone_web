@@ -1,18 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Search, BookOpen, RefreshCcw, CheckCircle, LayoutGrid, Construction } from "lucide-react";
+import { Search, BookOpen, RefreshCcw, CheckCircle, LayoutGrid, Construction, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SubjectTable } from "@/components/subjects/subject-table";
+import { ImportSubjectButton } from "@/components/subjects/import-subject-button";
+import { ExamPartManagementDialog } from "@/components/subjects/exam-part-management-dialog";
 import { useSubjects } from "@/hooks/use-subjects";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useAuthStore } from "@/store/auth-store";
 import { useTranslations } from "next-intl";
 
 export default function SubjectManagementPage() {
     const t = useTranslations("Subjects");
     const tCommon = useTranslations("Common");
+    const { user } = useAuthStore();
     const [searchTerm, setSearchTerm] = useState("");
+    const [showExamPartDialog, setShowExamPartDialog] = useState(false);
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [page, setPage] = useState(1);
 
@@ -48,6 +53,19 @@ export default function SubjectManagementPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
+                            {user?.role === "admin" && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowExamPartDialog(true)}
+                                        className="h-14 px-6 border-slate-200 bg-white hover:bg-slate-50 hover:border-orange-200 text-slate-700 rounded-2xl transition-all active:scale-95 shadow-sm group"
+                                    >
+                                        <Settings className="mr-3 h-5 w-5 text-orange-500 group-hover:rotate-90 transition-transform duration-300" />
+                                        <span className="font-bold text-sm tracking-tight">{t("manageExamParts")}</span>
+                                    </Button>
+                                    <ImportSubjectButton />
+                                </>
+                            )}
                             <Button
                                 variant="outline"
                                 onClick={() => refetch()}
@@ -152,6 +170,10 @@ export default function SubjectManagementPage() {
                     )}
                 </div>
             </div>
+
+            {showExamPartDialog && user?.role === "admin" && (
+                <ExamPartManagementDialog onClose={() => setShowExamPartDialog(false)} />
+            )}
         </div>
     );
 }

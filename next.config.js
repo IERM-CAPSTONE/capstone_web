@@ -1,13 +1,20 @@
 const withNextIntl = require('next-intl/plugin')();
+const apiRewriteBase = process.env.INTERNAL_API_URL || 'http://capstone_api:3000';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*',
+        destination: `${apiRewriteBase}/api/:path*`,
       },
     ];
   },

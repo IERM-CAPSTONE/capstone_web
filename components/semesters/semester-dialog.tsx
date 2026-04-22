@@ -8,6 +8,7 @@ import { X, Calendar, Clock } from "lucide-react";
 import { Semester } from "@/types";
 import { cn } from "@/lib/utils/cn";
 import { useCreateSemester, useUpdateSemester } from "@/hooks/use-semesters";
+import { useTranslations } from "next-intl";
 
 interface SemesterDialogProps {
     semester?: Semester | null;
@@ -15,6 +16,7 @@ interface SemesterDialogProps {
 }
 
 export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
+    const t = useTranslations("Semesters.dialog");
     const isEdit = !!semester;
     const createSemester = useCreateSemester();
     const updateSemester = useUpdateSemester();
@@ -41,13 +43,13 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
-        if (!formData.code) newErrors.code = "Semester code is required (e.g., SU25)";
-        if (!formData.startDate) newErrors.startDate = "Start date is required";
-        if (!formData.endDate) newErrors.endDate = "End date is required";
+        if (!formData.code) newErrors.code = t("errors.codeRequired");
+        if (!formData.startDate) newErrors.startDate = t("errors.startDateRequired");
+        if (!formData.endDate) newErrors.endDate = t("errors.endDateRequired");
 
         if (formData.startDate && formData.endDate) {
             if (new Date(formData.startDate) >= new Date(formData.endDate)) {
-                newErrors.endDate = "End date must be after start date";
+                newErrors.endDate = t("errors.endDateAfterStart");
             }
         }
 
@@ -91,7 +93,7 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
                 <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white relative">
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                         <Calendar className="h-5 w-5" />
-                        {isEdit ? `Edit ${semester.code}` : "New Semester"}
+                        {isEdit ? `${t("editTitle")} ${semester.code}` : t("createTitle")}
                     </CardTitle>
                     <Button
                         variant="ghost"
@@ -107,10 +109,10 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
                     <form id="semester-form" onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                Semester Code *
+                                {t("code")} *
                             </label>
                             <Input
-                                placeholder="e.g. SU25, FA25"
+                                placeholder={t("codePlaceholder")}
                                 value={formData.code}
                                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                                 className={cn("h-11 rounded-xl", errors.code ? "border-red-500 focus:ring-red-200" : "focus:ring-orange-200")}
@@ -121,10 +123,10 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
 
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                Display Name
+                                {t("displayName")}
                             </label>
                             <Input
-                                placeholder="e.g. Summer 2025"
+                                placeholder={t("displayNamePlaceholder")}
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 className="h-11 rounded-xl focus:ring-orange-200"
@@ -136,7 +138,7 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                                     <Calendar className="h-3.5 w-3.5 text-orange-500" />
-                                    Start Date *
+                                    {t("startDate")} *
                                 </label>
                                 <Input
                                     type="date"
@@ -151,7 +153,7 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5 text-orange-500" />
-                                    End Date *
+                                    {t("endDate")} *
                                 </label>
                                 <Input
                                     type="date"
@@ -172,7 +174,7 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
                             disabled={isSaving}
                             className="flex-1 h-11 rounded-xl font-medium border-slate-200"
                         >
-                            Cancel
+                            {t("cancel")}
                         </Button>
                         <Button
                             type="submit"
@@ -180,7 +182,7 @@ export function SemesterDialog({ semester, onClose }: SemesterDialogProps) {
                             disabled={isSaving}
                             className="flex-1 h-11 rounded-xl font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-100 dark:shadow-none"
                         >
-                            {isSaving ? "Saving..." : isEdit ? "Update" : "Create"}
+                            {isSaving ? t("saving") : isEdit ? t("update") : t("create")}
                         </Button>
                     </div>
                 </CardContent>
