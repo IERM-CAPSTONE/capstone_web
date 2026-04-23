@@ -817,16 +817,22 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
     const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
     const [activeSeatId, setActiveSeatId] = useState<string | null>(null);
     const [showTicketDialog, setShowTicketDialog] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showAssignProctorDialog, setShowAssignProctorDialog] = useState(false);
+    const [showAssignHallInvigilatorDialog, setShowAssignHallInvigilatorDialog] = useState(false);
     const [swapSourceSeat, setSwapSourceSeat] = useState<ExamSeat | null>(null);
     const [isSwappingSeat, setIsSwappingSeat] = useState(false);
+    const deleteMutation = useDeleteExamSchedule();
+    const updateMutation = useUpdateExamSchedule();
     const activeStudent = activeStudentId
         ? students.find(s => s.id === activeStudentId) ?? null
         : null;
     const activeSeat = activeStudent?.seatPosition
         ? seats.find(s => s.id === activeStudent.seatPosition) ?? null
-        : activeSeatId
+            : activeSeatId
             ? seats.find(s => s.id === activeSeatId) ?? null
             : null;
+    const selectedStudents = students.filter(s => selectedIds.has(s.id));
 
     useEffect(() => { fetchSeats(); }, [scheduleId, fetchSeats]);
 
@@ -910,6 +916,29 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
             ? seats.find(s => s.id === student.seatPosition)
             : seats.find(s => ((s.row - 1) * cols + s.col).toString() === student.seatNumber);
         setActiveSeatId(seat?.id ?? null);
+    };
+
+    const handleDeleteSchedule = async () => {
+        try {
+            await deleteMutation.mutateAsync(scheduleId);
+            toast.success(locale === "vi" ? "Đã xóa lịch thi." : "Exam schedule deleted.");
+            router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message ?? (locale === "vi" ? "Xóa lịch thi thất bại." : "Failed to delete exam schedule."));
+        }
+    };
+
+    const handleAssignSessionStaff = async (
+        field: "proctorId" | "hallInvigilatorId",
+        value: string | null,
+    ) => {
+        await updateMutation.mutateAsync({
+            id: scheduleId,
+            data: {
+                [field]: value,
+            },
+        });
+        await refetch();
     };
 
     if (isLoading) return (
@@ -1169,6 +1198,27 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
                                         <BookOpen className="h-5 w-5" />
                                     </div>
+                                    <div>
+                                        <h2 className="font-black text-[#0f172a] text-[1.05rem] leading-none">{t("notes")}</h2>
+                                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.28em] text-slate-400">
+                                            {locale === "vi" ? "Ghi chú và mã mở đề" : "Notes and open code"}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <CardContent className="space-y-3 p-5">
+                                {schedule.note && (
+                                    <p className="text-sm leading-relaxed text-slate-600">{schedule.note}</p>
+                                )}
+                                {schedule.openCode && (
+                                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-600">
+                                            {t("openCode")}
+                                        </p>
+                                        <p className="mt-2 text-lg font-black tracking-[0.2em] text-amber-900">
+                                            {schedule.openCode}
+                                        </p>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -1411,7 +1461,5 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
         </div>
     );
 }
-
-
 
 

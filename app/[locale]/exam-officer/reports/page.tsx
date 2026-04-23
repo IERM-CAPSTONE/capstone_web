@@ -1,5 +1,6 @@
 "use client";
 
+import type { ElementType, ReactNode } from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ticketsApi, TicketFull } from "@/lib/api/tickets";
 import { examSchedulesApi, ExamSchedule } from "@/lib/api/exam-schedules";
@@ -10,6 +11,11 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  LineChart,
+  Line,
+  Legend,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -20,16 +26,32 @@ import {
     BarChart2, RefreshCw, Download, FileText, Filter, X,
     Ticket, CheckCircle2, TrendingUp, Clock, ChevronDown,
     Loader2, AlertCircle, Users, Search, ArrowLeftRight, UserCheck, CalendarClock, ShieldCheck,
+    Timer, Clock3, BookOpen, CalendarRange,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { semestersApi } from "@/lib/api/semesters";
-import {
-  ticketsApi,
-} from "@/lib/api/tickets";
 import type { TicketCountBucket, TicketStatsResponse } from "@/lib/api/tickets";
 import type { Semester } from "@/types";
 
 const CHART_COLORS = ["#F37021", "#2563EB", "#0F766E", "#F59E0B", "#7C3AED", "#64748B"];
+const ISSUE_TYPES = ["Technical Issue", "Academic Violation", "Room Management", "Face Mismatch"];
+const STATUSES = ["OPEN", "IN_PROGRESS", "SOLVED"];
+
+const STATUS_COLORS: Record<string, string> = {
+  SOLVED: "#22c55e",
+  IN_PROGRESS: "#f59e0b",
+  OPEN: "#f97316",
+  PENDING: "#94a3b8",
+  REJECTED: "#ef4444",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  OPEN: "Open",
+  IN_PROGRESS: "In Progress",
+  SOLVED: "Resolved",
+  PENDING: "Pending",
+  REJECTED: "Rejected",
+};
 
 type StatCardProps = {
   icon: ElementType;
@@ -112,6 +134,10 @@ function formatMinutes(value: number | null | undefined) {
   return `${(value / 60).toFixed(1)} giờ`;
 }
 
+function fmtDuration(value: number | null | undefined) {
+  return formatMinutes(value);
+}
+
 function buildWeekOptions(semester: Semester | undefined) {
   if (!semester) return [];
   const start = new Date(semester.startDate);
@@ -160,6 +186,17 @@ function exportStatsToExcel(stats: TicketStatsResponse | null) {
   XLSX.writeFile(wb, `ticket-stats-${stats.filters.semesterCode.toLowerCase()}-${stats.filters.week ?? "all"}.xlsx`);
 }
 
+function calcDuration(t: TicketFull): number | null {
+  if (t.status !== "SOLVED") return null;
+  const diff = differenceInMinutes(parseISO(t.updatedAt), parseISO(t.createdAt));
+  return diff > 0 ? diff : null;
+}
+
+function ticketSeqId(idx: number): string {
+  const year = new Date().getFullYear();
+  return `TKT-${year}-${String(idx + 1).padStart(3, "0")}`;
+}
+
 export default function ExamOfficerReportsPage() {
     // ── State ──
     const [allTickets, setAllTickets] = useState<TicketFull[]>([]);
@@ -182,6 +219,12 @@ export default function ExamOfficerReportsPage() {
     const [applied, setApplied] = useState({
         fromDate: "", toDate: "", sessionId: "", examRoom: "", issueType: "", status: "",
     });
+    const [semesters, setSemesters] = useState<Semester[]>([]);
+    const [selectedSemesterId, setSelectedSemesterId] = useState("");
+    const [selectedWeek, setSelectedWeek] = useState("all");
+    const [stats, setStats] = useState<TicketStatsResponse | null>(null);
+    const [loadingStats, setLoadingStats] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // ── Fetch ──
     const fetchData = useCallback(async (filters: typeof applied) => {
@@ -219,12 +262,50 @@ export default function ExamOfficerReportsPage() {
         fetchData(next);
     };
 
-    void loadSemesters();
-
-    return () => {
-      active = false;
+    const handleReset = () => {
+        setFromDate("");
+        setToDate("");
+        setSessionId("");
+        setExamRoom("");
+        setIssueType("");
+        setStatus("");
+        const blank = { fromDate: "", toDate: "", sessionId: "", examRoom: "", issueType: "", status: "" };
+        setApplied(blank);
+        setPage(1);
+        fetchData(blank);
     };
-  }, []);
+
+    useEffect(() => {
+      let active = true;
+
+      const loadSemesters = async () => {
+        const response = await semestersApi.getAll({ limit: 200 });
+        if (!active) return;
+
+        const nextSemesters = [...(response.data ?? [])].sort(
+          (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+        );
+        setSemesters(nextSemesters);
+
+        if (!selectedSemesterId && nextSemesters.length > 0) {
+          const now = new Date();
+          const currentSemester =
+            nextSemesters.find((semester) => {
+              const start = new Date(semester.startDate);
+              const end = new Date(semester.endDate);
+              return start <= now && now <= end;
+            }) ?? nextSemesters[0];
+
+          setSelectedSemesterId(currentSemester.id);
+        }
+      };
+
+      void loadSemesters();
+
+      return () => {
+        active = false;
+      };
+    }, [selectedSemesterId]);
 
   const selectedSemester = useMemo(
     () => semesters.find((semester) => semester.id === selectedSemesterId),
@@ -255,6 +336,24 @@ export default function ExamOfficerReportsPage() {
       } finally {
         if (active) {
           setLoadingStats(false);
+        }
+      }
+    };
+
+    void loadStats();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedSemester, selectedWeek]);
+
+    const filtered = useMemo(() => {
+        let ts = [...allTickets];
+        if (applied.examRoom) {
+            ts = ts.filter(t => {
+                const room = t.session?.examRoom?.roomNumber ?? (t.session as any)?.roomNumber ?? "";
+                return room.toLowerCase().includes(applied.examRoom.toLowerCase());
+            });
         }
         return ts;
     }, [allTickets, applied.examRoom]);
@@ -415,13 +514,6 @@ export default function ExamOfficerReportsPage() {
         XLSX.writeFile(wb, `ticket-report-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
     };
 
-    void loadStats();
-
-    return () => {
-      active = false;
-    };
-  }, [selectedSemester, selectedWeek]);
-
   const handleSemesterChange = (semesterId: string) => {
     setSelectedSemesterId(semesterId);
     setSelectedWeek("all");
@@ -501,14 +593,14 @@ export default function ExamOfficerReportsPage() {
 
       <div className="space-y-6 p-6 print:p-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+          <div className="space-y-4">
             <div className="rounded-2xl bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Phạm vi báo cáo</p>
               <p className="mt-2 text-base font-black text-slate-900">{selectedSemester?.name ?? selectedSemester?.code ?? "Chọn semester"}</p>
               <p className="mt-1 text-sm text-slate-500">{rangeLabel}</p>
             </div>
 
-            <div className="p-6 space-y-5 print:p-4">
+            <div className="space-y-5">
                 {/* ── Filters ── */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm print:hidden">
                     <button
@@ -637,7 +729,7 @@ export default function ExamOfficerReportsPage() {
                         icon={CheckCircle2}
                         label="Resolved Tickets"
                         value={resolvedTickets}
-                        sub="Successfully handled"
+                        hint="Successfully handled"
                         color="text-green-600"
                         bg="bg-green-50"
                         loading={loading}
@@ -646,7 +738,7 @@ export default function ExamOfficerReportsPage() {
                         icon={TrendingUp}
                         label="Resolution Success Rate"
                         value={`${resolutionRate}%`}
-                        sub="Quality indicator"
+                        hint="Quality indicator"
                         color="text-violet-600"
                         bg="bg-violet-50"
                         loading={loading}
@@ -655,7 +747,7 @@ export default function ExamOfficerReportsPage() {
                         icon={Clock}
                         label="Avg. Resolution Time"
                         value={avgResolutionTime}
-                        sub="Efficiency metric"
+                        hint="Efficiency metric"
                         color="text-blue-600"
                         bg="bg-blue-50"
                         loading={loading}
@@ -805,7 +897,7 @@ export default function ExamOfficerReportsPage() {
                                 <ReTooltip />
                                 <Bar dataKey="value" name="Tickets" radius={[4, 4, 0, 0]}>
                                     {typeGroups.map((_, idx) => (
-                                        <Cell key={idx} fill={TYPE_COLORS[idx % TYPE_COLORS.length]} />
+                                        <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                                     ))}
                                 </Bar>
                             </BarChart>
@@ -863,7 +955,7 @@ export default function ExamOfficerReportsPage() {
                                     <ReTooltip formatter={(val: number) => [`${val} slot(s)`, "Assigned Slots"]} />
                                     <Bar dataKey="slots" name="Slots" radius={[0, 4, 4, 0]}>
                                         {filteredProctorData.slice(0, 15).map((_, idx) => (
-                                            <Cell key={idx} fill={TYPE_COLORS[idx % TYPE_COLORS.length]} />
+                                            <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                                         ))}
                                     </Bar>
                                 </BarChart>
