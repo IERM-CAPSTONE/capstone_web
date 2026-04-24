@@ -4,10 +4,10 @@ export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const browserApiUrl =
   typeof window !== "undefined" ? `${window.location.origin}/api` : undefined;
+const internalApiUrl = process.env.INTERNAL_API_URL;
 const serverApiUrl =
-  configuredApiUrl && !configuredApiUrl.includes("localhost")
-    ? configuredApiUrl
-    : "http://capstone_api:3000/api";
+  configuredApiUrl ||
+  (internalApiUrl ? `${internalApiUrl}/api` : "http://localhost:3000/api");
 
 export const API_URL = browserApiUrl || serverApiUrl;
 
