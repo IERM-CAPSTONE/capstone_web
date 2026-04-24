@@ -1154,6 +1154,129 @@
             "Completed": "Completed"
         }
     },
+    "Reports": {
+        "header": {
+            "title": "Ticket Statistics Dashboard",
+            "subtitle": "Track issue trends and ticket handling performance by semester."
+        },
+        "actions": {
+            "refresh": "Refresh",
+            "exportExcel": "Export Excel",
+            "exportPdf": "Export PDF"
+        },
+        "scope": {
+            "title": "Report Scope",
+            "selectSemester": "Select semester",
+            "noData": "No data yet",
+            "week": "Week {week}"
+        },
+        "filters": {
+            "title": "Filters",
+            "fromDate": "From Date",
+            "toDate": "To Date",
+            "examSchedule": "Exam Schedule",
+            "examRoom": "Exam Room",
+            "ticketCategory": "Ticket Category",
+            "ticketStatus": "Ticket Status",
+            "allSessions": "All sessions",
+            "allRooms": "All rooms",
+            "allCategories": "All categories",
+            "allStatuses": "All statuses",
+            "apply": "Apply Filters",
+            "reset": "Reset Filters"
+        },
+        "stats": {
+            "totalTickets": "Total Tickets",
+            "avgStartTime": "Avg Time To Start",
+            "avgResolveTime": "Avg Time To Resolve",
+            "startedHint": "Based on {count} tickets with valid timeline data",
+            "resolvedHint": "Based on {count} tickets with valid timeline data"
+        },
+        "charts": {
+            "issueType": {
+                "title": "Tickets by Issue Type",
+                "subtitle": "Compare ticket counts by issue type in the selected scope"
+            },
+            "subjects": {
+                "title": "Subjects with Most Tickets",
+                "subtitle": "Top subjects generating the most tickets in the selected scope"
+            },
+            "issueName": {
+                "title": "Top Issue Details",
+                "subtitle": "Most frequent issue names, shown horizontally for easier reading"
+            },
+            "semester": {
+                "title": "Ticket Distribution by Semester",
+                "subtitle": "Compare total ticket volume across semesters"
+            }
+        },
+        "proctor": {
+            "title": "Proctor — Assigned Exam Slots",
+            "subtitle": "Count how many exam slots each proctor is assigned to, excluding unassigned slots",
+            "searchPlaceholder": "Search proctor...",
+            "noData": "No assigned proctor slot data available",
+            "headers": {
+                "proctor": "Proctor",
+                "assignedSlots": "Assigned Slots"
+            }
+        },
+        "hall": {
+            "title": "Hall Invigilator — Ticket Handling",
+            "subtitle": "Success rate of ticket handling for each hall invigilator",
+            "searchPlaceholder": "Search staff...",
+            "noData": "No ticket assignment data available",
+            "successRate": "Success Rate",
+            "tooltipResolved": "{solved}/{total} tickets resolved",
+            "headers": {
+                "staffName": "Staff Name",
+                "role": "Role",
+                "total": "Total",
+                "successRate": "Success Rate",
+                "inProgress": "In Progress"
+            }
+        },
+        "summary": {
+            "title": "Displayed Data Summary",
+            "subtitle": "A quick read block for users who do not want to scan charts.",
+            "scopePrefix": "Scope:",
+            "allWeeks": "All weeks",
+            "issueType": "Issue Type",
+            "issueName": "Issue Name",
+            "topSubjects": "Top Subjects"
+        },
+        "tooltips": {
+            "ticketCount": "{count} ticket",
+            "quantity": "Quantity",
+            "semester": "Semester"
+        },
+        "states": {
+            "noDataForFilter": "No data for the current filter.",
+            "noData": "No data."
+        },
+        "errors": {
+            "loadStats": "Unable to load ticket statistics."
+        },
+        "status": {
+            "open": "Open",
+            "inProgress": "In Progress",
+            "solved": "Resolved",
+            "pending": "Pending",
+            "rejected": "Rejected"
+        },
+        "roles": {
+            "hallInvigilator": "Hall Invigilator",
+            "itSupport": "IT Support",
+            "examOfficer": "Exam Officer",
+            "admin": "Admin"
+        },
+        "issueTypes": {
+            "technicalIssue": "Technical Issue",
+            "academicViolation": "Academic Violation",
+            "roomManagement": "Room Management",
+            "faceMismatch": "Face Mismatch",
+            "other": "Other"
+        }
+    },
     "HallInvigilatorTickets": {
         "title": "My Tickets",
         "subtitle": "Tickets assigned by Exam Office",
