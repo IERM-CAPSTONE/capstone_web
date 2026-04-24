@@ -4,7 +4,6 @@ import type { ElementType, ReactNode } from "react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ticketsApi, TicketFull } from "@/lib/api/tickets";
 import { examSchedulesApi, ExamSchedule } from "@/lib/api/exam-schedules";
-import { proctorApplicationsApi, ProctorApplication } from "@/lib/api/proctor-applications";
 import { format, differenceInMinutes, parseISO, startOfDay, subDays } from "date-fns";
 import * as XLSX from "xlsx";
 import {
@@ -32,10 +31,24 @@ import { cn } from "@/lib/utils/cn";
 import { semestersApi } from "@/lib/api/semesters";
 import type { TicketCountBucket, TicketStatsResponse } from "@/lib/api/tickets";
 import type { Semester } from "@/types";
+import { useTranslations } from "next-intl";
 
 const CHART_COLORS = ["#F37021", "#2563EB", "#0F766E", "#F59E0B", "#7C3AED", "#64748B"];
 const ISSUE_TYPES = ["Technical Issue", "Academic Violation", "Room Management", "Face Mismatch"];
 const STATUSES = ["OPEN", "IN_PROGRESS", "SOLVED"];
+const ISSUE_TYPE_KEYS: Record<string, string> = {
+  "Technical Issue": "technicalIssue",
+  "Academic Violation": "academicViolation",
+  "Room Management": "roomManagement",
+  "Face Mismatch": "faceMismatch",
+  Other: "other",
+};
+const ROLE_KEYS: Record<string, string> = {
+  HALL_INVIGILATOR: "hallInvigilator",
+  IT_SUPPORT: "itSupport",
+  EXAM_OFFICER: "examOfficer",
+  ADMIN: "admin",
+};
 
 const STATUS_COLORS: Record<string, string> = {
   SOLVED: "#22c55e",
@@ -101,6 +114,7 @@ function ChartCard({
   empty?: boolean;
   children: ReactNode;
 }) {
+  const t = useTranslations("Reports");
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-3">
@@ -119,7 +133,7 @@ function ChartCard({
         </div>
       ) : empty ? (
         <div className="flex h-72 items-center justify-center text-sm font-medium text-slate-400">
-          Không có dữ liệu cho bộ lọc hiện tại.
+          {t("states.noDataForFilter")}
         </div>
       ) : (
         children
@@ -130,8 +144,8 @@ function ChartCard({
 
 function formatMinutes(value: number | null | undefined) {
   if (value === null || value === undefined) return "—";
-  if (value < 60) return `${Math.round(value)} phút`;
-  return `${(value / 60).toFixed(1)} giờ`;
+  if (value < 60) return `${Math.round(value)} min`;
+  return `${(value / 60).toFixed(1)} h`;
 }
 
 function fmtDuration(value: number | null | undefined) {
@@ -198,10 +212,10 @@ function ticketSeqId(idx: number): string {
 }
 
 export default function ExamOfficerReportsPage() {
+  const t = useTranslations("Reports");
   // ── State ──
   const [allTickets, setAllTickets] = useState<TicketFull[]>([]);
   const [sessions, setSessions] = useState<ExamSchedule[]>([]);
-  const [proctorApplications, setProctorApplications] = useState<ProctorApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
 
@@ -223,12 +237,38 @@ export default function ExamOfficerReportsPage() {
   const [stats, setStats] = useState<TicketStatsResponse | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const issueTypeLabels = useMemo(
+    () =>
+      Object.fromEntries(
+        ISSUE_TYPES.map((type) => [type, t(`issueTypes.${ISSUE_TYPE_KEYS[type]}`)])
+      ) as Record<string, string>,
+    [t]
+  );
+  const statusLabels = useMemo(
+    () => ({
+      OPEN: t("status.open"),
+      IN_PROGRESS: t("status.inProgress"),
+      SOLVED: t("status.solved"),
+      PENDING: t("status.pending"),
+      REJECTED: t("status.rejected"),
+    }),
+    [t]
+  );
+  const roleLabels = useMemo(
+    () => ({
+      HALL_INVIGILATOR: t("roles.hallInvigilator"),
+      IT_SUPPORT: t("roles.itSupport"),
+      EXAM_OFFICER: t("roles.examOfficer"),
+      ADMIN: t("roles.admin"),
+    }),
+    [t]
+  );
 
   // ── Fetch ──
   const fetchData = useCallback(async (filters: typeof applied) => {
     setLoading(true);
     try {
-      const [tks, scheds, apps] = await Promise.all([
+      const [tks, scheds] = await Promise.all([
         ticketsApi.list({
           sessionId: filters.sessionId || undefined,
           fromDate: filters.fromDate || undefined,
@@ -237,15 +277,10 @@ export default function ExamOfficerReportsPage() {
           status: filters.status || undefined,
         }),
         examSchedulesApi.list({ limit: 200 }),
-        proctorApplicationsApi.getAllApplications({ limit: 500 }).catch(() => ({ data: [] })),
       ]);
       setAllTickets(tks);
       const arr = Array.isArray(scheds) ? scheds : (scheds as any).data ?? [];
       setSessions(arr);
-      const appsArr: ProctorApplication[] = Array.isArray(apps)
-        ? apps
-        : (apps as any)?.data ?? [];
-      setProctorApplications(appsArr);
     } catch { }
     finally { setLoading(false); }
   }, []);
@@ -327,7 +362,7 @@ export default function ExamOfficerReportsPage() {
         setStats(result);
       } catch {
         if (!active) return;
-        setError("Không thể tải thống kê ticket.");
+        setError(t("errors.loadStats"));
         setStats(null);
       } finally {
         if (active) {
@@ -502,22 +537,29 @@ export default function ExamOfficerReportsPage() {
       });
       setStats(result);
     } catch {
-      setError("Không thể tải thống kê ticket.");
+      setError(t("errors.loadStats"));
       setStats(null);
     } finally {
       setLoadingStats(false);
     }
   };
 
-  const issueTypeData = stats?.byIssueType ?? [];
+  const issueTypeData = useMemo(
+    () =>
+      (stats?.byIssueType ?? []).map((item) => ({
+        ...item,
+        name: issueTypeLabels[item.name] ?? item.name,
+      })),
+    [stats, issueTypeLabels]
+  );
   const issueNameData = (stats?.byIssueName ?? []).slice(0, 8);
   const subjectData = (stats?.topSubjects ?? []).slice(0, 8);
   const semesterData = stats?.bySemester ?? [];
 
   const rangeLabel = useMemo(() => {
-    if (!stats) return "Chưa có dữ liệu";
+    if (!stats) return t("scope.noData");
     return `${format(parseISO(stats.filters.rangeStart), "dd/MM/yyyy")} - ${format(parseISO(stats.filters.rangeEnd), "dd/MM/yyyy")}`;
-  }, [stats]);
+  }, [stats, t]);
 
   const hasStats = Boolean(stats);
   const isEmpty = hasStats && stats?.summary.totalTickets === 0;
@@ -531,8 +573,8 @@ export default function ExamOfficerReportsPage() {
               <BarChart2 className="h-5 w-5 text-[#F37021]" />
             </div>
             <div>
-              <h1 className="text-lg font-black text-slate-950">Ticket Statistics Dashboard</h1>
-              <p className="text-sm text-slate-500">Theo dõi lỗi phát sinh và hiệu quả xử lý ticket theo học kỳ.</p>
+              <h1 className="text-lg font-black text-slate-950">{t("header.title")}</h1>
+              <p className="text-sm text-slate-500">{t("header.subtitle")}</p>
             </div>
           </div>
 
@@ -542,7 +584,7 @@ export default function ExamOfficerReportsPage() {
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
             >
               <RefreshCw className="h-4 w-4" />
-              Refresh
+              {t("actions.refresh")}
             </button>
             <button
               onClick={() => exportStatsToExcel(stats)}
@@ -550,14 +592,14 @@ export default function ExamOfficerReportsPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-[#F37021] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Download className="h-4 w-4" />
-              Export Excel
+              {t("actions.exportExcel")}
             </button>
             <button
               onClick={() => window.print()}
               className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-[#F37021] transition-colors hover:bg-orange-100"
             >
               <FileText className="h-4 w-4" />
-              Export PDF
+              {t("actions.exportPdf")}
             </button>
           </div>
         </div>
@@ -567,8 +609,8 @@ export default function ExamOfficerReportsPage() {
         <div className="order-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
           <div className="space-y-4">
             <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Phạm vi báo cáo</p>
-              <p className="mt-2 text-base font-black text-slate-900">{selectedSemester?.name ?? selectedSemester?.code ?? "Chọn semester"}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t("scope.title")}</p>
+              <p className="mt-2 text-base font-black text-slate-900">{selectedSemester?.name ?? selectedSemester?.code ?? t("scope.selectSemester")}</p>
               <p className="mt-1 text-sm text-slate-500">{rangeLabel}</p>
             </div>
 
@@ -581,7 +623,7 @@ export default function ExamOfficerReportsPage() {
                 >
                   <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4 text-[#F37021]" />
-                    <span>FILTERS</span>
+                    <span>{t("filters.title")}</span>
                   </div>
                   <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", filtersOpen && "rotate-180")} />
                 </button>
@@ -591,7 +633,7 @@ export default function ExamOfficerReportsPage() {
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
                       {/* From Date */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">From Date</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{t("filters.fromDate")}</label>
                         <input
                           type="date"
                           value={fromDate}
@@ -601,7 +643,7 @@ export default function ExamOfficerReportsPage() {
                       </div>
                       {/* To Date */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">To Date</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{t("filters.toDate")}</label>
                         <input
                           type="date"
                           value={toDate}
@@ -611,13 +653,13 @@ export default function ExamOfficerReportsPage() {
                       </div>
                       {/* Exam Schedule */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Exam Schedule</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{t("filters.examSchedule")}</label>
                         <select
                           value={sessionId}
                           onChange={e => setSessionId(e.target.value)}
                           className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-700 bg-white"
                         >
-                          <option value="">All sessions</option>
+                          <option value="">{t("filters.allSessions")}</option>
                           {sessions.map(s => (
                             <option key={s.id} value={s.id}>
                               {s.subjectCode ?? "—"} · {s.examOpenTime ? format(new Date(s.examOpenTime), "dd/MM HH:mm") : "?"}
@@ -627,13 +669,13 @@ export default function ExamOfficerReportsPage() {
                       </div>
                       {/* Exam Room */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Exam Room</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{t("filters.examRoom")}</label>
                         <select
                           value={examRoom}
                           onChange={e => setExamRoom(e.target.value)}
                           className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-700 bg-white"
                         >
-                          <option value="">All rooms</option>
+                          <option value="">{t("filters.allRooms")}</option>
                           {rooms.map(r => (
                             <option key={r} value={r}>{r}</option>
                           ))}
@@ -641,29 +683,29 @@ export default function ExamOfficerReportsPage() {
                       </div>
                       {/* Ticket Category */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Ticket Category</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{t("filters.ticketCategory")}</label>
                         <select
                           value={issueType}
                           onChange={e => setIssueType(e.target.value)}
                           className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-700 bg-white"
                         >
-                          <option value="">All categories</option>
+                          <option value="">{t("filters.allCategories")}</option>
                           {ISSUE_TYPES.map(tp => (
-                            <option key={tp} value={tp}>{tp}</option>
+                            <option key={tp} value={tp}>{issueTypeLabels[tp] ?? tp}</option>
                           ))}
                         </select>
                       </div>
                       {/* Ticket Status */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Ticket Status</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{t("filters.ticketStatus")}</label>
                         <select
                           value={status}
                           onChange={e => setStatus(e.target.value)}
                           className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-700 bg-white"
                         >
-                          <option value="">All statuses</option>
+                          <option value="">{t("filters.allStatuses")}</option>
                           {STATUSES.map(s => (
-                            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                            <option key={s} value={s}>{statusLabels[s] ?? STATUS_LABEL[s]}</option>
                           ))}
                         </select>
                       </div>
@@ -674,13 +716,13 @@ export default function ExamOfficerReportsPage() {
                         onClick={handleApply}
                         className="px-5 py-2 bg-[#F37021] text-white text-sm font-bold rounded-lg hover:bg-orange-600 transition-colors"
                       >
-                        Apply Filters
+                        {t("filters.apply")}
                       </button>
                       <button
                         onClick={handleReset}
                         className="px-5 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        Reset Filters
+                        {t("filters.reset")}
                       </button>
                     </div>
                   </div>
@@ -695,27 +737,27 @@ export default function ExamOfficerReportsPage() {
         <div className="order-1 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <StatCard
             icon={Ticket}
-            label="Tổng ticket"
+            label={t("stats.totalTickets")}
             value={stats?.summary.totalTickets ?? "—"}
-            hint={stats ? `${stats.filters.semesterName}${stats.filters.week ? ` • Week ${stats.filters.week}` : ""}` : undefined}
+            hint={stats ? `${stats.filters.semesterName}${stats.filters.week ? ` • ${t("scope.week", { week: stats.filters.week })}` : ""}` : undefined}
             color="text-orange-600"
             bg="bg-orange-50"
             loading={loadingStats}
           />
           <StatCard
             icon={Timer}
-            label="Thời gian bắt đầu xử lý TB"
+            label={t("stats.avgStartTime")}
             value={formatMinutes(stats?.summary.avgTimeToStartMinutes)}
-            hint={stats ? `Dựa trên ${stats.summary.startedSampleSize} ticket có timeline hợp lệ` : undefined}
+            hint={stats ? t("stats.startedHint", { count: stats.summary.startedSampleSize }) : undefined}
             color="text-blue-600"
             bg="bg-blue-50"
             loading={loadingStats}
           />
           <StatCard
             icon={Clock3}
-            label="Thời gian xử lý xong TB"
+            label={t("stats.avgResolveTime")}
             value={formatMinutes(stats?.summary.avgTimeToResolveMinutes)}
-            hint={stats ? `Dựa trên ${stats.summary.resolvedSampleSize} ticket có timeline hợp lệ` : undefined}
+            hint={stats ? t("stats.resolvedHint", { count: stats.summary.resolvedSampleSize }) : undefined}
             color="text-emerald-600"
             bg="bg-emerald-50"
             loading={loadingStats}
@@ -724,8 +766,8 @@ export default function ExamOfficerReportsPage() {
 
         <div className="order-1 grid gap-5 xl:grid-cols-2">
           <ChartCard
-            title="Ticket theo loại lỗi"
-            subtitle="So sánh số lượng ticket theo issue type trong phạm vi đã chọn"
+            title={t("charts.issueType.title")}
+            subtitle={t("charts.issueType.subtitle")}
             icon={BarChart2}
             loading={loadingStats}
             empty={!loadingStats && (!!error || isEmpty || issueTypeData.length === 0)}
@@ -735,7 +777,7 @@ export default function ExamOfficerReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                <ReTooltip formatter={(value: number) => [`${value} ticket`, "Số lượng"]} />
+                <ReTooltip formatter={(value: number) => [t("tooltips.ticketCount", { count: value }), t("tooltips.quantity")]} />
                 <Bar dataKey="count" radius={[10, 10, 0, 0]}>
                   {issueTypeData.map((_, index) => (
                     <Cell key={`type-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -746,8 +788,8 @@ export default function ExamOfficerReportsPage() {
           </ChartCard>
 
           <ChartCard
-            title="Môn thi có nhiều ticket nhất"
-            subtitle="Top môn thi phát sinh nhiều ticket nhất trong phạm vi đã chọn"
+            title={t("charts.subjects.title")}
+            subtitle={t("charts.subjects.subtitle")}
             icon={BookOpen}
             loading={loadingStats}
             empty={!loadingStats && (!!error || isEmpty || subjectData.length === 0)}
@@ -757,7 +799,7 @@ export default function ExamOfficerReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                <ReTooltip formatter={(value: number) => [`${value} ticket`, "Số lượng"]} />
+                <ReTooltip formatter={(value: number) => [t("tooltips.ticketCount", { count: value }), t("tooltips.quantity")]} />
                 <Bar dataKey="count" radius={[10, 10, 0, 0]} fill="#2563EB" />
               </BarChart>
             </ResponsiveContainer>
@@ -766,8 +808,8 @@ export default function ExamOfficerReportsPage() {
 
         <div className="order-1 grid gap-5 xl:grid-cols-2">
           <ChartCard
-            title="Top lỗi chi tiết"
-            subtitle="Issue name xuất hiện nhiều nhất, ưu tiên hiển thị dạng ngang để đọc label dài"
+            title={t("charts.issueName.title")}
+            subtitle={t("charts.issueName.subtitle")}
             icon={Ticket}
             loading={loadingStats}
             empty={!loadingStats && (!!error || isEmpty || issueNameData.length === 0)}
@@ -782,15 +824,15 @@ export default function ExamOfficerReportsPage() {
                   width={120}
                   tick={{ fontSize: 11, fill: "#475569" }}
                 />
-                <ReTooltip formatter={(value: number) => [`${value} ticket`, "Số lượng"]} />
+                <ReTooltip formatter={(value: number) => [t("tooltips.ticketCount", { count: value }), t("tooltips.quantity")]} />
                 <Bar dataKey="count" radius={[0, 10, 10, 0]} fill="#0F766E" />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
           <ChartCard
-            title="Phân bố ticket theo semester"
-            subtitle="So sánh tổng ticket giữa các học kỳ trong hệ thống"
+            title={t("charts.semester.title")}
+            subtitle={t("charts.semester.subtitle")}
             icon={CalendarRange}
             loading={loadingStats}
             empty={!loadingStats && (!!error || semesterData.length === 0)}
@@ -806,7 +848,7 @@ export default function ExamOfficerReportsPage() {
                   tick={{ fontSize: 11, fill: "#64748b" }}
                 />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                <ReTooltip formatter={(value: number, _name: string, item: any) => [`${value} ticket`, item?.payload?.name ?? "Semester"]} />
+                <ReTooltip formatter={(value: number, _name: string, item: any) => [t("tooltips.ticketCount", { count: value }), item?.payload?.name ?? t("tooltips.semester")]} />
                 <Bar dataKey="count" radius={[10, 10, 0, 0]}>
                   {semesterData.map((bucket) => (
                     <Cell
@@ -825,15 +867,15 @@ export default function ExamOfficerReportsPage() {
             <div className="flex items-center gap-2">
               <ArrowLeftRight className="w-4 h-4 text-indigo-500" />
               <div>
-                <h2 className="text-sm font-black text-gray-800">Proctor — Assigned Exam Slots</h2>
-                <p className="text-[10px] text-gray-400">Thống kê mỗi giám thị đang được phân công coi bao nhiêu slot thi, không tính slot chưa gán người</p>
+                <h2 className="text-sm font-black text-gray-800">{t("proctor.title")}</h2>
+                <p className="text-[10px] text-gray-400">{t("proctor.subtitle")}</p>
               </div>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search proctor..."
+                placeholder={t("proctor.searchPlaceholder")}
                 value={proctorSearch}
                 onChange={e => setProctorSearch(e.target.value)}
                 className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 w-48"
@@ -846,18 +888,18 @@ export default function ExamOfficerReportsPage() {
               <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
             </div>
           ) : filteredProctorData.length === 0 ? (
-            <div className="h-44 flex items-center justify-center text-sm text-gray-400">No assigned proctor slot data available</div>
+            <div className="h-44 flex items-center justify-center text-sm text-gray-400">{t("proctor.noData")}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    {["#", "Proctor", "Assigned Slots"].map(h => (
+                    {["#", t("proctor.headers.proctor"), t("proctor.headers.assignedSlots")].map(h => (
                       <th
                         key={h}
                         className={cn(
                           "px-4 py-2.5 text-[10px] font-black text-gray-400 uppercase tracking-wide whitespace-nowrap",
-                          h === "Assigned Slots" ? "text-center" : "text-left"
+                          h === t("proctor.headers.assignedSlots") ? "text-center" : "text-left"
                         )}
                       >
                         {h}
@@ -894,15 +936,15 @@ export default function ExamOfficerReportsPage() {
             <div className="flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-teal-500" />
               <div>
-                <h2 className="text-sm font-black text-gray-800">Hall Invigilator — Ticket Handling</h2>
-                <p className="text-[10px] text-gray-400">Tỷ lệ ticket được xử lý thành công của từng Hall Invigilator</p>
+                <h2 className="text-sm font-black text-gray-800">{t("hall.title")}</h2>
+                <p className="text-[10px] text-gray-400">{t("hall.subtitle")}</p>
               </div>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search staff..."
+                placeholder={t("hall.searchPlaceholder")}
                 value={hallSearch}
                 onChange={e => setHallSearch(e.target.value)}
                 className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 w-48"
@@ -915,7 +957,7 @@ export default function ExamOfficerReportsPage() {
               <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
             </div>
           ) : filteredHallData.length === 0 ? (
-            <div className="h-44 flex items-center justify-center text-sm text-gray-400">No ticket assignment data available</div>
+            <div className="h-44 flex items-center justify-center text-sm text-gray-400">{t("hall.noData")}</div>
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
               <ResponsiveContainer width="100%" height={Math.max(180, filteredHallData.length * 40)}>
@@ -942,11 +984,11 @@ export default function ExamOfficerReportsPage() {
                   <ReTooltip
                     formatter={(val: number, _name: string, item: any) => [
                       `${val}%`,
-                      `${item?.payload?.solved ?? 0}/${item?.payload?.total ?? 0} ticket đã xử lý`,
+                      t("hall.tooltipResolved", { solved: item?.payload?.solved ?? 0, total: item?.payload?.total ?? 0 }),
                     ]}
                   />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
-                  <Bar dataKey="resolvedRate" name="Success Rate" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="resolvedRate" name={t("hall.successRate")} fill="#22c55e" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
 
@@ -954,7 +996,7 @@ export default function ExamOfficerReportsPage() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-white">
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      {["#", "Staff Name", "Role", "Total", "Success Rate", "In Progress"].map(h => (
+                      {["#", t("hall.headers.staffName"), t("hall.headers.role"), t("hall.headers.total"), t("hall.headers.successRate"), t("hall.headers.inProgress")].map(h => (
                         <th key={h} className="px-3 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -962,10 +1004,10 @@ export default function ExamOfficerReportsPage() {
                   <tbody>
                     {filteredHallData.map((d, idx) => {
                       const roleLabel: Record<string, string> = {
-                        HALL_INVIGILATOR: "Hall Invigilator",
-                        IT_SUPPORT: "IT Support",
-                        EXAM_OFFICER: "Exam Officer",
-                        ADMIN: "Admin",
+                        HALL_INVIGILATOR: roleLabels.HALL_INVIGILATOR,
+                        IT_SUPPORT: roleLabels.IT_SUPPORT,
+                        EXAM_OFFICER: roleLabels.EXAM_OFFICER,
+                        ADMIN: roleLabels.ADMIN,
                       };
                       const roleColor: Record<string, string> = {
                         HALL_INVIGILATOR: "bg-blue-100 text-blue-700",
@@ -1018,13 +1060,13 @@ export default function ExamOfficerReportsPage() {
         <div className="order-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-sm font-black text-slate-900">Tóm tắt dữ liệu đang hiển thị</h2>
-              <p className="text-xs text-slate-500">Khối này giúp người dùng đọc nhanh khi không muốn nhìn chart.</p>
+              <h2 className="text-sm font-black text-slate-900">{t("summary.title")}</h2>
+              <p className="text-xs text-slate-500">{t("summary.subtitle")}</p>
             </div>
             {stats ? (
               <p className="text-xs font-medium text-slate-400">
-                Phạm vi: {stats.filters.semesterCode}
-                {stats.filters.week ? ` • Week ${stats.filters.week}` : " • All weeks"}
+                {t("summary.scopePrefix")} {stats.filters.semesterCode}
+                {stats.filters.week ? ` • ${t("scope.week", { week: stats.filters.week })}` : ` • ${t("summary.allWeeks")}`}
               </p>
             ) : null}
           </div>
@@ -1036,15 +1078,15 @@ export default function ExamOfficerReportsPage() {
           ) : (
             <div className="grid gap-4 pt-4 md:grid-cols-3">
               <SummaryList
-                title="Issue type"
+                title={t("summary.issueType")}
                 items={issueTypeData}
               />
               <SummaryList
-                title="Issue name"
+                title={t("summary.issueName")}
                 items={issueNameData}
               />
               <SummaryList
-                title="Top subjects"
+                title={t("summary.topSubjects")}
                 items={subjectData}
               />
             </div>
@@ -1056,11 +1098,12 @@ export default function ExamOfficerReportsPage() {
 }
 
 function SummaryList({ title, items }: { title: string; items: TicketCountBucket[] }) {
+  const t = useTranslations("Reports");
   if (items.length === 0) {
     return (
       <div className="rounded-2xl bg-slate-50 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</p>
-        <p className="mt-6 text-sm text-slate-400">Không có dữ liệu.</p>
+        <p className="mt-6 text-sm text-slate-400">{t("states.noData")}</p>
       </div>
     );
   }

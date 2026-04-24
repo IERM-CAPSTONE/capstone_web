@@ -1230,6 +1230,129 @@
             "Completed": "Đã kết thúc"
         }
     },
+    "Reports": {
+        "header": {
+            "title": "Bảng Điều Khiển Thống Kê Ticket",
+            "subtitle": "Theo dõi xu hướng sự cố và hiệu quả xử lý ticket theo học kỳ."
+        },
+        "actions": {
+            "refresh": "Làm mới",
+            "exportExcel": "Xuất Excel",
+            "exportPdf": "Xuất PDF"
+        },
+        "scope": {
+            "title": "Phạm vi báo cáo",
+            "selectSemester": "Chọn semester",
+            "noData": "Chưa có dữ liệu",
+            "week": "Tuần {week}"
+        },
+        "filters": {
+            "title": "Bộ lọc",
+            "fromDate": "Từ ngày",
+            "toDate": "Đến ngày",
+            "examSchedule": "Lịch thi",
+            "examRoom": "Phòng thi",
+            "ticketCategory": "Loại ticket",
+            "ticketStatus": "Trạng thái ticket",
+            "allSessions": "Tất cả ca thi",
+            "allRooms": "Tất cả phòng",
+            "allCategories": "Tất cả loại",
+            "allStatuses": "Tất cả trạng thái",
+            "apply": "Áp dụng bộ lọc",
+            "reset": "Đặt lại bộ lọc"
+        },
+        "stats": {
+            "totalTickets": "Tổng ticket",
+            "avgStartTime": "Thời gian bắt đầu xử lý TB",
+            "avgResolveTime": "Thời gian xử lý xong TB",
+            "startedHint": "Dựa trên {count} ticket có timeline hợp lệ",
+            "resolvedHint": "Dựa trên {count} ticket có timeline hợp lệ"
+        },
+        "charts": {
+            "issueType": {
+                "title": "Ticket theo loại lỗi",
+                "subtitle": "So sánh số lượng ticket theo issue type trong phạm vi đã chọn"
+            },
+            "subjects": {
+                "title": "Môn thi có nhiều ticket nhất",
+                "subtitle": "Top môn thi phát sinh nhiều ticket nhất trong phạm vi đã chọn"
+            },
+            "issueName": {
+                "title": "Top lỗi chi tiết",
+                "subtitle": "Issue name xuất hiện nhiều nhất, ưu tiên hiển thị dạng ngang để đọc label dài"
+            },
+            "semester": {
+                "title": "Phân bố ticket theo semester",
+                "subtitle": "So sánh tổng ticket giữa các học kỳ trong hệ thống"
+            }
+        },
+        "proctor": {
+            "title": "Giám thị — Số slot được phân công",
+            "subtitle": "Thống kê mỗi giám thị đang được phân công coi bao nhiêu slot thi, không tính slot chưa gán người",
+            "searchPlaceholder": "Tìm giám thị...",
+            "noData": "Không có dữ liệu slot đã gán cho giám thị",
+            "headers": {
+                "proctor": "Giám thị",
+                "assignedSlots": "Số slot được phân công"
+            }
+        },
+        "hall": {
+            "title": "Giám thị hành lang — Xử lý ticket",
+            "subtitle": "Tỷ lệ ticket được xử lý thành công của từng Hall Invigilator",
+            "searchPlaceholder": "Tìm nhân sự...",
+            "noData": "Không có dữ liệu phân công ticket",
+            "successRate": "Tỷ lệ thành công",
+            "tooltipResolved": "Đã xử lý {solved}/{total} ticket",
+            "headers": {
+                "staffName": "Tên nhân sự",
+                "role": "Vai trò",
+                "total": "Tổng",
+                "successRate": "Tỷ lệ thành công",
+                "inProgress": "Đang xử lý"
+            }
+        },
+        "summary": {
+            "title": "Tóm tắt dữ liệu đang hiển thị",
+            "subtitle": "Khối này giúp người dùng đọc nhanh khi không muốn nhìn chart.",
+            "scopePrefix": "Phạm vi:",
+            "allWeeks": "Tất cả tuần",
+            "issueType": "Loại lỗi",
+            "issueName": "Tên lỗi",
+            "topSubjects": "Môn thi nổi bật"
+        },
+        "tooltips": {
+            "ticketCount": "{count} ticket",
+            "quantity": "Số lượng",
+            "semester": "Học kỳ"
+        },
+        "states": {
+            "noDataForFilter": "Không có dữ liệu cho bộ lọc hiện tại.",
+            "noData": "Không có dữ liệu."
+        },
+        "errors": {
+            "loadStats": "Không thể tải thống kê ticket."
+        },
+        "status": {
+            "open": "Mở",
+            "inProgress": "Đang xử lý",
+            "solved": "Đã xử lý",
+            "pending": "Đang chờ",
+            "rejected": "Từ chối"
+        },
+        "roles": {
+            "hallInvigilator": "Hall Invigilator",
+            "itSupport": "IT Support",
+            "examOfficer": "Exam Officer",
+            "admin": "Admin"
+        },
+        "issueTypes": {
+            "technicalIssue": "Lỗi kỹ thuật",
+            "academicViolation": "Vi phạm học vụ",
+            "roomManagement": "Quản lý phòng thi",
+            "faceMismatch": "Không khớp khuôn mặt",
+            "other": "Khác"
+        }
+    },
     "HallInvigilatorTickets": {
         "title": "Ticket của tôi",
         "subtitle": "Các ticket Khảo thí đã giao để xử lý",
