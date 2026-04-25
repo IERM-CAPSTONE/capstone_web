@@ -920,8 +920,8 @@ export default function AdminDevicesPage() {
                       <TableCell className="text-right space-x-2">
                         {item.status === "PENDING" ? (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => setAppConfirm({ id: item.id, nextStatus: "APPROVED" })}>
-                              <CheckCircle2 className="w-4 h-4 mr-1 text-green-600" /> {ap("approve")}
+                            <Button size="sm" variant="outline" className="bg-warning text-white border-warning hover:bg-warning-dark" onClick={() => setAppConfirm({ id: item.id, nextStatus: "APPROVED" })}>
+                              <CheckCircle2 className="w-4 h-4 mr-1 text-white" /> {ap("approve")}
                             </Button>
                             <Button size="sm" variant="danger" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => { setRejectTargetId(item.id); setRejectedReason(""); }}>
                               <XCircle className="w-4 h-4 mr-1" /> {ap("reject")}
