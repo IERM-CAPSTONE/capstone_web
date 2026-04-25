@@ -37,7 +37,12 @@ export function Header() {
 
   const { toggleSidebar } = useUIStore();
 
+  const persistLocalePreference = (nextLocale: string) => {
+    document.cookie = `preferred_locale=${nextLocale}; path=/; max-age=31536000; samesite=lax`;
+  };
+
   const handleLocaleChange = (newLocale: string) => {
+    persistLocalePreference(newLocale);
     // Current pathname includes the locale (e.g., /vi/dashboard)
     const segments = currentPathname.split('/');
     segments[1] = newLocale;

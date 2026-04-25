@@ -1,6 +1,12 @@
 import apiClient from "./client";
 
-export type UserRole = "ADMIN" | "EXAM_OFFICER" | "PROCTOR" | "STUDENT";
+export type UserRole =
+  | "ADMIN"
+  | "EXAM_OFFICER"
+  | "PROCTOR"
+  | "STUDENT"
+  | "HALL_INVIGILATOR"
+  | "IT_SUPPORT";
 
 export interface User {
   id: string;

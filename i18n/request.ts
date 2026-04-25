@@ -3,15 +3,18 @@ import { getRequestConfig } from 'next-intl/server';
 const locales = ['en', 'vi'];
 
 function decodeLegacyVietnamese(value: string): string {
-    // Only attempt to fix obvious mojibake patterns.
-    if (!/[ÃÂÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßâ€œâ€â€™â€”]/.test(value)) {
+    // Attempt to fix common UTF-8 -> Latin1 mojibake patterns found in legacy Vietnamese JSON files.
+    if (!/[ÃÂâ]/.test(value)) {
         return value;
     }
 
     try {
         const bytes = Uint8Array.from(value, (char) => char.charCodeAt(0));
         const decoded = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-        return decoded.includes('�') ? value : decoded;
+        if (decoded.includes('�')) {
+            return value;
+        }
+        return decoded;
     } catch {
         return value;
     }
@@ -33,10 +36,8 @@ function normalizeMessages<T>(input: T): T {
 }
 
 export default getRequestConfig(async ({ requestLocale }) => {
-    // Await the locale from the request
     let locale = await requestLocale;
 
-    // Ensure we have a valid locale, or fallback to default
     if (!locale || !locales.includes(locale)) {
         locale = 'vi';
     }
@@ -45,6 +46,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
     return {
         locale,
-        messages: locale === 'vi' ? normalizeMessages(rawMessages) : rawMessages
+        messages: locale === 'vi' ? normalizeMessages(rawMessages) : rawMessages,
     };
 });

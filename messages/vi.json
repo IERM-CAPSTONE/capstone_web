@@ -54,6 +54,9 @@
     "Login": {
         "title": "Chào mừng bạn",
         "subtitle": "Chọn cơ sở và đăng nhập bằng Google",
+        "brandTitle": "FPT Exam Management",
+        "brandSubtitle": "Hệ thống quản lý thi bảo mật",
+        "footer": "© 2026 Đại học FPT. Đã đăng ký bản quyền.",
         "selectCampus": "Chọn cơ sở",
         "chooseCampus": "Chọn cơ sở của bạn",
         "loginButton": "Đăng nhập với Google",
@@ -266,6 +269,41 @@
                 "proctor": "Giám thị",
                 "status": "Trạng thái"
             },
+            "importExamCodeDialog": {
+                "title": "Nhập mã đề thi & mã mở đề",
+                "description": "Tải lên tệp mã đề thi và mã mở đề",
+                "selectFileFirst": "Vui lòng chọn tệp trước",
+                "sendingBatch": "Đang gửi mã đề thi: lô {current}/{total}...",
+                "processingBackground": "Dữ liệu đã được gửi lên máy chủ. Hệ thống đang xử lý nền...",
+                "importFailed": "Import thất bại.",
+                "successTitle": "Import thành công!",
+                "successWithErrorsTitle": "Import hoàn tất nhưng có lỗi",
+                "processedSummary": "Đã xử lý {count} dòng:",
+                "successCount": "{count} thành công",
+                "failureCount": "{count} thất bại",
+                "errorSectionTitle": "Lỗi import mã đề ({count})",
+                "rowData": "Dữ liệu dòng",
+                "errorMessage": "Thông báo lỗi",
+                "unknown": "Không xác định",
+                "prev": "Trước",
+                "next": "Sau",
+                "uploadCta": "Bấm để tải lên hoặc kéo thả tệp",
+                "uploadHint": "Chỉ chấp nhận tệp CSV hoặc Excel (tối đa 10MB)",
+                "fileFormatTitle": "Yêu cầu định dạng tệp",
+                "requiredColumns": "Các cột bắt buộc: Start Date, Exam Code, Rooms",
+                "dateFormat": "Định dạng Start Date: DD/MM/YYYY HH:mm",
+                "examCodeFormat": "Exam Code hỗ trợ định dạng đặc biệt \"CODE (OPEN)\"",
+                "tabLabel": "Mã đề ({count})",
+                "index": "STT",
+                "actions": "Thao tác",
+                "showingEntries": "Hiển thị {from} đến {to} trên {total} dòng",
+                "first": "Đầu",
+                "last": "Cuối",
+                "changeFile": "Đổi tệp",
+                "save": "Lưu",
+                "edit": "Chỉnh sửa",
+                "importing": "Đang import..."
+            },
             "schedulesPage": {
                 "missionControl": "HỆ THỐNG ĐIỀU HÀNH THI",
                 "stats": {
@@ -403,7 +441,7 @@
         },
         "types": {
             "room": "Giám thị phòng",
-            "hall": "Giám thị hội trường"
+            "hall": "Giám thị hành lang"
         },
         "statuses": {
             "pending": "Chờ duyệt",
@@ -456,6 +494,7 @@
         "description": "Hệ thống quản lý phòng thi thông minh dành cho Đại học FPT - An toàn, hiệu quả và tin cậy."
     },
     "Sidebar": {
+        "monitor": "Giám sát",
         "dashboard": "Bảng điều khiển",
         "accounts": "Quản lý tài khoản",
         "rooms": "Phòng thi",
@@ -463,6 +502,7 @@
         "semesters": "Học kỳ",
         "schedules": "Lịch thi",
         "tickets": "Ticket",
+        "auditLog": "Lịch sử hệ thống",
         "applications": "Đơn đăng ký",
         "subjects": "Môn học",
         "templates": "Mẫu thông báo",
@@ -487,16 +527,27 @@
             "createTitle": "Thêm học kỳ",
             "editTitle": "Chỉnh sửa học kỳ",
             "code": "Mã học kỳ",
-            "codePlaceholder": "VD: SP26",
+            "codePlaceholder": "VD: SU25, FA25",
             "name": "Tên học kỳ",
             "namePlaceholder": "VD: Spring 2026",
+            "displayName": "Tên hiển thị",
+            "displayNamePlaceholder": "VD: Hè 2025",
             "startDate": "Ngày bắt đầu",
             "endDate": "Ngày kết thúc",
             "cancel": "Hủy",
             "save": "Lưu",
+            "create": "Tạo",
+            "update": "Cập nhật",
+            "saving": "Đang lưu...",
             "createSuccess": "Tạo học kỳ thành công",
             "updateSuccess": "Cập nhật học kỳ thành công",
-            "deleteSuccess": "Xóa học kỳ thành công"
+            "deleteSuccess": "Xóa học kỳ thành công",
+            "errors": {
+                "codeRequired": "Mã học kỳ là bắt buộc (ví dụ: SU25)",
+                "startDateRequired": "Ngày bắt đầu là bắt buộc",
+                "endDateRequired": "Ngày kết thúc là bắt buộc",
+                "endDateAfterStart": "Ngày kết thúc phải sau ngày bắt đầu"
+            }
         },
         "pagination": {
             "showing": "Hiển thị",
@@ -522,6 +573,21 @@
         "previewImportData": "Xem trước dữ liệu nhập",
         "previewDescription": "Kiểm tra dữ liệu trên {count} trang tính trước khi nhập.",
         "confirmImportAll": "Xác nhận nhập tất cả các trang",
+        "previewTotalItems": "Tổng mục",
+        "targetSemester": "Học kỳ đích",
+        "selectSemesterToImport": "Chọn học kỳ để nhập vào",
+        "importSemesterHint": "Các môn học đã tồn tại trong học kỳ này sẽ được cập nhật, môn mới sẽ được tạo.",
+        "previewShowingFirst": "Hiển thị trước {count} mục đầu tiên",
+        "previewShowingAll": "Hiển thị toàn bộ {count} mục",
+        "invalidFileFormat": "Định dạng tệp không hợp lệ. Vui lòng tải lên tệp Excel hoặc CSV.",
+        "previewReadError": "Không thể đọc dữ liệu xem trước",
+        "importProcessing": "Đang xử lý môn học ở chế độ nền...",
+        "importProcessingFallback": "Yêu cầu import đã được tiếp nhận",
+        "importProcessingFallbackDescription": "Nếu danh sách chưa cập nhật, hãy làm mới lại sau ít phút.",
+        "importFailed": "Nhập môn học thất bại. Vui lòng thử lại.",
+        "importCompleted": "Nhập môn học thành công!",
+        "importFailedShort": "Nhập thất bại",
+        "importSummary": "Thành công: {successCount}, Lỗi: {errorCount}",
         "table": {
             "code": "Mã môn học",
             "name": "Tên môn học",
@@ -546,6 +612,36 @@
             "examPart": "Loại thi",
             "noParts": "Chưa có thành phần thi nào được thêm.",
             "typeLabel": "Loại"
+        },
+        "examParts": {
+            "title": "Quản lý loại thi",
+            "subtitle": "Thêm hoặc chỉnh sửa các thành phần thi động",
+            "availableTypes": "Danh sách loại thi",
+            "addType": "Thêm loại",
+            "addNewTitle": "Thêm loại thi mới",
+            "editTitle": "Chỉnh sửa loại thi",
+            "code": "Mã",
+            "codePlaceholder": "VD: MC, L, R",
+            "name": "Tên đầy đủ",
+            "namePlaceholder": "VD: Trắc nghiệm",
+            "description": "Mô tả",
+            "descriptionPlaceholder": "Mô tả tùy chọn...",
+            "cancel": "Hủy",
+            "close": "Đóng",
+            "createType": "Tạo loại",
+            "saveChanges": "Lưu thay đổi",
+            "saving": "Đang lưu...",
+            "loading": "Đang tải loại thi...",
+            "empty": "Chưa có loại thi nào",
+            "deleteConfirm": "Bạn có chắc muốn xóa \"{code}\" không? Việc này có thể ảnh hưởng đến các môn học đang dùng loại này.",
+            "toasts": {
+                "codeRequired": "Mã là bắt buộc",
+                "createSuccess": "Tạo loại thi thành công",
+                "updateSuccess": "Cập nhật loại thi thành công",
+                "saveFailed": "Lưu loại thi thất bại",
+                "deleteSuccess": "Xóa loại thi thành công",
+                "deleteFailed": "Xóa loại thi thất bại"
+            }
         }
     },
     "AutoGenerate": {
@@ -589,7 +685,7 @@
         "semester": "Học kỳ",
         "room": "Phòng",
         "proctor": "Giám thị",
-        "hallInvigilator": "Giám thị hội trường",
+        "hallInvigilator": "Giám thị hành lang",
         "notes": "Ghi chú",
         "openCode": "Mã mở đề",
         "seatingPlan": "Sơ đồ chỗ ngồi",
@@ -1132,6 +1228,129 @@
             "Upcoming": "Sắp diễn ra",
             "In Progress": "Đang diễn ra",
             "Completed": "Đã kết thúc"
+        }
+    },
+    "Reports": {
+        "header": {
+            "title": "Bảng Điều Khiển Thống Kê Ticket",
+            "subtitle": "Theo dõi xu hướng sự cố và hiệu quả xử lý ticket theo học kỳ."
+        },
+        "actions": {
+            "refresh": "Làm mới",
+            "exportExcel": "Xuất Excel",
+            "exportPdf": "Xuất PDF"
+        },
+        "scope": {
+            "title": "Phạm vi báo cáo",
+            "selectSemester": "Chọn semester",
+            "noData": "Chưa có dữ liệu",
+            "week": "Tuần {week}"
+        },
+        "filters": {
+            "title": "Bộ lọc",
+            "fromDate": "Từ ngày",
+            "toDate": "Đến ngày",
+            "examSchedule": "Lịch thi",
+            "examRoom": "Phòng thi",
+            "ticketCategory": "Loại ticket",
+            "ticketStatus": "Trạng thái ticket",
+            "allSessions": "Tất cả ca thi",
+            "allRooms": "Tất cả phòng",
+            "allCategories": "Tất cả loại",
+            "allStatuses": "Tất cả trạng thái",
+            "apply": "Áp dụng bộ lọc",
+            "reset": "Đặt lại bộ lọc"
+        },
+        "stats": {
+            "totalTickets": "Tổng ticket",
+            "avgStartTime": "Thời gian bắt đầu xử lý TB",
+            "avgResolveTime": "Thời gian xử lý xong TB",
+            "startedHint": "Dựa trên {count} ticket có timeline hợp lệ",
+            "resolvedHint": "Dựa trên {count} ticket có timeline hợp lệ"
+        },
+        "charts": {
+            "issueType": {
+                "title": "Ticket theo loại lỗi",
+                "subtitle": "So sánh số lượng ticket theo issue type trong phạm vi đã chọn"
+            },
+            "subjects": {
+                "title": "Môn thi có nhiều ticket nhất",
+                "subtitle": "Top môn thi phát sinh nhiều ticket nhất trong phạm vi đã chọn"
+            },
+            "issueName": {
+                "title": "Top lỗi chi tiết",
+                "subtitle": "Issue name xuất hiện nhiều nhất, ưu tiên hiển thị dạng ngang để đọc label dài"
+            },
+            "semester": {
+                "title": "Phân bố ticket theo semester",
+                "subtitle": "So sánh tổng ticket giữa các học kỳ trong hệ thống"
+            }
+        },
+        "proctor": {
+            "title": "Giám thị — Số slot được phân công",
+            "subtitle": "Thống kê mỗi giám thị đang được phân công coi bao nhiêu slot thi, không tính slot chưa gán người",
+            "searchPlaceholder": "Tìm giám thị...",
+            "noData": "Không có dữ liệu slot đã gán cho giám thị",
+            "headers": {
+                "proctor": "Giám thị",
+                "assignedSlots": "Số slot được phân công"
+            }
+        },
+        "hall": {
+            "title": "Giám thị hành lang — Xử lý ticket",
+            "subtitle": "Tỷ lệ ticket được xử lý thành công của từng Hall Invigilator",
+            "searchPlaceholder": "Tìm nhân sự...",
+            "noData": "Không có dữ liệu phân công ticket",
+            "successRate": "Tỷ lệ thành công",
+            "tooltipResolved": "Đã xử lý {solved}/{total} ticket",
+            "headers": {
+                "staffName": "Tên nhân sự",
+                "role": "Vai trò",
+                "total": "Tổng",
+                "successRate": "Tỷ lệ thành công",
+                "inProgress": "Đang xử lý"
+            }
+        },
+        "summary": {
+            "title": "Tóm tắt dữ liệu đang hiển thị",
+            "subtitle": "Khối này giúp người dùng đọc nhanh khi không muốn nhìn chart.",
+            "scopePrefix": "Phạm vi:",
+            "allWeeks": "Tất cả tuần",
+            "issueType": "Loại lỗi",
+            "issueName": "Tên lỗi",
+            "topSubjects": "Môn thi nổi bật"
+        },
+        "tooltips": {
+            "ticketCount": "{count} ticket",
+            "quantity": "Số lượng",
+            "semester": "Học kỳ"
+        },
+        "states": {
+            "noDataForFilter": "Không có dữ liệu cho bộ lọc hiện tại.",
+            "noData": "Không có dữ liệu."
+        },
+        "errors": {
+            "loadStats": "Không thể tải thống kê ticket."
+        },
+        "status": {
+            "open": "Mở",
+            "inProgress": "Đang xử lý",
+            "solved": "Đã xử lý",
+            "pending": "Đang chờ",
+            "rejected": "Từ chối"
+        },
+        "roles": {
+            "hallInvigilator": "Hall Invigilator",
+            "itSupport": "IT Support",
+            "examOfficer": "Exam Officer",
+            "admin": "Admin"
+        },
+        "issueTypes": {
+            "technicalIssue": "Lỗi kỹ thuật",
+            "academicViolation": "Vi phạm học vụ",
+            "roomManagement": "Quản lý phòng thi",
+            "faceMismatch": "Không khớp khuôn mặt",
+            "other": "Khác"
         }
     },
     "HallInvigilatorTickets": {

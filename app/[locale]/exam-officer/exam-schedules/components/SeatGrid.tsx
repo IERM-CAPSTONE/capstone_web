@@ -26,24 +26,20 @@ export function SeatGrid({
   userRole = 'GUEST',
   selectedPart = null,
 }: SeatGridProps) {
-  // Map students to seats for easy lookup
+  // Map students by their physical seat assignment.
+  // seatPosition is the authoritative link after a swap.
   const studentMap = new Map<string, StudentExam>();
   students.forEach(st => {
-    if (st.seatNumber) {
-      studentMap.set(st.seatNumber, st);
+    if (st.seatPosition) {
+      studentMap.set(st.seatPosition, st);
     }
   });
 
   const renderSeat = (row: number, col: number) => {
-    const seatIdx = (row - 1) * cols + col;
-    const seatRC = `R${row}C${col}`;
-
     const seat = seats.find(s => s.row === row && s.col === col);
 
-    // Find student by index string, R-C string, or matching seatPosition ID
-    const student = studentMap.get(seatIdx.toString()) ||
-      studentMap.get(seatRC) ||
-      students.find(s => s.seatPosition === seat?.id);
+    // Find student by the live physical seat assignment only.
+    const student = seat?.id ? studentMap.get(seat.id) ?? null : null;
 
     // Compute status based on selected part
     let computedStatus = seat?.status;
@@ -54,6 +50,8 @@ export function SeatGrid({
       } else {
         computedStatus = 'Assigned';
       }
+    } else if (student && seat?.status !== 'Locked') {
+      computedStatus = hasAnyCheckedInPart(student) ? 'Present' : (seat?.status ?? 'Assigned');
     }
 
     return (
