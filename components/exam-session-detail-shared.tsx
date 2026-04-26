@@ -10,7 +10,7 @@ import {
     ChevronRight, Calendar, Clock, FileText, AlertCircle,
     LayoutGrid, CheckCircle2, BookOpen, Loader2, Ticket, X,
     User, MapPin, AlertTriangle, Users, CheckSquare,
-    Square, LayoutList, Map as MapIcon, Search, Pencil, Trash2,
+    Square, LayoutList, Map as MapIcon, Search, Pencil, Trash2, ImageIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useDeleteExamSchedule, useExamScheduleById, useUpdateExamSchedule } from "@/hooks/use-exam-schedules";
@@ -18,6 +18,7 @@ import { useStudentExamsBySession } from "@/hooks/use-student-exams";
 import { useSeatManagement, ExamSeat } from "@/hooks/use-seat-management";
 import { useSocket } from "@/hooks/use-socket";
 import { StudentExam } from "@/lib/api/student-exams";
+import { AttendanceSnapshot, attendanceSnapshotsApi } from "@/lib/api/attendance-snapshots";
 import { ticketsApi, IssueType, TicketPriority } from "@/lib/api/tickets";
 import { ROUTES } from "@/lib/constants/routes";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
@@ -390,14 +391,45 @@ interface StudentPanelProps {
     canSwapSeat: boolean;
     isSwapping: boolean;
     locale: string;
+    examSessionId: string;
     onToggleSelect: () => void;
     onClose: () => void;
     onCreateTicket: () => void;
     onSwapModeStart: () => void;
 }
 
-function StudentPanel({ student, seat, isSelected, canCreateTicket, canSwapSeat, isSwapping, locale, onToggleSelect, onClose, onCreateTicket, onSwapModeStart }: StudentPanelProps) {
+function StudentPanel({ student, seat, isSelected, canCreateTicket, canSwapSeat, isSwapping, locale, examSessionId, onToggleSelect, onClose, onCreateTicket, onSwapModeStart }: StudentPanelProps) {
     const t = useTranslations("ProctorSession");
+    const [attendanceSnapshot, setAttendanceSnapshot] = useState<AttendanceSnapshot | null>(null);
+    const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!student?.studentId) {
+            setAttendanceSnapshot(null);
+            setIsLoadingSnapshot(false);
+            return;
+        }
+
+        setIsLoadingSnapshot(true);
+        attendanceSnapshotsApi
+            .getLatestStudentSnapshot(examSessionId, student.studentId)
+            .then((snapshot) => {
+                if (isMounted) setAttendanceSnapshot(snapshot);
+            })
+            .catch(() => {
+                if (isMounted) setAttendanceSnapshot(null);
+            })
+            .finally(() => {
+                if (isMounted) setIsLoadingSnapshot(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [examSessionId, student?.studentId]);
+
     if (!student) return null;
 
     const statusColors: Record<string, { bg: string; text: string; dot: string }> = {
@@ -438,6 +470,43 @@ function StudentPanel({ student, seat, isSelected, canCreateTicket, canSwapSeat,
                             ? t(`studentStatus.${student.status}` as any)
                             : t("seatStatus.absent")}
                 </span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-3 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-orange-500" />
+                        {locale === "vi" ? "Ảnh điểm danh" : "Attendance photo"}
+                    </p>
+                    {attendanceSnapshot?.captureTimestamp && (
+                        <span className="text-[10px] font-semibold text-slate-400">
+                            {format(new Date(attendanceSnapshot.captureTimestamp), "HH:mm dd/MM")}
+                        </span>
+                    )}
+                </div>
+                {isLoadingSnapshot ? (
+                    <div className="h-28 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                    </div>
+                ) : attendanceSnapshot?.imageUrl ? (
+                    <button
+                        type="button"
+                        className="block w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50"
+                        onClick={() => window.open(attendanceSnapshot.imageUrl!, "_blank")}
+                    >
+                        <img
+                            src={attendanceSnapshot.imageUrl}
+                            alt={locale === "vi" ? "Ảnh điểm danh" : "Attendance snapshot"}
+                            className="h-36 w-full object-cover"
+                        />
+                    </button>
+                ) : (
+                    <div className="h-28 rounded-xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center px-4 text-center">
+                        <span className="text-xs font-medium text-slate-400">
+                            {locale === "vi" ? "Chưa có ảnh điểm danh cho sinh viên này." : "No attendance photo for this student yet."}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Info rows */}
@@ -583,6 +652,12 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                         <span className={cn("w-2.5 h-2.5 rounded-full", dot)} />{label}
                     </span>
                 ))}
+                <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-red-500 bg-white text-red-500">
+                        <AlertTriangle className="h-3 w-3" />
+                    </span>
+                    Chưa đăng ký khuôn mặt
+                </span>
                 <span className="ml-auto text-[11px] text-slate-400 italic">{t("clickSeatHint")}</span>
             </div>
 
@@ -678,8 +753,16 @@ function SeatingFloorPlan({ seats, students, cols, rows, selectedIds, onSeatClic
                                     swapModeEnabled && seat && !isSwapSource && "ring-1 ring-blue-200"
                                 )}
                             >
+                                {student?.hasFaceRegistered === false && (
+                                    <div
+                                        className="absolute top-1 left-1 flex h-4 w-4 items-center justify-center rounded-full border border-red-500 bg-white text-red-500 shadow-sm"
+                                        title="Chưa đăng ký khuôn mặt"
+                                    >
+                                        <AlertTriangle className="h-3 w-3" />
+                                    </div>
+                                )}
                                 {isSelected && (
-                                    <div className="absolute top-1 left-1">
+                                    <div className="absolute top-1 right-1">
                                         <CheckSquare className="w-3 h-3 text-orange-500" />
                                     </div>
                                 )}
@@ -1332,6 +1415,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
                                 canSwapSeat={canSwapSeat}
                                 isSwapping={isSwappingSeat}
                                 locale={locale}
+                                examSessionId={scheduleId}
                                 onToggleSelect={() => toggleStudent(activeStudent.id)}
                                 onClose={() => { setActiveStudentId(null); setActiveSeatId(null); }}
                                 onCreateTicket={() => {
@@ -1461,5 +1545,3 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
         </div>
     );
 }
-
-

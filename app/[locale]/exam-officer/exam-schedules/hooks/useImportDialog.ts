@@ -11,6 +11,7 @@ interface UseImportDialogOptions {
 }
 
 export function useImportDialog({ importType, onImportComplete }: UseImportDialogOptions) {
+    const DEFAULT_SCHEDULE_CAMPUS = "DN";
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [importError, setImportError] = useState("");
     const [importSuccess, setImportSuccess] = useState(false);
@@ -106,8 +107,14 @@ export function useImportDialog({ importType, onImportComplete }: UseImportDialo
             }
 
             if (result.type === "schedule") {
-                setSchedulePreview(result.schedules || []);
-                setStudentPreview(result.students || []);
+                setSchedulePreview((result.schedules || []).map((item) => ({
+                    ...item,
+                    campus: item.campus || DEFAULT_SCHEDULE_CAMPUS,
+                })));
+                setStudentPreview((result.students || []).map((item) => ({
+                    ...item,
+                    campus: item.campus || DEFAULT_SCHEDULE_CAMPUS,
+                })));
                 setActiveTab("schedules");
             } else if (result.type === "proctor") {
                 setProctorPreview(result.proctors || []);

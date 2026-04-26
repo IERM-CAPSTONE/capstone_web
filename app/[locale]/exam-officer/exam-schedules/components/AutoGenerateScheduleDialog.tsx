@@ -16,6 +16,7 @@ import {
     Check,
     Upload,
     FileText,
+    Users,
 } from "lucide-react";
 import { useAutoGenerateSchedule } from "@/hooks/use-exam-schedules";
 import { useSemesters } from "@/hooks/use-semesters";
@@ -46,6 +47,8 @@ export default function AutoGenerateScheduleDialog({
         targetWeek: "" as string,
         examDays: "6",
         selectedRooms: [] as string[],
+        proctorFileName: "",
+        proctorEmails: [] as string[],
         campusFiles: {} as Record<string, { fileData: string; fileName: string }>,
         classScheduleFiles: {} as Record<string, { fileData: string; fileName: string }>,
     });
@@ -159,6 +162,7 @@ export default function AutoGenerateScheduleDialog({
         const w = parseInt(formData.targetWeek);
 
         if (!formData.semesterId || formData.selectedRooms.length === 0 || formData.campus.length === 0) return true;
+        if (formData.proctorEmails.length === 0) return true;
         // Every selected campus must have a file
         const allHaveFiles = formData.campus.every(c => !!formData.campusFiles[c]?.fileData);
         if (!allHaveFiles) return true;
@@ -167,6 +171,82 @@ export default function AutoGenerateScheduleDialog({
 
         return false;
     }, [formData, maxWeeks]);
+
+    const parseCsvLine = (line: string) => {
+        const values: string[] = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const next = line[i + 1];
+
+            if (char === '"' && inQuotes && next === '"') {
+                current += '"';
+                i++;
+            } else if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+                values.push(current.trim());
+                current = "";
+            } else {
+                current += char;
+            }
+        }
+
+        values.push(current.trim());
+        return values;
+    };
+
+    const handleProctorFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            toast.error(locale === "vi" ? "Vui lòng tải lên file CSV giám thị." : "Please upload a proctor CSV file.");
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+            if (lines.length < 2) {
+                setError(locale === "vi" ? "File CSV giám thị cần có header và ít nhất 1 email." : "Proctor CSV needs a header and at least 1 email.");
+                return;
+            }
+
+            const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+            const emailIndex = headers.findIndex(h => ["email", "proctoremail", "proctor_email", "giám thị", "giamthi", "giam_thi"].includes(h.replace(/\s+/g, "")));
+            if (emailIndex < 0) {
+                setError(locale === "vi" ? "File giám thị phải có cột email." : "Proctor file must contain an email column.");
+                return;
+            }
+
+            const emailSet = new Set<string>();
+            for (const line of lines.slice(1)) {
+                const values = parseCsvLine(line);
+                const email = String(values[emailIndex] || "").trim().toLowerCase();
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    emailSet.add(email);
+                }
+            }
+
+            const proctorEmails = Array.from(emailSet);
+            if (proctorEmails.length === 0) {
+                setError(locale === "vi" ? "Không tìm thấy email giám thị hợp lệ trong file." : "No valid proctor emails found in file.");
+                return;
+            }
+
+            setError("");
+            setFormData(prev => ({
+                ...prev,
+                proctorFileName: file.name,
+                proctorEmails,
+            }));
+        } catch (err: any) {
+            setError(err?.message || (locale === "vi" ? "Không đọc được file giám thị." : "Cannot read proctor file."));
+        }
+    };
 
     const handleFileChange = (campus: string, type: "registration" | "classSchedule") => (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -229,6 +309,10 @@ export default function AutoGenerateScheduleDialog({
             setError(t("errors.selectRoom"));
             return;
         }
+        if (formData.proctorEmails.length === 0) {
+            setError(locale === "vi" ? "Vui lòng tải lên danh sách email giám thị." : "Please upload the proctor email list.");
+            return;
+        }
 
         const weekNum = parseInt(formData.targetWeek);
         if (isNaN(weekNum) || weekNum < 1 || weekNum > maxWeeks) {
@@ -259,6 +343,7 @@ export default function AutoGenerateScheduleDialog({
                 campusFiles: campusFilesArray,
                 classScheduleFiles: classScheduleFilesArray,
                 examDays: parseInt(formData.examDays),
+                proctorEmails: formData.proctorEmails,
             };
 
             // Map selectedType to specific week field
@@ -292,6 +377,8 @@ export default function AutoGenerateScheduleDialog({
             targetWeek: "",
             examDays: "6",
             selectedRooms: [],
+            proctorFileName: "",
+            proctorEmails: [],
             campusFiles: {},
             classScheduleFiles: {},
         });
@@ -395,6 +482,59 @@ export default function AutoGenerateScheduleDialog({
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                    <Users className="h-4 w-4 text-slate-400" />
+                                    {locale === "vi" ? "Danh sách giám thị" : "Proctor list"}
+                                    <span className="text-xs text-slate-400 font-normal">
+                                        {locale === "vi" ? "(CSV có cột email)" : "(CSV with email column)"}
+                                    </span>
+                                </label>
+                                <div
+                                    onClick={() => document.getElementById("auto-proctor-file")?.click()}
+                                    className={`border-2 border-dashed rounded-xl p-4 cursor-pointer transition-all ${formData.proctorEmails.length > 0
+                                        ? "border-emerald-500 bg-emerald-50"
+                                        : "border-slate-200 hover:border-orange-400 hover:bg-slate-50"
+                                        }`}
+                                >
+                                    <input
+                                        type="file"
+                                        id="auto-proctor-file"
+                                        className="hidden"
+                                        accept=".csv"
+                                        onChange={handleProctorFileChange}
+                                    />
+                                    {formData.proctorEmails.length > 0 ? (
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-emerald-900 truncate">{formData.proctorFileName}</p>
+                                                <p className="text-xs text-emerald-700">
+                                                    {locale === "vi"
+                                                        ? `${formData.proctorEmails.length} email giám thị hợp lệ`
+                                                        : `${formData.proctorEmails.length} valid proctor emails`}
+                                                </p>
+                                            </div>
+                                            <FileText className="h-6 w-6 text-emerald-500 shrink-0" />
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-1 text-slate-400">
+                                            <Upload className="h-6 w-6" />
+                                            <p className="text-xs font-semibold text-slate-600">
+                                                {locale === "vi" ? "Tải lên CSV email giám thị" : "Upload proctor email CSV"}
+                                            </p>
+                                            <p className="text-[10px]">
+                                                {locale === "vi" ? "Cột bắt buộc: email" : "Required column: email"}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-slate-500">
+                                    {locale === "vi"
+                                        ? "Hệ thống sẽ tự phân ngẫu nhiên giám thị, ưu tiên các ca trong cùng ngày nằm liền nhau để giảm thời gian chờ."
+                                        : "The system randomly assigns proctors while preferring contiguous same-day slots to reduce waiting time."}
+                                </p>
                             </div>
 
                             {/* Per-Campus File Upload */}

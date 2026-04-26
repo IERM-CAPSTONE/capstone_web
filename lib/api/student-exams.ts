@@ -20,6 +20,7 @@ export interface StudentExam {
     stt?: number | null;
     parts?: any[];
     email?: string | null;
+    hasFaceRegistered?: boolean;
 }
 
 export interface PaginatedStudentExamResponse {

@@ -91,6 +91,7 @@ export interface UpdateExamScheduleData {
 export interface AutoGenerateScheduleData {
   semesterId: string;
   campus: string[];
+  selectedType?: "FE" | "RE" | "PE" | "COURSERA_FE" | "COURSERA_RE";
   finalWeek?: number;
   retakeWeek?: number;
   practicalWeek?: number;
@@ -98,6 +99,10 @@ export interface AutoGenerateScheduleData {
   courseraRetakeWeek?: number;
   roomIds: string[];
   fileData: string;
+  campusFiles?: { campus: string; fileData: string }[];
+  classScheduleFiles?: { campus: string; fileData: string }[];
+  examDays?: number;
+  proctorEmails?: string[];
 }
 
 export const examSchedulesApi = {
@@ -233,6 +238,7 @@ export interface ScheduleItem {
   endTime: string;
   room: string;
   examSession: string;
+  campus?: string | null;
 }
 
 export interface StudentItem {
@@ -245,6 +251,7 @@ export interface StudentItem {
   subjectCode: string;
   examSession: string;
   examPart: string;
+  campus?: string | null;
 }
 
 export interface ImportScheduleData {

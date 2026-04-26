@@ -9,7 +9,7 @@ import {
     CheckCircle2,
     X,
     Search, Zap, ChevronDown, ChevronRight, LayoutList, MessageSquare,
-    ShieldAlert, Minus,
+    ShieldAlert, Minus, CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { ticketsApi, TicketActivityHistory, TicketFull } from "@/lib/api/tickets";
@@ -39,6 +39,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 const KNOWN_KEYS = ["eosClientError","spinningScreen","needReassign","lostServerConn","networkError","cannotLogin","wrongExamCode","notInExamList"];
 const ROUTE_ROLE_OPTIONS = [
+    { role: "PROCTOR" as const, labelVi: "Chuyển giám thị phòng thi", labelEn: "Route to room proctor" },
     { role: "HALL_INVIGILATOR" as const, labelVi: "Chuyển giám thị hành lang", labelEn: "Route to hall invigilator" },
     { role: "EXAM_OFFICER" as const, labelVi: "Chuyển khảo thí", labelEn: "Route to exam officer" },
     { role: "IT_SUPPORT" as const, labelVi: "Chuyển IT Support", labelEn: "Route to IT Support" },
@@ -97,19 +98,19 @@ export default function ExamOfficerTicketsPage() {
     const [collapsedIssue, setCollapsedIssue] = useState<Set<string>>(new Set());
     const [newCount, setNewCount] = useState(0);
     const [search, setSearch] = useState("");
+    const [selectedDate, setSelectedDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
     const [reviewDecision, setReviewDecision] = useState<"APPROVED" | "REJECTED">("APPROVED");
     const [reviewIssueCode, setReviewIssueCode] = useState(reviewIssuePresets[0]?.code ?? "cannotLogin");
     const [reviewResolutionCode, setReviewResolutionCode] = useState("RESET_PASSWORD_GUIDE");
     const [reviewStandardText, setReviewStandardText] = useState("");
     const [reviewNote, setReviewNote] = useState("");
-    const [commentMode, setCommentMode] = useState<"discussion" | "conclusion" | "resolved">("discussion");
+    const [commentMode, setCommentMode] = useState<"discussion" | "conclusion">("discussion");
     const [commentIssueCode, setCommentIssueCode] = useState(reviewIssuePresets[0]?.code ?? "cannotLogin");
     const [commentCustomIssueType, setCommentCustomIssueType] = useState<"Technical Issue" | "Academic Violation" | "Room Management" | "Face Mismatch">("Technical Issue");
     const [commentIssueCustomText, setCommentIssueCustomText] = useState("");
     const [commentResolutionCode, setCommentResolutionCode] = useState("RESET_PASSWORD_GUIDE");
     const [commentResolutionCustomText, setCommentResolutionCustomText] = useState("");
     const [commentStandardText, setCommentStandardText] = useState("");
-    const [commentTechNote, setCommentTechNote] = useState("");
     const [commentUseForAi, setCommentUseForAi] = useState(false);
     const [lifecycleAction, setLifecycleAction] = useState<"OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED">("IN_PROGRESS");
     const [assignees, setAssignees] = useState<User[]>([]);
@@ -128,7 +129,6 @@ export default function ExamOfficerTicketsPage() {
         setCommentCustomIssueType("Technical Issue");
         setCommentIssueCustomText("");
         setCommentResolutionCustomText("");
-        setCommentTechNote("");
         setCommentUseForAi(false);
         setLifecycleAction("IN_PROGRESS");
         setActiveTicketId(null);
@@ -140,7 +140,7 @@ export default function ExamOfficerTicketsPage() {
             setReviewDecision("APPROVED");
             setReviewNote("");
         }
-    }, [filterStatus]);
+    }, [filterStatus, selectedDate]);
 
     useEffect(() => {
         let cancelled = false;
@@ -227,8 +227,12 @@ export default function ExamOfficerTicketsPage() {
 
     // â”€â”€ Filtered list â”€â”€
     const showAssigneeCol = true;
+    const ticketsForSelectedDate = useMemo(
+        () => tickets.filter((tk) => format(new Date(tk.createdAt), "yyyy-MM-dd") === selectedDate),
+        [tickets, selectedDate],
+    );
     const displayed = useMemo(() => {
-        let list = tickets;
+        let list = ticketsForSelectedDate;
         if (filterStatus === "attention") {
             list = list.filter(
                 tk =>
@@ -250,7 +254,7 @@ export default function ExamOfficerTicketsPage() {
             );
         }
         return list;
-    }, [tickets, filterStatus, search]);
+    }, [ticketsForSelectedDate, filterStatus, search]);
 
     useEffect(() => {
         const idsToFetch = displayed
@@ -282,22 +286,22 @@ export default function ExamOfficerTicketsPage() {
     }, [displayed, ticketDetailCache]);
 
     const stats = useMemo(() => ({
-        urgent:     tickets.filter(tk => normalizePriority(tk.priority) === "Urgent" && tk.status !== "SOLVED").length,
-        normal:     tickets.filter(tk => normalizePriority(tk.priority) === "Normal" && tk.status !== "SOLVED").length,
-        inProgress: tickets.filter(tk => tk.status === "IN_PROGRESS").length,
-        waiting:    tickets.filter(tk => tk.status === "OPEN").length,
-        solved:     tickets.filter(tk => tk.status === "SOLVED").length,
-        reviewPending: tickets.filter(tk => tk.needsAiReview === true).length,
+        urgent:     ticketsForSelectedDate.filter(tk => normalizePriority(tk.priority) === "Urgent" && tk.status !== "SOLVED").length,
+        normal:     ticketsForSelectedDate.filter(tk => normalizePriority(tk.priority) === "Normal" && tk.status !== "SOLVED").length,
+        inProgress: ticketsForSelectedDate.filter(tk => tk.status === "IN_PROGRESS").length,
+        waiting:    ticketsForSelectedDate.filter(tk => tk.status === "OPEN").length,
+        solved:     ticketsForSelectedDate.filter(tk => tk.status === "SOLVED").length,
+        reviewPending: ticketsForSelectedDate.filter(tk => tk.needsAiReview === true).length,
         // Tab counts
-        attentionCount: tickets.filter(
+        attentionCount: ticketsForSelectedDate.filter(
             tk =>
                 tk.status !== "SOLVED" &&
                 (tk.assignee == null || tk.assignee?.role === "EXAM_OFFICER"),
         ).length,
-        assignedCount: tickets.filter(tk => tk.assignee != null && tk.status !== "SOLVED").length,
-        allCount:      tickets.filter(tk => tk.status !== "SOLVED").length,
-        solvedCount:   tickets.filter(tk => tk.status === "SOLVED").length,
-    }), [tickets]);
+        assignedCount: ticketsForSelectedDate.filter(tk => tk.assignee != null && tk.status !== "SOLVED").length,
+        allCount:      ticketsForSelectedDate.filter(tk => tk.status !== "SOLVED").length,
+        solvedCount:   ticketsForSelectedDate.filter(tk => tk.status === "SOLVED").length,
+    }), [ticketsForSelectedDate]);
 
     const grouped = useMemo(() => {
         const byPriority = new Map<string, Map<string, TicketFull[]>>();
@@ -419,18 +423,15 @@ export default function ExamOfficerTicketsPage() {
         }
         const hasValidIssue =
             commentIssueCode === "OTHER"
-                ? !!commentIssueCustomText.trim() && !!commentCustomIssueType
+                ? !!commentCustomIssueType
                 : !!commentIssuePreset;
-        const hasValidResolution =
-            !!commentResolutionCode &&
-            !!commentStandardText.trim() &&
-            (commentResolutionCode !== "CUSTOM" || !!commentResolutionCustomText.trim());
+        const hasValidResolution = !!commentResolutionCode;
 
         if (commentMode !== "discussion" && (!hasValidIssue || !hasValidResolution)) {
             return toast.warning(
                 isVietnamese
-                    ? "Vui lòng nhập đủ lỗi, cách xử lý và phản hồi."
-                    : "Please complete the issue, resolution, and response fields.",
+                    ? "Vui lòng chọn lỗi và cách xử lý."
+                    : "Please choose the issue and resolution.",
             );
         }
         setProcessing(true);
@@ -442,16 +443,16 @@ export default function ExamOfficerTicketsPage() {
                 await Promise.all(
                     ids.map((id) =>
                         ticketsApi.comment(id, {
-                            mode: commentMode === "conclusion" ? "CONCLUSION" : "RESOLUTION",
+                            mode: "CONCLUSION",
                             body: commentPayloadText,
-                            useForAiTraining: commentMode === "conclusion" ? (commentUseForAi || shouldForceAiReviewCandidate) : undefined,
+                            useForAiTraining: commentUseForAi || shouldForceAiReviewCandidate,
                             issueCode: commentIssueCode,
                             issueType: selectedCommentIssueType,
-                            issueCustomText: commentIssueCode === "OTHER" ? commentIssueCustomText.trim() : null,
+                            issueCustomText: commentIssueCode === "OTHER" && commentIssueCustomText.trim() ? commentIssueCustomText.trim() : null,
                             resolutionCode: commentResolutionCode,
-                            resolutionCustomText: commentResolutionCode === "CUSTOM" ? commentResolutionCustomText.trim() : null,
-                            responseText: commentStandardText.trim(),
-                            techNote: commentTechNote.trim() || null,
+                            resolutionCustomText: commentResolutionCode === "CUSTOM" && commentResolutionCustomText.trim() ? commentResolutionCustomText.trim() : null,
+                            responseText: commentResponseText,
+                            techNote: null,
                         }),
                     ),
                 );
@@ -459,15 +460,12 @@ export default function ExamOfficerTicketsPage() {
             toast.success(
                 commentMode === "discussion"
                     ? (isVietnamese ? "Đã thêm bình luận." : "Comment added.")
-                    : commentMode === "conclusion"
-                        ? (isVietnamese ? "Đã cập nhật kết luận." : "Conclusion updated.")
-                        : (isVietnamese ? "Đã đánh dấu giải quyết." : "Marked as resolved."),
+                    : (isVietnamese ? "Đã cập nhật kết quả xử lý." : "Handling result updated."),
             );
             setNote("");
             setCommentCustomIssueType("Technical Issue");
             setCommentIssueCustomText("");
             setCommentResolutionCustomText("");
-            setCommentTechNote("");
             setCommentUseForAi(false);
             setCommentMode("discussion");
             await refreshTicketContext(ids);
@@ -513,7 +511,7 @@ export default function ExamOfficerTicketsPage() {
         }
     }
 
-    async function handleAssignTicket(target: { type: "role"; role: "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT" } | { type: "user"; user: User }) {
+    async function handleAssignTicket(target: { type: "role"; role: "PROCTOR" | "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT" } | { type: "user"; user: User }) {
         const targetTicketIds = actionTicketIds;
         if (!targetTicketIds.length) {
             return toast.warning(isVietnamese ? "Chọn một ticket trước." : "Select a ticket first.");
@@ -592,7 +590,7 @@ export default function ExamOfficerTicketsPage() {
             {
                 code: "OTHER",
                 issueType: commentCustomIssueType,
-                viLabel: isVietnamese ? "Lỗi khác" : "Other issue",
+                viLabel: isVietnamese ? "Lỗi khác (không bắt buộc)" : "Other issue (optional)",
             },
         ],
         [commentCustomIssueType, isVietnamese],
@@ -603,7 +601,7 @@ export default function ExamOfficerTicketsPage() {
             {
                 code: "CUSTOM",
                 issueCodes: [commentIssueCode],
-                viLabel: isVietnamese ? "Cách xử lý custom" : "Custom resolution",
+                viLabel: isVietnamese ? "Cách xử lý custom (không bắt buộc)" : "Custom resolution (optional)",
                 viText: "",
             },
         ],
@@ -612,6 +610,14 @@ export default function ExamOfficerTicketsPage() {
     const commentIssuePreset = getIssuePreset(commentIssueCode);
     const isStructuredComment = commentMode !== "discussion";
     const selectedCommentIssueType = commentIssueCode === "OTHER" ? commentCustomIssueType : commentIssuePreset?.issueType;
+    const selectedCommentResolutionLabel =
+        commentResolutionOptions.find((item) => item.code === commentResolutionCode)?.viLabel ??
+        commentResolutionCode;
+    const commentResponseText =
+        commentStandardText.trim() ||
+        (commentResolutionCode === "CUSTOM" && commentResolutionCustomText.trim()
+            ? commentResolutionCustomText.trim()
+            : selectedCommentResolutionLabel);
     const shouldForceAiReviewCandidate = commentIssueCode === "OTHER" || commentResolutionCode === "CUSTOM";
 
     const formatIssueType = useCallback((issueType?: string | null) => {
@@ -743,9 +749,6 @@ export default function ExamOfficerTicketsPage() {
 
     const commentPayloadText = useMemo(() => {
         if (commentMode === "discussion") return note.trim();
-        const resolutionLabel =
-            commentResolutionOptions.find((item) => item.code === commentResolutionCode)?.viLabel ??
-            commentResolutionCode;
         const issueLabel =
             commentIssueCode === "OTHER"
                 ? commentIssueCustomText.trim() || (isVietnamese ? "Lỗi khác" : "Other issue")
@@ -753,13 +756,11 @@ export default function ExamOfficerTicketsPage() {
         const normalizedResolutionLabel =
             commentResolutionCode === "CUSTOM"
                 ? commentResolutionCustomText.trim() || (isVietnamese ? "Cách xử lý custom" : "Custom resolution")
-                : resolutionLabel;
+                : selectedCommentResolutionLabel;
         const lines = [
             `${isVietnamese ? "Lỗi" : "Issue"}: ${issueLabel}`,
             `${isVietnamese ? "Loại vấn đề" : "Issue type"}: ${formatIssueType(selectedCommentIssueType)}`,
             `${isVietnamese ? "Cách xử lý" : "Resolution"}: ${normalizedResolutionLabel}`,
-            `${isVietnamese ? "Phản hồi" : "Response"}: ${commentStandardText.trim() || "—"}`,
-            `${isVietnamese ? "Ghi chú kỹ thuật" : "Technical note"}: ${commentTechNote.trim() || "—"}`,
         ];
         if (note.trim()) {
             lines.unshift(`${isVietnamese ? "Bình luận" : "Comment"}: ${note.trim()}`);
@@ -771,13 +772,11 @@ export default function ExamOfficerTicketsPage() {
         commentMode,
         commentResolutionCode,
         commentResolutionCustomText,
-        commentResolutionOptions,
-        commentStandardText,
-        commentTechNote,
         formatIssueType,
         isVietnamese,
         note,
         resolve,
+        selectedCommentResolutionLabel,
         selectedCommentIssueType,
     ]);
 
@@ -955,23 +954,33 @@ export default function ExamOfficerTicketsPage() {
                                             {isVietnamese ? "Xử lý ticket" : "Process tickets"}
                                         </p>
                                         <div className="mt-3 space-y-3">
-                                            <div className="flex rounded-xl overflow-hidden border border-slate-200 text-[11px] font-bold shadow-sm">
-                                                <button onClick={() => setCommentMode("discussion")} className={cn("flex-1 py-3 transition-colors", commentMode === "discussion" ? "bg-slate-800 text-white" : "bg-white text-slate-600 hover:bg-slate-50")}>
-                                                    {isVietnamese ? "Trao đổi" : "Discussion"}
-                                                </button>
-                                                <button onClick={() => setCommentMode("conclusion")} className={cn("flex-1 py-3 border-l border-slate-200 transition-colors", commentMode === "conclusion" ? "bg-blue-500 text-white" : "bg-white text-slate-600 hover:bg-slate-50")}>
-                                                    {isVietnamese ? "Kết luận" : "Conclusion"}
-                                                </button>
-                                                <button onClick={() => setCommentMode("resolved")} className={cn("flex-1 py-3 border-l border-slate-200 transition-colors", commentMode === "resolved" ? "bg-emerald-500 text-white" : "bg-white text-slate-600 hover:bg-slate-50")}>
-                                                    {isVietnamese ? "Giải quyết" : "Resolve"}
-                                                </button>
+                                            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-sm font-black text-slate-900">
+                                                            {isVietnamese ? "Trao đổi" : "Discussion"}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-slate-500">
+                                                            {isVietnamese
+                                                                ? "Có thể thêm kết quả xử lý nếu cần cập nhật lỗi và cách xử lý."
+                                                                : "Add handling result when you need to update the issue and resolution."}
+                                                        </p>
+                                                    </div>
+                                                    <label className="flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={commentMode === "conclusion"}
+                                                            onChange={(event) => setCommentMode(event.target.checked ? "conclusion" : "discussion")}
+                                                            className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-400"
+                                                        />
+                                                        {isVietnamese ? "Thêm kết quả xử lý" : "Add handling result"}
+                                                    </label>
+                                                </div>
                                             </div>
 
                                             <textarea rows={3} value={note} onChange={e => setNote(e.target.value)}
                                                 placeholder={
-                                                    commentMode === "discussion"
-                                                        ? (isVietnamese ? "Nhập bình luận để trao đổi hoặc cập nhật..." : "Enter a comment to discuss or update...")
-                                                        : (isVietnamese ? "Nhập mô tả ngắn cho lần cập nhật này..." : "Enter a short note for this update...")
+                                                    isVietnamese ? "Nhập bình luận để trao đổi hoặc cập nhật..." : "Enter a comment to discuss or update..."
                                                 }
                                                 className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none placeholder:text-slate-300 bg-white" />
 
@@ -996,7 +1005,7 @@ export default function ExamOfficerTicketsPage() {
                                                                 rows={2}
                                                                 value={commentIssueCustomText}
                                                                 onChange={e => setCommentIssueCustomText(e.target.value)}
-                                                                placeholder={isVietnamese ? "Nhập mô tả lỗi custom" : "Enter the custom issue text"}
+                                                                placeholder={isVietnamese ? "Mô tả lỗi custom (không bắt buộc)" : "Custom issue text (optional)"}
                                                                 className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none placeholder:text-slate-300 bg-white"
                                                             />
                                                         </>
@@ -1014,28 +1023,24 @@ export default function ExamOfficerTicketsPage() {
                                                             rows={2}
                                                             value={commentResolutionCustomText}
                                                             onChange={e => setCommentResolutionCustomText(e.target.value)}
-                                                            placeholder={isVietnamese ? "Nhập cách xử lý custom" : "Enter the custom resolution text"}
+                                                            placeholder={isVietnamese ? "Cách xử lý custom (không bắt buộc)" : "Custom resolution text (optional)"}
                                                             className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none placeholder:text-slate-300 bg-white"
                                                         />
                                                     )}
-                                                    <textarea rows={3} value={commentStandardText} onChange={e => setCommentStandardText(e.target.value)} placeholder={isVietnamese ? "Phản hồi gửi người dùng hoặc cập nhật xử lý" : "Response sent to the user or handling update"} className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none placeholder:text-slate-300 bg-white" />
-                                                    <textarea rows={3} value={commentTechNote} onChange={e => setCommentTechNote(e.target.value)} placeholder={isVietnamese ? "Ghi chú kỹ thuật nội bộ" : "Internal technical note"} className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none placeholder:text-slate-300 bg-white" />
-                                                    {commentMode === "conclusion" && (
-                                                        <label className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={commentUseForAi || shouldForceAiReviewCandidate}
-                                                                onChange={(e) => setCommentUseForAi(e.target.checked)}
-                                                                disabled={shouldForceAiReviewCandidate}
-                                                                className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-400"
-                                                            />
-                                                            <span>
-                                                                {shouldForceAiReviewCandidate
-                                                                    ? (isVietnamese ? "Custom taxonomy sẽ được đưa vào Cần review để quyết định train AI." : "Custom taxonomy will be sent to Needs review before AI training.")
-                                                                    : (isVietnamese ? "Dùng cập nhật này cho AI training" : "Use this update for AI training")}
-                                                            </span>
-                                                        </label>
-                                                    )}
+                                                    <label className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={commentUseForAi || shouldForceAiReviewCandidate}
+                                                            onChange={(e) => setCommentUseForAi(e.target.checked)}
+                                                            disabled={shouldForceAiReviewCandidate}
+                                                            className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-400"
+                                                        />
+                                                        <span>
+                                                            {shouldForceAiReviewCandidate
+                                                                ? (isVietnamese ? "Custom taxonomy sẽ được đưa vào Cần review để quyết định train AI." : "Custom taxonomy will be sent to Needs review before AI training.")
+                                                                : (isVietnamese ? "Dùng cập nhật này cho AI training" : "Use this update for AI training")}
+                                                        </span>
+                                                    </label>
                                                 </>
                                             )}
 
@@ -1047,26 +1052,20 @@ export default function ExamOfficerTicketsPage() {
                                                     (commentMode === "discussion" && !note.trim()) ||
                                                     (commentMode !== "discussion" && (
                                                         (!commentIssuePreset && commentIssueCode !== "OTHER") ||
-                                                        !commentResolutionCode ||
-                                                        !commentStandardText.trim() ||
-                                                        (commentIssueCode === "OTHER" && !commentIssueCustomText.trim()) ||
-                                                        (commentResolutionCode === "CUSTOM" && !commentResolutionCustomText.trim())
+                                                        !commentResolutionCode
                                                     ))
                                                 }
                                                 className={cn(
                                                     "w-full h-14 rounded-2xl text-base font-black flex items-center justify-center gap-2 transition-all shadow-sm",
                                                     (actionTicketIds.length > 0 && ((commentMode === "discussion" && !!note.trim()) || (commentMode !== "discussion" &&
                                                         (!!commentIssuePreset || commentIssueCode === "OTHER") &&
-                                                        !!commentResolutionCode &&
-                                                        !!commentStandardText.trim() &&
-                                                        (commentIssueCode !== "OTHER" || !!commentIssueCustomText.trim()) &&
-                                                        (commentResolutionCode !== "CUSTOM" || !!commentResolutionCustomText.trim())
+                                                        !!commentResolutionCode
                                                     )))
                                                         ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-orange-200 hover:from-orange-600 hover:to-orange-700"
                                                         : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                                                 )}>
                                                 {processing ? <><Loader2 className="w-5 h-5 animate-spin" /> {t("processing")}</> :
-                                                    <><LayoutList className="w-5 h-5" /> {isVietnamese ? "Gửi bình luận" : "Send comment"}</>}
+                                                    <><LayoutList className="w-5 h-5" /> {commentMode === "discussion" ? (isVietnamese ? "Gửi bình luận" : "Send comment") : (isVietnamese ? "Cập nhật kết quả xử lý" : "Update handling result")}</>}
                                             </button>
                                         </div>
                                     </section>
@@ -1294,7 +1293,20 @@ export default function ExamOfficerTicketsPage() {
                         ))}
                     </div>
 
-                    <div className="ml-auto relative">
+                    <div className="ml-auto flex items-center gap-2">
+                        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                            <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value || format(new Date(), "yyyy-MM-dd"))}
+                                className="bg-transparent text-xs font-semibold text-slate-700 outline-none"
+                                aria-label={isVietnamese ? "Lọc ticket theo ngày" : "Filter tickets by date"}
+                            />
+                        </label>
+                    </div>
+
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <input type="text" placeholder={t("searchPlaceholder")} value={search} onChange={e => setSearch(e.target.value)}
                             className="pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-300 focus:border-transparent w-64 outline-none placeholder:text-slate-300 transition-all" />
@@ -1356,7 +1368,7 @@ export default function ExamOfficerTicketsPage() {
                                         )}
                                     </>
                                 )}
-                                <span className="ml-auto text-[11px] font-medium">{displayed.length} tickets {search && `(${tickets.length})`}</span>
+                                <span className="ml-auto text-[11px] font-medium">{displayed.length} tickets {search && `(${ticketsForSelectedDate.length})`}</span>
                             </div>
 
                             {/* â”€â”€ PRIORITY GROUPS â”€â”€ */}
@@ -1672,6 +1684,12 @@ export default function ExamOfficerTicketsPage() {
                                         <div className="rounded-xl border border-slate-100 p-3 col-span-2">
                                             <p className="text-slate-400 mb-1">{isVietnamese ? "Giám thị tạo ticket" : "Reporter"}</p>
                                             <p className="font-semibold text-slate-700">{activeTicket.reporter?.fullName ?? "—"}</p>
+                                        </div>
+                                        <div className="rounded-xl border border-slate-100 p-3 col-span-2">
+                                            <p className="text-slate-400 mb-1">{isVietnamese ? "Phòng thi" : "Exam room"}</p>
+                                            <p className="font-semibold text-slate-700">
+                                                {(activeTicket.session?.examRoom?.roomNumber ?? (activeTicket.session as any)?.roomNumber) ?? "—"}
+                                            </p>
                                         </div>
                                         <div className="rounded-xl border border-slate-100 p-3 col-span-2">
                                             <p className="text-slate-400 mb-1">{isVietnamese ? "Người xử lý" : "Assignee"}</p>

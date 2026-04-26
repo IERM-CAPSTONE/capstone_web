@@ -92,6 +92,7 @@ const findValue = (row: any, keys: string[]) => {
 };
 
 export const processImportData = (headers: string[], data: any[]) => {
+    const defaultCampus = "DN";
     // Check format types based on headers (case-insensitive)
     const isScheduleInfo = hasHeader(headers, ["Ca thi", "Mã SV", "Ma SV", "Student Code"]);
     const isProctorInfo = hasHeader(headers, ["ProctorEmail"]);
@@ -134,6 +135,7 @@ export const processImportData = (headers: string[], data: any[]) => {
                             endTime: endTime,
                             room: room.trim(),
                             examSession: caThi,
+                            campus: defaultCampus,
                         });
                     }
                 }
@@ -163,6 +165,7 @@ export const processImportData = (headers: string[], data: any[]) => {
                 examSession: findValue(row, ["Ca thi", "Exam Session"]),
                 subjectCode: findValue(row, ["Môn thi", "Subject Code", "Mon thi"]),
                 examPart: extractExamPart(findValue(row, ["Nộp bài phần thi", "Phần thi", "Phan thi", "ExamPart", "Exam Part"])),
+                campus: defaultCampus,
             };
         });
 

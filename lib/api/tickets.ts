@@ -173,7 +173,7 @@ export interface CommentTicketData {
 }
 
 export interface RouteTicketData {
-    targetRole: "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT";
+    targetRole: "PROCTOR" | "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT";
     reason?: string | null;
 }
 
@@ -195,7 +195,7 @@ export interface BulkTicketActionData {
     responseText?: string | null;
     techNote?: string | null;
     useForAiTraining?: boolean;
-    targetRole?: "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT";
+    targetRole?: "PROCTOR" | "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT";
     lifecycleAction?: "START" | "REOPEN" | "ACKNOWLEDGE" | "CLOSE";
     note?: string | null;
 }
