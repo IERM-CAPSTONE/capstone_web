@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
   Users,
-  UserCheck,
   Ticket,
   Clock,
   ChevronDown,
@@ -102,6 +101,11 @@ function isExamOngoing(subject: SubjectMonitorSummary) {
   const openTime = parseLocalDate(subject.examOpenTime);
   const closeTime = parseLocalDate(subject.examCloseTime);
   if (!openTime || !closeTime) return false;
+
+  // Added check for subject status and close time
+  const isCompleted = subject.status === "Completed" || now >= closeTime;
+  if (isCompleted) return false;
+
   return now >= openTime && now < closeTime;
 }
 
@@ -192,17 +196,6 @@ export default function MonitorDashboardPage() {
   }, [on, fetchData]);
 
   useEffect(() => {
-    const handleProctorCheckIn = () => {
-      fetchData();
-    };
-
-    const cleanup = on?.("monitor:proctor-checkin", handleProctorCheckIn);
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [on, fetchData]);
-
-  useEffect(() => {
     const handleStudentCheckIn = () => {
       fetchData();
     };
@@ -212,19 +205,6 @@ export default function MonitorDashboardPage() {
       if (cleanup) cleanup();
     };
   }, [on, fetchData]);
-
-
-  const globalStats = useMemo(() => {
-    return data.reduce((acc, sub) => ({
-      proctors: acc.proctors + sub.presentProctors,
-      totalProctors: acc.totalProctors + sub.totalProctors,
-      hall: acc.hall + sub.presentHallInvigilators,
-      totalHall: acc.totalHall + sub.totalHallInvigilators,
-      students: acc.students + sub.checkedInStudents,
-      totalStudents: acc.totalStudents + sub.totalStudents,
-      tickets: acc.tickets + sub.pendingTickets,
-    }), { proctors: 0, totalProctors: 0, hall: 0, totalHall: 0, students: 0, totalStudents: 0, tickets: 0 });
-  }, [data]);
 
   const filteredData = useMemo(() => {
     let result = data;
@@ -243,9 +223,7 @@ export default function MonitorDashboardPage() {
       );
     }
 
-    if (activeFilter === "missingProctor") {
-      result = result.filter(s => s.presentProctors < s.totalProctors);
-    } else if (activeFilter === "hasTickets") {
+    if (activeFilter === "hasTickets") {
       result = result.filter(s => s.pendingTickets > 0);
     } else if (activeFilter === "lowAttendance") {
       result = result.filter(s => (s.checkedInStudents / s.totalStudents) < 0.5);
@@ -253,6 +231,14 @@ export default function MonitorDashboardPage() {
 
     return result;
   }, [data, searchTerm, activeFilter, sessionPhase]);
+
+  const globalStats = useMemo(() => {
+    return filteredData.reduce((acc, sub) => ({
+      students: acc.students + sub.checkedInStudents,
+      totalStudents: acc.totalStudents + sub.totalStudents,
+      tickets: acc.tickets + sub.pendingTickets,
+    }), { students: 0, totalStudents: 0, tickets: 0 });
+  }, [filteredData]);
 
   const activeSessionIndex = useMemo(() => {
     const entries = data
@@ -425,14 +411,13 @@ export default function MonitorDashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-6">
-             <MinimalStat icon={<UserCheck className="w-4 h-4 text-indigo-500" />} label={t("stats.totalProctors")} current={globalStats.proctors} total={globalStats.totalProctors} />
              <MinimalStat icon={<Activity className="w-4 h-4 text-emerald-500" />} label={t("stats.totalStudents")} current={globalStats.students} total={globalStats.totalStudents} />
-             <MinimalStat 
-                icon={<Ticket className="w-4 h-4" />} 
-                label={t("stats.pendingTickets")} 
-                current={globalStats.tickets} 
-                total={0} 
-                isAlert={globalStats.tickets > 0} 
+             <MinimalStat
+                icon={<Ticket className="w-4 h-4" />}
+                label={t("stats.pendingTickets")}
+                current={globalStats.tickets}
+                total={0}
+                isAlert={globalStats.tickets > 0}
                 onClick={() => setActiveFilter(activeFilter === "hasTickets" ? null : "hasTickets")}
              />
           </div>
@@ -583,42 +568,42 @@ export default function MonitorDashboardPage() {
 
       {/* Modern Room Details Popup */}
       <Dialog open={!!selectedSubject} onOpenChange={(open) => !open && setSelectedSubject(null)}>
-        <DialogContent className="max-w-6xl w-[95vw] max-h-[85vh] p-0 overflow-hidden border-none rounded-[40px] shadow-2xl bg-slate-50/95 backdrop-blur-2xl">
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] p-0 overflow-hidden border-none rounded-[32px] shadow-2xl bg-slate-50">
           {selectedSubject && (
-            <div className="flex max-h-[85vh] flex-col">
+            <div className="flex max-h-[90vh] flex-col">
                {/* Custom Modal Header */}
-               <div className="p-8 bg-white/80 border-b border-slate-100 flex items-center justify-between shrink-0">
+               <div className="p-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
                   <div className="flex flex-col">
                      <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-2xl bg-orange-100 text-orange-600">
-                           <LayoutDashboard className="w-6 h-6" />
+                        <div className="p-2.5 rounded-xl bg-orange-100 text-orange-600">
+                           <LayoutDashboard className="w-5 h-5" />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">
                            {selectedSubject.subjectCode}
                         </h2>
                         <StatusBadge subject={selectedSubject} t={t} />
                      </div>
-                     <p className="text-sm font-bold text-slate-400 mt-2 ml-14 uppercase tracking-widest">
+                     <p className="text-[10px] font-bold text-slate-400 mt-1.5 ml-12 uppercase tracking-widest">
                         {locale === "vi" ? "Chi tiết phòng & điều phối" : "Room Details & Management Control"}
                      </p>
                   </div>
-                  
-                  <div className="flex gap-4 px-6 py-3 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
-                     <CompactStat label="Proctors" current={selectedSubject.presentProctors} total={selectedSubject.totalProctors} color="text-indigo-600" />
-                     <div className="w-px h-10 bg-slate-200" />
+
+                  <div className="flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-slate-50 border border-slate-100">
                      <CompactStat label="Students" current={selectedSubject.checkedInStudents} total={selectedSubject.totalStudents} color="text-emerald-600" />
                   </div>
                </div>
 
                {/* Left insights + Right rooms */}
-               <div className="flex-1 overflow-y-auto p-8">
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-                    <SubjectSessionBoards subject={selectedSubject} />
+               <div className="flex-1 overflow-y-auto p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <div className="lg:col-span-4 h-full">
+                      <SubjectSessionBoards subject={selectedSubject} />
+                    </div>
 
-                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="lg:col-span-8 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {selectedSubject.sessions.map((room) => (
-                          <div key={room.sessionId} className="transform transition-all duration-300 hover:scale-[1.02]">
+                          <div key={room.sessionId} className="transform transition-all duration-300 hover:scale-[1.01]">
                             <RoomCard session={room} t={t} />
                           </div>
                         ))}
@@ -1337,7 +1322,6 @@ function SubjectCard({ subject, t, locale, isSelected }: { subject: SubjectMonit
 
         {/* High Impact Stats Row */}
         <div className="flex items-center justify-evenly px-1">
-           <CircularMetric label={t("table.proctorRate")} current={subject.presentProctors} total={subject.totalProctors} color="indigo" />
            <CircularMetric label={t("table.studentRate")} current={subject.checkedInStudents} total={subject.totalStudents} color="emerald" />
         </div>
 
@@ -1378,8 +1362,6 @@ function CircularMetric({ label, current, total, color }: { label: string, curre
   const offset = circumference - (percentage / 100) * circumference;
   
   const ringConfigs: Record<string, { main: string, bg: string, text: string, label: string }> = {
-    indigo: { main: "stroke-indigo-500", bg: "stroke-indigo-50", text: "text-indigo-600", label: "Proctor" },
-    blue: { main: "stroke-blue-500", bg: "stroke-blue-50", text: "text-blue-600", label: "Hall" },
     emerald: { main: "stroke-emerald-500", bg: "stroke-emerald-50", text: "text-emerald-600", label: "Stud" },
   };
 
@@ -1531,68 +1513,42 @@ function SubjectSessionBoards({ subject }: { subject: SubjectMonitorSummary }) {
   }, [loadBoardData]);
 
   return (
-    <div className="grid grid-rows-2 gap-6 h-full min-h-0">
-      <Card className="rounded-3xl border-slate-200/80 h-full min-h-0">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">{locale === "vi" ? "Bảng tin" : "Message Board"}</CardTitle>
+    <div className="flex flex-col gap-4 h-full">
+      <Card className="rounded-2xl border-slate-200/80 flex-1 min-h-[250px] flex flex-col overflow-hidden">
+        <CardHeader className="py-3 px-4 bg-slate-50/50 border-b">
+          <CardTitle className="text-[10px] font-black tracking-widest uppercase text-slate-500">{locale === "vi" ? "Bảng tin" : "Message Board"}</CardTitle>
         </CardHeader>
-        <CardContent className="h-[calc(100%-64px)] min-h-0">
-          <ScrollArea className="h-full pr-3">
-            {loading ? (
-              <p className="text-sm text-slate-500">{locale === "vi" ? "Đang tải thông báo..." : "Loading messages..."}</p>
-            ) : broadcastMessages.length === 0 ? (
-              <p className="text-sm text-slate-500">{locale === "vi" ? "Chưa có thông báo nào cho môn này." : "No broadcast messages for this subject yet."}</p>
-            ) : (
-              <div className="space-y-3">
-                {broadcastMessages.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                      <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString()}</span>
+        <CardContent className="flex-1 p-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4">
+              {loading ? (
+                <p className="text-xs text-slate-400">{locale === "vi" ? "Đang tải thông báo..." : "Loading messages..."}</p>
+              ) : broadcastMessages.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">{locale === "vi" ? "Chưa có thông báo nào cho môn này." : "No broadcast messages for this subject yet."}</p>
+              ) : (
+                <div className="space-y-3">
+                  {broadcastMessages.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-800">{item.title}</p>
+                        <span className="text-[9px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{new Date(item.createdAt).toLocaleTimeString()}</span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">{item.content}</p>
+                      <div className="mt-2.5 flex flex-wrap gap-1">
+                        {(item.deliveries || []).map((delivery) => (
+                          <span
+                            key={`${item.id}-${delivery.sessionId}-${delivery.roomNumber}`}
+                            className="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600"
+                          >
+                            {locale === "vi" ? `Phòng ${delivery.roomNumber}` : `Room ${delivery.roomNumber}`}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs text-slate-600 whitespace-pre-wrap">{item.content}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {(item.deliveries || []).map((delivery) => (
-                        <span
-                          key={`${item.id}-${delivery.sessionId}-${delivery.roomNumber}`}
-                          className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600"
-                        >
-                          {locale === "vi" ? `Phòng ${delivery.roomNumber}` : `Room ${delivery.roomNumber}`}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-3xl border-slate-200/80 h-full min-h-0">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-black tracking-wide uppercase text-slate-700">{locale === "vi" ? "Nhật ký hoạt động" : "Activity Log"}</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[calc(100%-64px)] min-h-0">
-          <ScrollArea className="h-full pr-3">
-            {loading ? (
-              <p className="text-sm text-slate-500">{locale === "vi" ? "Đang tải hoạt động..." : "Loading activities..."}</p>
-            ) : activities.length === 0 ? (
-              <p className="text-sm text-slate-500">{locale === "vi" ? "Chưa có hoạt động nào cho môn này." : "No activity recorded for this subject yet."}</p>
-            ) : (
-              <div className="space-y-3">
-                {activities.map((item) => (
-                  <div key={`${item.id}-${item.roomNumber}`} className="rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                      <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-600">{item.message}</p>
-                    <p className="mt-2 text-[11px] font-semibold text-orange-600">{locale === "vi" ? `Phòng ${item.roomNumber}` : `Room ${item.roomNumber}`}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </ScrollArea>
         </CardContent>
       </Card>
@@ -1741,142 +1697,42 @@ function CountdownTimer({
 function RoomCard({ session, t }: { session: SessionRoomDetail, t: any }) {
   const router = useRouter();
   const locale = useLocale();
-  const [activityOpen, setActivityOpen] = useState(false);
 
   return (
-    <>
-      <Card
-        className="shadow-lg border-slate-200/80 hover:border-orange-500/50 hover:shadow-orange-100/30 transition-all duration-300 overflow-hidden group/room cursor-pointer"
-        onClick={() => router.push(`/${locale}/exam-officer/exam-schedules/${session.sessionId}`)}
-      >
-        <div className="p-4 border-b bg-slate-50/50 flex flex-row justify-between items-center group-hover/room:bg-orange-50/20 transition-colors">
-          <div className="flex items-center gap-2">
-             <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-             <span className="text-sm font-black text-slate-800">{t("drilldown.room")} {session.roomNumber}</span>
-          </div>
-          {session.pendingTickets > 0 && (
-            <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1.5 shadow-lg shadow-orange-100">
-              <Ticket className="w-3 h-3" />
-              {session.pendingTickets}
-            </div>
-          )}
+    <Card
+      className="shadow-lg border-slate-200/80 hover:border-orange-500/50 hover:shadow-orange-100/30 transition-all duration-300 overflow-hidden group/room cursor-pointer"
+      onClick={() => router.push(`/${locale}/exam-officer/exam-schedules/${session.sessionId}`)}
+    >
+      <div className="p-4 border-b bg-slate-50/50 flex flex-row justify-between items-center group-hover/room:bg-orange-50/20 transition-colors">
+        <div className="flex items-center gap-2">
+           <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+           <span className="text-sm font-black text-slate-800">{t("drilldown.room")} {session.roomNumber}</span>
         </div>
-        <CardContent className="p-4 flex flex-col gap-4">
-        <div className="space-y-3">
-          <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
-            <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                 {t("drilldown.proctor")} • {session.proctorOnline ? (locale === "vi" ? "Đã check-in" : "Checked in") : (locale === "vi" ? "Chưa check-in" : "Not checked in")}
-               </span>
-               <span className={cn("text-xs font-black", !session.proctorOnline && 'text-red-500')}>
-                  {session.proctorName || t("drilldown.notInRoom") || (locale === "vi" ? "Chưa phân công" : "Not Assigned")}
-               </span>
-            </div>
-            <span className={cn("w-2.5 h-2.5 rounded-full ring-4 shadow-sm", session.proctorOnline ? "bg-green-500 ring-green-50 shadow-green-100" : "bg-red-400 ring-red-50")} />
+        {session.pendingTickets > 0 && (
+          <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1.5 shadow-lg shadow-orange-100">
+            <Ticket className="w-3 h-3" />
+            {session.pendingTickets}
           </div>
-
-          <div className="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
-            <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("drilldown.hall")}</span>
-               <span className={cn("text-xs font-black", !session.hallInvigilatorOnline && 'text-red-500')}>
-                  {session.hallInvigilatorName || t("drilldown.notInRoom") || (locale === "vi" ? "Chưa phân công" : "Not Assigned")}
-               </span>
-            </div>
-            <span className={cn("w-2.5 h-2.5 rounded-full ring-4 shadow-sm", session.hallInvigilatorOnline ? "bg-green-500 ring-green-50 shadow-green-100" : "bg-red-400 ring-red-50")} />
-          </div>
+        )}
+      </div>
+      <CardContent className="p-4 flex flex-col gap-4">
+      <div className="pt-2">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("drilldown.checkin")}</span>
+          <span className="text-sm font-black text-slate-900">{session.checkedIn}/{session.totalStudents}</span>
         </div>
-
-        <div className="pt-2">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("drilldown.checkin")}</span>
-            <span className="text-sm font-black text-slate-900">{session.checkedIn}/{session.totalStudents}</span>
-          </div>
-          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className={cn("h-full transition-all duration-700", session.checkedIn < session.totalStudents ? "bg-orange-500" : "bg-emerald-500")} 
-              style={{ width: `${session.totalStudents > 0 ? (session.checkedIn / session.totalStudents) * 100 : 0}%` }}
-            />
-          </div>
+        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className={cn("h-full transition-all duration-700", session.checkedIn < session.totalStudents ? "bg-orange-500" : "bg-emerald-500")}
+            style={{ width: `${session.totalStudents > 0 ? (session.checkedIn / session.totalStudents) * 100 : 0}%` }}
+          />
         </div>
-        <Button
-          variant="outline"
-          className="h-9 w-full rounded-lg border-slate-200 text-xs font-bold text-slate-600 gap-2"
-          onClick={(event) => {
-            event.stopPropagation();
-            setActivityOpen(true);
-          }}
-        >
-          <History className="w-3.5 h-3.5" />
-          {locale === "vi" ? "Nhật ký hoạt động" : "Activity Log"}
-        </Button>
-      </CardContent>
-      </Card>
-
-      <RoomActivityDialog
-        sessionId={session.sessionId}
-        roomNumber={session.roomNumber}
-        open={activityOpen}
-        onOpenChange={setActivityOpen}
-      />
-    </>
+      </div>
+    </CardContent>
+    </Card>
   );
 }
 
-function RoomActivityDialog({
-  sessionId,
-  roomNumber,
-  open,
-  onOpenChange,
-}: {
-  sessionId: string;
-  roomNumber: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const [activities, setActivities] = useState<SessionActivityItem[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
 
-    setLoading(true);
-    monitorApi
-      .getSessionActivities(sessionId, { limit: 80 })
-      .then((result) => setActivities(result))
-      .catch((error) => {
-        console.error("Failed to load session activities", error);
-        toast.error("Failed to load activity history");
-      })
-      .finally(() => setLoading(false));
-  }, [open, sessionId]);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Room {roomNumber} Activity Timeline</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="h-[420px] pr-3">
-          {loading ? (
-            <p className="text-sm text-slate-500">Loading activity history...</p>
-          ) : activities.length === 0 ? (
-            <p className="text-sm text-slate-500">No activities recorded yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {activities.map((item) => (
-                <div key={item.id} className="rounded-xl border border-slate-200 p-3 bg-slate-50/60">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                    <span className="text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-600">{item.message}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-}
 

@@ -112,7 +112,8 @@ export default function ExamOfficerTicketsPage() {
     const [commentResolutionCustomText, setCommentResolutionCustomText] = useState("");
     const [commentStandardText, setCommentStandardText] = useState("");
     const [commentUseForAi, setCommentUseForAi] = useState(false);
-    const [lifecycleAction, setLifecycleAction] = useState<"OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED">("IN_PROGRESS");
+    const [lifecycleAction, setLifecycleAction] = useState<"OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED" | "UNCHANGED">("UNCHANGED");
+    const [pendingAssignee, setPendingAssignee] = useState<{ type: "role"; role: "PROCTOR" | "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT" } | { type: "user"; user: User } | null>(null);
     const [assignees, setAssignees] = useState<User[]>([]);
     const [assigning, setAssigning] = useState(false);
     const [assignmentQuery, setAssignmentQuery] = useState("");
@@ -130,7 +131,8 @@ export default function ExamOfficerTicketsPage() {
         setCommentIssueCustomText("");
         setCommentResolutionCustomText("");
         setCommentUseForAi(false);
-        setLifecycleAction("IN_PROGRESS");
+        setLifecycleAction("UNCHANGED");
+        setPendingAssignee(null);
         setActiveTicketId(null);
         setActiveTicketDetail(null);
         setAssignmentQuery("");
@@ -414,171 +416,143 @@ export default function ExamOfficerTicketsPage() {
         });
     };
 
-    async function handleCommentTicket() {
+    async function handleUnifiedProcess() {
         if (!actionTicketIds.length) {
             return toast.warning(isVietnamese ? "Chọn hoặc mở ít nhất 1 ticket." : "Select or open at least 1 ticket.");
         }
-        if (commentMode === "discussion" && !note.trim()) {
-            return toast.warning(isVietnamese ? "Nhập nội dung bình luận." : "Enter a comment.");
-        }
+
+        const isCommentConclusion = commentMode !== "discussion";
+        const hasNote = !!note.trim();
+        const hasAssignment = !!pendingAssignee;
+        const hasStatusChange = lifecycleAction !== "UNCHANGED";
+
         const hasValidIssue =
             commentIssueCode === "OTHER"
                 ? !!commentCustomIssueType
                 : !!commentIssuePreset;
         const hasValidResolution = !!commentResolutionCode;
 
-        if (commentMode !== "discussion" && (!hasValidIssue || !hasValidResolution)) {
+        if (isCommentConclusion && (!hasValidIssue || !hasValidResolution)) {
             return toast.warning(
                 isVietnamese
                     ? "Vui lòng chọn lỗi và cách xử lý."
                     : "Please choose the issue and resolution.",
             );
         }
+
+        if (!hasNote && !hasAssignment && !hasStatusChange && !isCommentConclusion) {
+            return toast.warning(isVietnamese ? "Vui lòng nhập nội dung hoặc chọn thay đổi." : "Please enter content or select changes.");
+        }
+
         setProcessing(true);
         try {
             const ids = [...actionTicketIds];
-            if (commentMode === "discussion") {
-                await Promise.all(ids.map((id) => ticketsApi.comment(id, { mode: "DISCUSSION", body: note.trim() })));
-            } else {
-                await Promise.all(
-                    ids.map((id) =>
-                        ticketsApi.comment(id, {
-                            mode: "CONCLUSION",
-                            body: commentPayloadText,
-                            useForAiTraining: commentUseForAi || shouldForceAiReviewCandidate,
-                            issueCode: commentIssueCode,
-                            issueType: selectedCommentIssueType,
-                            issueCustomText: commentIssueCode === "OTHER" && commentIssueCustomText.trim() ? commentIssueCustomText.trim() : null,
-                            resolutionCode: commentResolutionCode,
-                            resolutionCustomText: commentResolutionCode === "CUSTOM" && commentResolutionCustomText.trim() ? commentResolutionCustomText.trim() : null,
-                            responseText: commentResponseText,
-                            techNote: null,
-                        }),
-                    ),
-                );
+
+            // 1. Assignment
+            if (hasAssignment) {
+                if (pendingAssignee.type === "role") {
+                    if (ids.length > 1) {
+                        await ticketsApi.bulkAction({
+                            ticketIds: ids,
+                            action: "ROUTE",
+                            targetRole: pendingAssignee.role,
+                            note: note.trim() || null,
+                        });
+                    } else {
+                        await ticketsApi.route(ids[0], {
+                            targetRole: pendingAssignee.role,
+                            reason: note.trim() || null,
+                        });
+                    }
+                } else {
+                    if (ids.length > 1) {
+                        await ticketsApi.bulkProcess({
+                            ticketIds: ids,
+                            action: "assign",
+                            assigneeId: pendingAssignee.user.id,
+                        });
+                    } else {
+                        await ticketsApi.process(ids[0], {
+                            action: activeTicket?.assignee ? "reassign" : "assign",
+                            assigneeId: pendingAssignee.user.id,
+                            note: note.trim() || undefined,
+                        });
+                    }
+                }
             }
-            toast.success(
-                commentMode === "discussion"
-                    ? (isVietnamese ? "Đã thêm bình luận." : "Comment added.")
-                    : (isVietnamese ? "Đã cập nhật kết quả xử lý." : "Handling result updated."),
-            );
+
+            // 2. Status Change
+            if (hasStatusChange) {
+                const statusValue = lifecycleAction as "OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED";
+                if (ids.length > 1) {
+                    await ticketsApi.bulkProcess({
+                        ticketIds: ids,
+                        action: "change_status",
+                        status: statusValue,
+                        note: note.trim() || null,
+                    });
+                } else {
+                    await ticketsApi.process(ids[0], {
+                        action: "change_status",
+                        status: statusValue,
+                        note: note.trim() || null,
+                    });
+                }
+            }
+
+            // 3. Comment / Conclusion
+            if (hasNote || isCommentConclusion) {
+                if (commentMode === "discussion") {
+                    await Promise.all(ids.map((id) => ticketsApi.comment(id, { mode: "DISCUSSION", body: note.trim() })));
+                } else {
+                    await Promise.all(
+                        ids.map((id) =>
+                            ticketsApi.comment(id, {
+                                mode: "CONCLUSION",
+                                body: commentPayloadText,
+                                useForAiTraining: commentUseForAi || shouldForceAiReviewCandidate,
+                                issueCode: commentIssueCode,
+                                issueType: selectedCommentIssueType,
+                                issueCustomText: commentIssueCode === "OTHER" && commentIssueCustomText.trim() ? commentIssueCustomText.trim() : null,
+                                resolutionCode: commentResolutionCode,
+                                resolutionCustomText: commentResolutionCode === "CUSTOM" && commentResolutionCustomText.trim() ? commentResolutionCustomText.trim() : null,
+                                responseText: commentResponseText,
+                                techNote: null,
+                            }),
+                        ),
+                    );
+                }
+            }
+
+            toast.success(isVietnamese ? "Đã cập nhật kết quả xử lý." : "Handling result updated.");
+
+            // Reset states
             setNote("");
             setCommentCustomIssueType("Technical Issue");
             setCommentIssueCustomText("");
             setCommentResolutionCustomText("");
             setCommentUseForAi(false);
             setCommentMode("discussion");
-            await refreshTicketContext(ids);
-        } catch {
-            toast.error(
-                isVietnamese
-                    ? "Không thể xử lý bình luận."
-                    : "Could not process the comment.",
-            );
-        } finally {
-            setProcessing(false);
-        }
-    }
-
-    async function handleLifecycleUpdate() {
-        if (!actionTicketIds.length) {
-            return toast.warning(isVietnamese ? "Chọn hoặc mở ít nhất 1 ticket." : "Select or open at least 1 ticket.");
-        }
-
-        setProcessing(true);
-        try {
-            if (actionTicketIds.length > 1) {
-                await ticketsApi.bulkProcess({
-                    ticketIds: actionTicketIds,
-                    action: "change_status",
-                    status: lifecycleAction,
-                    note: note.trim() || null,
-                });
-            } else {
-                await ticketsApi.process(actionTicketIds[0], {
-                    action: "change_status",
-                    status: lifecycleAction,
-                    note: note.trim() || null,
-                });
-            }
-            toast.success(isVietnamese ? "Đã cập nhật ticket." : "Ticket updated.");
-            setNote("");
-            await refreshTicketContext(actionTicketIds);
-        } catch {
-            toast.error(isVietnamese ? "Không thể cập nhật ticket." : "Could not update the ticket.");
-        } finally {
-            setProcessing(false);
-        }
-    }
-
-    async function handleAssignTicket(target: { type: "role"; role: "PROCTOR" | "HALL_INVIGILATOR" | "EXAM_OFFICER" | "IT_SUPPORT" } | { type: "user"; user: User }) {
-        const targetTicketIds = actionTicketIds;
-        if (!targetTicketIds.length) {
-            return toast.warning(isVietnamese ? "Chọn một ticket trước." : "Select a ticket first.");
-        }
-
-        setAssigning(true);
-        try {
-            if (target.type === "role") {
-                if (targetTicketIds.length > 1) {
-                    await ticketsApi.bulkAction({
-                        ticketIds: targetTicketIds,
-                        action: "ROUTE",
-                        targetRole: target.role,
-                        note: note.trim() || null,
-                    });
-                    await refreshTicketContext(targetTicketIds);
-                } else {
-                    const updated = await ticketsApi.route(targetTicketIds[0], {
-                        targetRole: target.role,
-                        reason: note.trim() || null,
-                    });
-                    setActiveTicketDetail(updated);
-                    setTicketDetailCache((prev) => ({ ...prev, [updated.id]: updated }));
-                    setTickets((prev) => prev.map((tk) => (tk.id === updated.id ? updated : tk)));
-                }
-            } else {
-                if (targetTicketIds.length > 1) {
-                    await ticketsApi.bulkProcess({
-                        ticketIds: targetTicketIds,
-                        action: "assign",
-                        assigneeId: target.user.id,
-                    });
-                    await refreshTicketContext(targetTicketIds);
-                } else {
-                    const updated = await ticketsApi.process(targetTicketIds[0], {
-                        action: activeTicket?.assignee ? "reassign" : "assign",
-                        assigneeId: target.user.id,
-                        note: note.trim() || undefined,
-                    });
-
-                    setActiveTicketDetail(updated);
-                    setTicketDetailCache((prev) => ({ ...prev, [updated.id]: updated }));
-                    setTickets((prev) => prev.map((tk) => (tk.id === updated.id ? updated : tk)));
-                }
-            }
-
-            const assignedName = target.type === "role"
-                ? ROUTE_ROLE_OPTIONS.find((item) => item.role === target.role)?.[isVietnamese ? "labelVi" : "labelEn"]
-                : (target.user.email ?? target.user.id);
-            toast.success(
-                targetTicketIds.length > 1
-                    ? (isVietnamese ? `Đã giao ${targetTicketIds.length} ticket cho ${assignedName}.` : `Assigned ${targetTicketIds.length} tickets to ${assignedName}.`)
-                    : (isVietnamese ? `Đã giao ticket cho ${assignedName}.` : `Ticket assigned to ${assignedName}.`)
-            );
+            setPendingAssignee(null);
+            setLifecycleAction("UNCHANGED");
             setAssignmentQuery("");
             setAssignmentDialogOpen(false);
             setAssignmentPopoverOpen(false);
+
+            await refreshTicketContext(ids);
         } catch (err: any) {
             toast.error(
                 err?.response?.data?.message ||
                 err?.message ||
-                (isVietnamese ? "Giao ticket thất bại." : "Failed to assign ticket.")
+                (isVietnamese ? "Cập nhật thất bại." : "Update failed.")
             );
         } finally {
-            setAssigning(false);
+            setProcessing(false);
         }
     }
+
+    // handleLifecycleUpdate and handleAssignTicket are now integrated into handleUnifiedProcess
+
 
     const reviewResolutionOptions = useMemo(
         () => getResolutionPresetsForIssue(reviewIssueCode),
@@ -1045,11 +1019,11 @@ export default function ExamOfficerTicketsPage() {
                                             )}
 
                                             <button
-                                                onClick={handleCommentTicket}
+                                                onClick={handleUnifiedProcess}
                                                 disabled={
                                                     processing ||
                                                     !actionTicketIds.length ||
-                                                    (commentMode === "discussion" && !note.trim()) ||
+                                                    (commentMode === "discussion" && !note.trim() && !pendingAssignee && lifecycleAction === "UNCHANGED") ||
                                                     (commentMode !== "discussion" && (
                                                         (!commentIssuePreset && commentIssueCode !== "OTHER") ||
                                                         !commentResolutionCode
@@ -1057,10 +1031,10 @@ export default function ExamOfficerTicketsPage() {
                                                 }
                                                 className={cn(
                                                     "w-full h-14 rounded-2xl text-base font-black flex items-center justify-center gap-2 transition-all shadow-sm",
-                                                    (actionTicketIds.length > 0 && ((commentMode === "discussion" && !!note.trim()) || (commentMode !== "discussion" &&
-                                                        (!!commentIssuePreset || commentIssueCode === "OTHER") &&
-                                                        !!commentResolutionCode
-                                                    )))
+                                                    (actionTicketIds.length > 0 && (
+                                                        (commentMode === "discussion" && (!!note.trim() || !!pendingAssignee || lifecycleAction !== "UNCHANGED")) ||
+                                                        (commentMode !== "discussion" && (!!commentIssuePreset || commentIssueCode === "OTHER") && !!commentResolutionCode)
+                                                    ))
                                                         ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-orange-200 hover:from-orange-600 hover:to-orange-700"
                                                         : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                                                 )}>
@@ -1115,15 +1089,31 @@ export default function ExamOfficerTicketsPage() {
                                         {isVietnamese ? "Chuyển xử lý" : "Assign"}
                                     </p>
                                     <div className="relative mt-3">
-                                        <button
-                                            onClick={() => setAssignmentPopoverOpen((prev) => !prev)}
-                                            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:border-orange-300"
-                                        >
-                                            <span className="truncate">
-                                                {activeTicket?.assignee?.email ?? (isVietnamese ? "Chọn vai trò hoặc người xử lý" : "Choose role or assignee")}
-                                            </span>
-                                            <span className="text-xs text-slate-400">{assignmentPopoverOpen ? "▲" : "▼"}</span>
-                                        </button>
+                                                    {pendingAssignee ? (
+                                                        <div className="flex w-full items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-left text-sm font-bold text-orange-700">
+                                                            <span className="truncate">
+                                                                {pendingAssignee.type === "role"
+                                                                    ? ROUTE_ROLE_OPTIONS.find((item) => item.role === pendingAssignee.role)?.[isVietnamese ? "labelVi" : "labelEn"]
+                                                                    : (pendingAssignee.user.email ?? pendingAssignee.user.id)}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => setPendingAssignee(null)}
+                                                                className="ml-2 text-orange-400 hover:text-orange-600"
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setAssignmentPopoverOpen((prev) => !prev)}
+                                                            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:border-orange-300"
+                                                        >
+                                                            <span className="truncate text-slate-400">
+                                                                {isVietnamese ? "Chọn vai trò hoặc người xử lý" : "Choose role or assignee"}
+                                                            </span>
+                                                            <span className="text-xs text-slate-400">{assignmentPopoverOpen ? "▲" : "▼"}</span>
+                                                        </button>
+                                                    )}
 
                                         {assignmentPopoverOpen && (
                                             <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
@@ -1146,7 +1136,10 @@ export default function ExamOfficerTicketsPage() {
                                                     {ROUTE_ROLE_OPTIONS.map((option) => (
                                                         <button
                                                             key={option.role}
-                                                            onClick={() => handleAssignTicket({ type: "role", role: option.role })}
+                                                            onClick={() => {
+                                                                setPendingAssignee({ type: "role", role: option.role });
+                                                                setAssignmentPopoverOpen(false);
+                                                            }}
                                                             disabled={assigning}
                                                             className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                                                         >
@@ -1162,7 +1155,10 @@ export default function ExamOfficerTicketsPage() {
                                                             {previousAssignees.map((user) => (
                                                                 <button
                                                                     key={user.id}
-                                                                    onClick={() => handleAssignTicket({ type: "user", user })}
+                                                                    onClick={() => {
+                                                                        setPendingAssignee({ type: "user", user });
+                                                                        setAssignmentPopoverOpen(false);
+                                                                    }}
                                                                     disabled={assigning}
                                                                     className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                                                                 >
@@ -1181,7 +1177,10 @@ export default function ExamOfficerTicketsPage() {
                                                             {filteredAssignableUsers.length ? filteredAssignableUsers.map((user) => (
                                                                 <button
                                                                     key={user.id}
-                                                                    onClick={() => handleAssignTicket({ type: "user", user })}
+                                                                    onClick={() => {
+                                                                        setPendingAssignee({ type: "user", user });
+                                                                        setAssignmentPopoverOpen(false);
+                                                                    }}
                                                                     disabled={assigning}
                                                                     className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                                                                 >
@@ -1206,31 +1205,35 @@ export default function ExamOfficerTicketsPage() {
                                         {isVietnamese ? "Đổi trạng thái" : "Change status"}
                                     </p>
                                     <div className="mt-3 space-y-3">
-                                        <select
-                                            value={lifecycleAction}
-                                            onChange={(e) => setLifecycleAction(e.target.value as "OPEN" | "IN_PROGRESS" | "SOLVED" | "CLOSED")}
-                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-amber-300"
-                                            disabled={processing}
-                                        >
-                                            {availableLifecycleOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>{option.label}</option>
-                                            ))}
-                                        </select>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={lifecycleAction}
+                                                onChange={(e) => setLifecycleAction(e.target.value as any)}
+                                                className={cn(
+                                                    "flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-300",
+                                                    lifecycleAction !== "UNCHANGED"
+                                                        ? "border-amber-300 bg-amber-50 text-amber-900"
+                                                        : "border-slate-200 bg-white text-slate-800"
+                                                )}
+                                                disabled={processing}
+                                            >
+                                                <option value="UNCHANGED">{isVietnamese ? "— Giữ nguyên trạng thái —" : "— Keep current status —"}</option>
+                                                {availableLifecycleOptions.map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                            {lifecycleAction !== "UNCHANGED" && (
+                                                <button
+                                                    onClick={() => setLifecycleAction("UNCHANGED")}
+                                                    className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-500 hover:text-amber-700"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                        </div>
                                         <p className="text-xs leading-5 text-slate-500">
                                             {lifecycleHint}
                                         </p>
-                                        <button
-                                            onClick={handleLifecycleUpdate}
-                                            disabled={processing || !actionTicketIds.length}
-                                            className={cn(
-                                                "w-full rounded-xl px-3 py-2.5 text-sm font-black transition-all",
-                                                actionTicketIds.length && !processing
-                                                    ? "bg-amber-500 text-white hover:bg-amber-600 shadow-sm shadow-amber-200"
-                                                    : "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                            )}
-                                        >
-                                            {processing ? t("processing") : (isVietnamese ? "Cập nhật trạng thái" : "Update status")}
-                                        </button>
                                     </div>
                                 </div>
 

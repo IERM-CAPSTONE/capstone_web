@@ -15,9 +15,18 @@ export interface AttendanceSnapshotItem {
   createdAt: string;
 }
 
+export interface FaceEnrollmentItem {
+  id: string;
+  status: string;
+  capturedImageUrls?: Record<string, string> | null;
+  createdAt: string;
+  supervisorName?: string | null;
+}
+
 export interface AuditLogSearchResponse {
   tickets: Partial<TicketFull>[];
   attendanceSnapshots: AttendanceSnapshotItem[];
+  faceEnrollments: FaceEnrollmentItem[];
 }
 
 export const auditLogApi = {
@@ -29,6 +38,7 @@ export const auditLogApi = {
     return (response.data as any)?.data ?? response.data ?? {
       tickets: [],
       attendanceSnapshots: [],
+      faceEnrollments: [],
     };
   },
 };

@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Camera,
   CheckCircle2,
+  Fingerprint,
   Loader2,
   Search,
   ShieldAlert,
@@ -14,13 +15,14 @@ import {
   UserRoundSearch,
   XCircle,
 } from "lucide-react";
-import { auditLogApi, AttendanceSnapshotItem } from "@/lib/api/audit-log";
+import { auditLogApi, AttendanceSnapshotItem, FaceEnrollmentItem } from "@/lib/api/audit-log";
 import type { TicketFull } from "@/lib/api/tickets";
 import { cn } from "@/lib/utils/cn";
 
 type AuditResult = {
   tickets: Partial<TicketFull>[];
   attendanceSnapshots: AttendanceSnapshotItem[];
+  faceEnrollments: FaceEnrollmentItem[];
 };
 
 const SNAPSHOT_STATUS_STYLES: Record<AttendanceSnapshotItem["status"], string> = {
@@ -67,13 +69,15 @@ export default function ExamOfficerAuditLogPage() {
   const [result, setResult] = useState<AuditResult>({
     tickets: [],
     attendanceSnapshots: [],
+    faceEnrollments: [],
   });
 
   const summary = useMemo(
     () => ({
-      ticketCount: result.tickets.length,
-      snapshotCount: result.attendanceSnapshots.length,
-      matchedCount: result.attendanceSnapshots.filter((item) => item.status === "MATCHED").length,
+      ticketCount: result?.tickets?.length ?? 0,
+      snapshotCount: result?.attendanceSnapshots?.length ?? 0,
+      matchedCount: result?.attendanceSnapshots?.filter((item) => item.status === "MATCHED").length ?? 0,
+      enrollmentCount: result?.faceEnrollments?.length ?? 0,
     }),
     [result],
   );
@@ -112,9 +116,10 @@ export default function ExamOfficerAuditLogPage() {
                   Tra cứu ticket và ảnh điểm danh theo MSSV hoặc email để hậu kiểm nhanh trong các tình huống cần đối soát.
                 </p>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <StatCard label="Tickets" value={summary.ticketCount} icon={<Ticket className="h-4 w-4" />} />
                 <StatCard label="Snapshots" value={summary.snapshotCount} icon={<Camera className="h-4 w-4" />} />
+                <StatCard label="Enrollments" value={summary.enrollmentCount} icon={<Fingerprint className="h-4 w-4" />} />
                 <StatCard label="Matched" value={summary.matchedCount} icon={<CheckCircle2 className="h-4 w-4" />} />
               </div>
             </div>
@@ -144,7 +149,7 @@ export default function ExamOfficerAuditLogPage() {
             </form>
           </div>
 
-          <div className="grid gap-6 px-6 pb-6 lg:grid-cols-[1.05fr_1.2fr]">
+          <div className="grid gap-6 px-6 pb-6 lg:grid-cols-3">
             <section className="rounded-[24px] border border-slate-200 bg-white">
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-[#F37021]">
@@ -152,11 +157,11 @@ export default function ExamOfficerAuditLogPage() {
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-slate-900">Tickets liên quan</h2>
-                  <p className="text-xs text-slate-500">Các ticket được gắn theo MSSV hoặc do người dùng này tạo.</p>
+                  <p className="text-xs text-slate-500">Các ticket gắn theo MSSV hoặc do người dùng này tạo.</p>
                 </div>
               </div>
               <div className="max-h-[720px] space-y-3 overflow-y-auto p-5">
-                {!searched && <EmptyState icon={<Ticket className="h-5 w-5" />} text="Chưa có dữ liệu. Hãy thực hiện tìm kiếm để xem ticket liên quan." />}
+                {!searched && <EmptyState icon={<Ticket className="h-5 w-5" />} text="Hãy thực hiện tìm kiếm để xem ticket." />}
                 {searched && result.tickets.length === 0 && <EmptyState icon={<Ticket className="h-5 w-5" />} text="Không tìm thấy ticket liên quan." />}
                 {result.tickets.map((ticket) => (
                   <article key={ticket.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -182,6 +187,66 @@ export default function ExamOfficerAuditLogPage() {
 
             <section className="rounded-[24px] border border-slate-200 bg-white">
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                  <Fingerprint className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-slate-900">Ảnh đăng ký</h2>
+                  <p className="text-xs text-slate-500">Ảnh khuôn mặt gốc được dùng làm dữ liệu mẫu.</p>
+                </div>
+              </div>
+              <div className="max-h-[720px] overflow-y-auto p-5">
+                {!searched && <EmptyState icon={<Fingerprint className="h-5 w-5" />} text="Hãy thực hiện tìm kiếm để xem ảnh đăng ký." />}
+                {searched && result.faceEnrollments.length === 0 && <EmptyState icon={<Fingerprint className="h-5 w-5" />} text="Không tìm thấy ảnh đăng ký." />}
+                <div className="space-y-4">
+                  {result.faceEnrollments.map((enrollment) => {
+                    const images = enrollment.capturedImageUrls
+                      ? Object.entries(enrollment.capturedImageUrls as Record<string, string>)
+                      : [];
+
+                    return (
+                      <div key={enrollment.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Bản ghi {format(new Date(enrollment.createdAt), "dd/MM/yyyy")}
+                          </span>
+                          <span className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold ring-1",
+                            enrollment.status === "APPROVED" ? "bg-emerald-50 text-emerald-600 ring-emerald-200" : "bg-amber-50 text-amber-600 ring-amber-200"
+                          )}>
+                            {enrollment.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-5 gap-2">
+                          {images.length > 0 ? (
+                            images.map(([pose, url]) => (
+                              <div key={pose} className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                <img src={url} alt={pose} className="h-full w-full object-cover" />
+                                <div className="absolute inset-x-0 bottom-0 bg-black/40 py-0.5 text-center text-[8px] font-medium text-white opacity-0 transition group-hover:opacity-100">
+                                  {pose}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="col-span-5 flex h-20 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                              <Camera className="h-5 w-5" />
+                            </div>
+                          )}
+                        </div>
+                        {enrollment.supervisorName && (
+                          <p className="mt-3 text-[10px] text-slate-500">
+                            <span className="font-semibold text-slate-700">Giám thị:</span> {enrollment.supervisorName}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[24px] border border-slate-200 bg-white">
+              <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
                   <Camera className="h-5 w-5" />
                 </div>
@@ -191,14 +256,13 @@ export default function ExamOfficerAuditLogPage() {
                 </div>
               </div>
               <div className="max-h-[720px] overflow-y-auto p-5">
-                {!searched && <EmptyState icon={<Camera className="h-5 w-5" />} text="Chưa có dữ liệu. Hãy thực hiện tìm kiếm để xem ảnh điểm danh." />}
-                {searched && result.attendanceSnapshots.length === 0 && <EmptyState icon={<Camera className="h-5 w-5" />} text="Không tìm thấy ảnh điểm danh liên quan." />}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {!searched && <EmptyState icon={<Camera className="h-5 w-5" />} text="Hãy thực hiện tìm kiếm để xem ảnh điểm danh." />}
+                {searched && result.attendanceSnapshots.length === 0 && <EmptyState icon={<Camera className="h-5 w-5" />} text="Không tìm thấy ảnh điểm danh." />}
+                <div className="grid gap-4 sm:grid-cols-2">
                   {result.attendanceSnapshots.map((snapshot) => (
                     <article key={snapshot.id} className="overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50">
                       <div className="aspect-[4/3] bg-slate-100">
                         {snapshot.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={snapshot.imageUrl}
                             alt={`Attendance snapshot ${snapshot.id}`}
@@ -221,15 +285,11 @@ export default function ExamOfficerAuditLogPage() {
                             <SnapshotStatusIcon status={snapshot.status} />
                             {snapshot.status}
                           </span>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">
-                            {snapshot.actorType}
-                          </span>
                         </div>
-                        <div className="space-y-1.5 text-xs text-slate-600">
+                        <div className="space-y-1.5 text-[11px] text-slate-600">
                           <p><span className="font-semibold text-slate-800">Session:</span> {snapshot.examSessionId}</p>
-                          {snapshot.examPartCode && <p><span className="font-semibold text-slate-800">Part:</span> {snapshot.examPartCode}</p>}
                           {snapshot.confidence != null && <p><span className="font-semibold text-slate-800">Confidence:</span> {(snapshot.confidence * 100).toFixed(1)}%</p>}
-                          <p><span className="font-semibold text-slate-800">Thời gian:</span> {format(new Date(snapshot.captureTimestamp), "dd/MM/yyyy HH:mm:ss")}</p>
+                          <p><span className="font-semibold text-slate-800">Thời gian:</span> {format(new Date(snapshot.captureTimestamp), "dd/MM/yyyy HH:mm")}</p>
                         </div>
                       </div>
                     </article>

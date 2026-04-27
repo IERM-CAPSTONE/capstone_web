@@ -162,11 +162,11 @@ export default function AutoGenerateScheduleDialog({
         const w = parseInt(formData.targetWeek);
 
         if (!formData.semesterId || formData.selectedRooms.length === 0 || formData.campus.length === 0) return true;
-        if (formData.proctorEmails.length === 0) return true;
+
         // Every selected campus must have a file
         const allHaveFiles = formData.campus.every(c => !!formData.campusFiles[c]?.fileData);
         if (!allHaveFiles) return true;
-        
+
         if (isNaN(w) || w < 1 || w > maxWeeks) return true;
 
         return false;
@@ -307,10 +307,6 @@ export default function AutoGenerateScheduleDialog({
         }
         if (formData.selectedRooms.length === 0) {
             setError(t("errors.selectRoom"));
-            return;
-        }
-        if (formData.proctorEmails.length === 0) {
-            setError(locale === "vi" ? "Vui lòng tải lên danh sách email giám thị." : "Please upload the proctor email list.");
             return;
         }
 
