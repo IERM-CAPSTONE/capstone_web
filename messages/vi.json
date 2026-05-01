@@ -451,12 +451,34 @@
             "canceled": "Đã hủy"
         },
         "filters": {
+            "title": "Bộ lọc",
             "allStatuses": "Tất cả trạng thái",
             "teacherId": "Mã giảng viên",
             "startDate": "Ngày bắt đầu",
             "endDate": "Ngày kết thúc",
             "apply": "Áp dụng",
             "reset": "Đặt lại"
+        },
+        "table": {
+            "proctor": "Giám thị",
+            "date": "Ngày",
+            "shift": "Ca",
+            "type": "Loại",
+            "status": "Trạng thái",
+            "notes": "Ghi chú",
+            "applied": "Ngày nộp",
+            "actions": "Thao tác",
+            "loading": "Đang tải...",
+            "unknown": "Không rõ",
+            "notSpecified": "Chưa chỉ định",
+            "teacherCodePlaceholder": "Lọc theo mã giảng viên...",
+            "showing": "Hiển thị {from} đến {to} trên tổng {total} kết quả"
+        },
+        "confirm": {
+            "approveTitle": "Duyệt đơn đăng ký",
+            "rejectTitle": "Từ chối đơn đăng ký",
+            "approveDescription": "Bạn có chắc chắn muốn duyệt đơn đăng ký này?",
+            "rejectDescription": "Bạn có chắc chắn muốn từ chối đơn đăng ký này?"
         },
         "statistics": {
             "pending": "Chờ duyệt",

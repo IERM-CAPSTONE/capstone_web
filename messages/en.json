@@ -450,12 +450,34 @@
             "canceled": "Canceled"
         },
         "filters": {
+            "title": "Filters",
             "allStatuses": "All Statuses",
             "teacherId": "Teacher ID",
             "startDate": "Start Date",
             "endDate": "End Date",
             "apply": "Apply Filters",
             "reset": "Reset"
+        },
+        "table": {
+            "proctor": "Proctor",
+            "date": "Date",
+            "shift": "Shift",
+            "type": "Type",
+            "status": "Status",
+            "notes": "Notes",
+            "applied": "Applied",
+            "actions": "Actions",
+            "loading": "Loading...",
+            "unknown": "Unknown",
+            "notSpecified": "Not specified",
+            "teacherCodePlaceholder": "Filter by teacher...",
+            "showing": "Showing {from} to {to} of {total} results"
+        },
+        "confirm": {
+            "approveTitle": "Approve Application",
+            "rejectTitle": "Reject Application",
+            "approveDescription": "Are you sure you want to approve this application?",
+            "rejectDescription": "Are you sure you want to reject this application?"
         },
         "statistics": {
             "pending": "Pending",
