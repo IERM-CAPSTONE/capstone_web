@@ -1420,6 +1420,57 @@
             "confirm": "Xác nhận"
         }
     },
+    "AuditLog": {
+        "badge": "Khảo thí",
+        "title": "Nhật ký đối soát",
+        "description": "Tra cứu ticket và ảnh điểm danh theo MSSV hoặc email để hậu kiểm nhanh trong các tình huống cần đối soát.",
+        "stats": {
+            "tickets": "Phiếu yêu cầu",
+            "snapshots": "Ảnh ghi nhận",
+            "enrollments": "Dữ liệu đăng ký",
+            "matched": "Đã đối chiếu"
+        },
+        "search": {
+            "placeholder": "Nhập MSSV hoặc email",
+            "button": "Tìm kiếm"
+        },
+        "tickets": {
+            "title": "Tickets liên quan",
+            "description": "Các ticket gắn theo MSSV hoặc do người dùng này tạo.",
+            "emptyBeforeSearch": "Hãy thực hiện tìm kiếm để xem ticket.",
+            "emptyAfterSearch": "Không tìm thấy ticket liên quan.",
+            "untitledTicket": "Ticket chưa đặt tên",
+            "unknownType": "Không rõ loại",
+            "unknownStatus": "KHÔNG RÕ"
+        },
+        "enrollments": {
+            "title": "Ảnh đăng ký",
+            "description": "Ảnh khuôn mặt gốc được dùng làm dữ liệu mẫu.",
+            "emptyBeforeSearch": "Hãy thực hiện tìm kiếm để xem ảnh đăng ký.",
+            "emptyAfterSearch": "Không tìm thấy ảnh đăng ký.",
+            "record": "Bản ghi {date}"
+        },
+        "snapshots": {
+            "title": "Ảnh điểm danh",
+            "description": "Snapshot phục vụ hậu kiểm nhận diện khuôn mặt.",
+            "emptyBeforeSearch": "Hãy thực hiện tìm kiếm để xem ảnh điểm danh.",
+            "emptyAfterSearch": "Không tìm thấy ảnh điểm danh."
+        },
+        "labels": {
+            "studentCode": "MSSV",
+            "session": "Phiên",
+            "description": "Mô tả",
+            "createdAt": "Tạo lúc",
+            "na": "N/A",
+            "supervisor": "Giám thị",
+            "confidence": "Độ tin cậy",
+            "time": "Thời gian"
+        },
+        "errors": {
+            "emptyKeyword": "Nhập MSSV hoặc email để tra cứu.",
+            "loadFailed": "Không thể tải audit log."
+        }
+    },
     "MonitorDashboard": {
         "title": "Giám sát phòng thi",
         "subtitle": "Theo dõi thời gian thực các phòng thi đang diễn ra",

@@ -1344,6 +1344,57 @@
             "confirm": "Confirm"
         }
     },
+    "AuditLog": {
+        "badge": "Exam Officer",
+        "title": "Audit log",
+        "description": "Look up tickets and attendance snapshots by student code or email for quick post-exam verification.",
+        "stats": {
+            "tickets": "Tickets",
+            "snapshots": "Snapshots",
+            "enrollments": "Enrollments",
+            "matched": "Matched"
+        },
+        "search": {
+            "placeholder": "Enter student code or email",
+            "button": "Search"
+        },
+        "tickets": {
+            "title": "Related tickets",
+            "description": "Tickets linked to this student code or created by this user.",
+            "emptyBeforeSearch": "Run a search to view tickets.",
+            "emptyAfterSearch": "No related tickets found.",
+            "untitledTicket": "Untitled ticket",
+            "unknownType": "Unknown type",
+            "unknownStatus": "UNKNOWN"
+        },
+        "enrollments": {
+            "title": "Enrollment images",
+            "description": "Original face images used as enrollment samples.",
+            "emptyBeforeSearch": "Run a search to view enrollment images.",
+            "emptyAfterSearch": "No enrollment images found.",
+            "record": "Record {date}"
+        },
+        "snapshots": {
+            "title": "Attendance snapshots",
+            "description": "Snapshots used for post-exam face verification.",
+            "emptyBeforeSearch": "Run a search to view attendance snapshots.",
+            "emptyAfterSearch": "No attendance snapshots found."
+        },
+        "labels": {
+            "studentCode": "Student code",
+            "session": "Session",
+            "description": "Description",
+            "createdAt": "Created at",
+            "na": "N/A",
+            "supervisor": "Supervisor",
+            "confidence": "Confidence",
+            "time": "Time"
+        },
+        "errors": {
+            "emptyKeyword": "Enter student code or email to search.",
+            "loadFailed": "Unable to load audit log."
+        }
+    },
     "Devices": {
         "title": "Device Management",
         "breadcrumb": "Device Management",
