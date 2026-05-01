@@ -1540,5 +1540,79 @@
             "detailMetadata": "Metadata",
             "noMetadata": "No metadata available"
         }
+    },
+    "Accounts": {
+        "breadcrumbDashboard": "Dashboard",
+        "breadcrumbTitle": "Account Management",
+        "title": "Account Management",
+        "subtitle": "Manage system user accounts",
+        "importExcel": "Import Excel",
+        "createAccount": "Create Account",
+        "search": "Search",
+        "searchPlaceholder": "Search by name, email, or username",
+        "role": "Role",
+        "status": "Status",
+        "allRoles": "All Roles",
+        "allStatus": "All Status",
+        "errorLoading": "Error loading accounts. Please try again.",
+        "table": {
+            "accountId": "Account ID",
+            "fullName": "Full Name",
+            "email": "Email",
+            "username": "Username",
+            "role": "Role",
+            "status": "Status",
+            "createdDate": "Created Date",
+            "actions": "Actions",
+            "loading": "Loading...",
+            "noAccounts": "No accounts found",
+            "noRole": "No Role",
+            "viewDetails": "View details",
+            "lockAccount": "Lock account",
+            "unlockAccount": "Unlock account",
+            "editAccount": "Edit account"
+        },
+        "roles": {
+            "ADMIN": "Admin",
+            "EXAM_OFFICER": "Exam Officer",
+            "PROCTOR": "Proctor",
+            "STUDENT": "Student"
+        },
+        "statuses": {
+            "active": "Active",
+            "locked": "Locked"
+        },
+        "pagination": {
+            "showing": "Showing",
+            "to": "to",
+            "of": "of",
+            "accounts": "accounts",
+            "show": "Show",
+            "previous": "Previous",
+            "next": "Next"
+        },
+        "deleteModal": {
+            "title": "Confirm Delete",
+            "message": "Are you sure you want to delete this account? This action cannot be undone.",
+            "roleLabel": "Role",
+            "noRole": "No Role",
+            "cancel": "Cancel",
+            "deleting": "Deleting...",
+            "delete": "Delete"
+        },
+        "importModal": {
+            "title": "Import Accounts",
+            "description": "Upload an Excel or CSV file to bulk import accounts. The system will process the data in the background and notify you when finished.",
+            "downloadTemplate": "Download Template (.csv)",
+            "uploadCta": "Click to upload or drag & drop",
+            "uploadHint": "Excel (.xlsx, .xls) or CSV files up to 5MB",
+            "readyToImport": "Ready to import",
+            "invalidFormat": "Please select an Excel file (.xlsx, .xls) or CSV file.",
+            "fileTooLarge": "File size should be less than 5MB.",
+            "importFailed": "Failed to start import process.",
+            "cancel": "Cancel",
+            "starting": "Starting...",
+            "importAccounts": "Import accounts"
+        }
     }
 }

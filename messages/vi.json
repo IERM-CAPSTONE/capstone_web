@@ -1541,5 +1541,79 @@
             "lowAttendance": "Điểm danh thấp",
             "searchPlaceholder": "Tìm kiếm môn hoặc phòng..."
         }
+    },
+    "Accounts": {
+        "breadcrumbDashboard": "Bảng điều khiển",
+        "breadcrumbTitle": "Quản lý tài khoản",
+        "title": "Quản lý tài khoản",
+        "subtitle": "Quản lý tài khoản người dùng hệ thống",
+        "importExcel": "Nhập Excel",
+        "createAccount": "Tạo tài khoản",
+        "search": "Tìm kiếm",
+        "searchPlaceholder": "Tìm theo tên, email hoặc tên đăng nhập",
+        "role": "Vai trò",
+        "status": "Trạng thái",
+        "allRoles": "Tất cả vai trò",
+        "allStatus": "Tất cả trạng thái",
+        "errorLoading": "Lỗi khi tải danh sách tài khoản. Vui lòng thử lại.",
+        "table": {
+            "accountId": "Mã tài khoản",
+            "fullName": "Họ và tên",
+            "email": "Email",
+            "username": "Tên đăng nhập",
+            "role": "Vai trò",
+            "status": "Trạng thái",
+            "createdDate": "Ngày tạo",
+            "actions": "Thao tác",
+            "loading": "Đang tải...",
+            "noAccounts": "Chưa có tài khoản nào",
+            "noRole": "Chưa có vai trò",
+            "viewDetails": "Xem chi tiết",
+            "lockAccount": "Khóa tài khoản",
+            "unlockAccount": "Mở khóa tài khoản",
+            "editAccount": "Chỉnh sửa tài khoản"
+        },
+        "roles": {
+            "ADMIN": "Quản trị viên",
+            "EXAM_OFFICER": "Cán bộ khảo thí",
+            "PROCTOR": "Giám thị",
+            "STUDENT": "Sinh viên"
+        },
+        "statuses": {
+            "active": "Hoạt động",
+            "locked": "Đã khóa"
+        },
+        "pagination": {
+            "showing": "Hiển thị",
+            "to": "đến",
+            "of": "trên",
+            "accounts": "tài khoản",
+            "show": "Hiển thị",
+            "previous": "Trước",
+            "next": "Sau"
+        },
+        "deleteModal": {
+            "title": "Xác nhận xóa",
+            "message": "Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác.",
+            "roleLabel": "Vai trò",
+            "noRole": "Chưa có vai trò",
+            "cancel": "Hủy",
+            "deleting": "Đang xóa...",
+            "delete": "Xóa"
+        },
+        "importModal": {
+            "title": "Nhập tài khoản",
+            "description": "Tải lên tệp Excel hoặc CSV để nhập tài khoản hàng loạt. Hệ thống sẽ xử lý dữ liệu ở chế độ nền và thông báo khi hoàn tất.",
+            "downloadTemplate": "Tải mẫu (.csv)",
+            "uploadCta": "Nhấp để tải lên hoặc kéo thả",
+            "uploadHint": "Tệp Excel (.xlsx, .xls) hoặc CSV tối đa 5MB",
+            "readyToImport": "Sẵn sàng nhập",
+            "invalidFormat": "Vui lòng chọn tệp Excel (.xlsx, .xls) hoặc CSV.",
+            "fileTooLarge": "Kích thước tệp phải nhỏ hơn 5MB.",
+            "importFailed": "Không thể bắt đầu quá trình nhập.",
+            "cancel": "Hủy",
+            "starting": "Đang bắt đầu...",
+            "importAccounts": "Nhập tài khoản"
+        }
     }
 }
