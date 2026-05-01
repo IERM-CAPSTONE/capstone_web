@@ -360,6 +360,7 @@
         }
     },
     "Rooms": {
+        "officerPortal": "Officer Portal",
         "detailTitle": "Room Detail",
         "listTitle": "Room Management",
         "subtitle": "Manage and configure exam room settings",

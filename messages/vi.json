@@ -360,6 +360,7 @@
         }
     },
     "Rooms": {
+        "officerPortal": "Cổng Khảo thí",
         "detailTitle": "Chi tiết phòng thi",
         "listTitle": "Quản lý phòng thi",
         "subtitle": "Hệ thống quản lý và cấu hình danh sách phòng thi",
