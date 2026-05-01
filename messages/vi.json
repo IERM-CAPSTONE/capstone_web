@@ -213,6 +213,7 @@
                 "createSchedule": "Tạo lịch thi",
                 "autoCreateSchedule": "Tạo lịch thi tự động",
                 "importSchedule": "Nhập lịch thi sẵn",
+                "publishSchedule": "Công bố lịch thi",
                 "importProctors": "Nhập Giám thị",
                 "importExamCodes": "Nhập Mã đề thi",
                 "viewDetails": "Xem chi tiết",
