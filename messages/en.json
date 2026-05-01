@@ -361,6 +361,7 @@
         }
     },
     "Rooms": {
+        "enterpriseRegistry": "Enterprise Registry",
         "officerPortal": "Officer Portal",
         "detailTitle": "Room Detail",
         "listTitle": "Room Management",

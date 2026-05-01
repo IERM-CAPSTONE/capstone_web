@@ -361,6 +361,7 @@
         }
     },
     "Rooms": {
+        "enterpriseRegistry": "Quản lý đơn vị",
         "officerPortal": "Cổng Khảo thí",
         "detailTitle": "Chi tiết phòng thi",
         "listTitle": "Quản lý phòng thi",
