@@ -561,6 +561,7 @@
     "Subjects": {
         "title": "Quản lý môn học",
         "subtitle": "Quản lý môn thi và các thành phần thi linh hoạt",
+        "curriculumRegistry": "Hồ sơ chương trình",
         "addSubject": "Thêm môn học",
         "importSubjects": "Nhập môn học",
         "searchPlaceholder": "Tìm kiếm theo mã, tên hoặc bộ môn...",

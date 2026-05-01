@@ -560,6 +560,7 @@
     "Subjects": {
         "title": "Subject Management",
         "subtitle": "Manage exam subjects and their components",
+        "curriculumRegistry": "Curriculum Registry",
         "addSubject": "Add Subject",
         "importSubjects": "Import Subjects",
         "searchPlaceholder": "Search by code or name...",
