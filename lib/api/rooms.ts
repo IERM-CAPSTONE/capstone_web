@@ -3,7 +3,7 @@ import { Room, ApiResponse, PaginatedResponse, PaginationParams } from "@/types"
 
 export const roomsApi = {
   // Get all rooms
-  getAll: async (params?: PaginationParams): Promise<PaginatedResponse<Room>> => {
+  getAll: async (params?: PaginationParams & { campus?: string | string[]; roomNumber?: string }): Promise<PaginatedResponse<Room>> => {
     const response = await apiClient.get<any>("/exam-rooms", {
       params,
     });

@@ -1,47 +1,246 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCreateExamSchedule } from "@/hooks/use-exam-schedules";
+import { useUsers, useSearchUsersByCodes, useProctors } from "@/hooks/use-users";
+import { useSemesters } from "@/hooks/use-semesters";
+import { useSubjects } from "@/hooks/use-subjects";
+import { useRooms } from "@/hooks/use-rooms";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useAuthStore } from "@/store/auth-store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SearchableSelect from "@/components/ui/searchable-select";
 import {
   ChevronLeft,
   AlertCircle,
   Calendar,
   Clock,
   Zap,
-  BookOpen,
   Info,
+  Users,
+  UserPlus,
+  Trash2,
+  Download,
+  FileUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
 import { ROUTES } from "@/lib/constants/routes";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import {
+  examSchedulesApi,
+  CreateExamScheduleData
+} from "@/lib/api/exam-schedules";
 
 export default function CreateExamSchedulePage() {
   const router = useRouter();
   const createMutation = useCreateExamSchedule();
+  const searchByCodesMutation = useSearchUsersByCodes();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const locale = getCurrentLocale();
   const t = useTranslations("Dashboard");
+  const { user } = useAuthStore();
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   type ExamPart = "Final_Exam" | "Theory_Exam" | "Retake" | "Practical" | "Multiple_choice" | "Speaking" | "Listening" | "Reading" | "Writing";
   const [formData, setFormData] = useState({
     examCode: "",
-    semester: "",
+    semesterId: "",
     subjectCode: "",
     examPart: "Final_Exam" as ExamPart,
     examDate: "",
     startTime: "",
     endTime: "",
+    duration: "60",
     openCode: "",
-    note: "",
+    campus: "",
     examRoomId: "",
     proctorId: "",
     hallInvigilatorId: "",
   });
 
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subjectSearch, setSubjectSearch] = useState("");
+  const debouncedSubjectSearch = useDebounce(subjectSearch, 500);
+
+  const [semesterSearch, setSemesterSearch] = useState("");
+  const debouncedSemesterSearch = useDebounce(semesterSearch, 500);
+
+  const [roomSearch, setRoomSearch] = useState("");
+  const debouncedRoomSearch = useDebounce(roomSearch, 500);
+
+  const [proctorSearch, setProctorSearch] = useState("");
+  const debouncedProctorSearch = useDebounce(proctorSearch, 500);
+
+  const [hallInvigilatorSearch, setHallInvigilatorSearch] = useState("");
+  const debouncedHallInvigilatorSearch = useDebounce(hallInvigilatorSearch, 500);
+
+  const [studentSearch, setStudentSearch] = useState("");
+  const debouncedStudentSearch = useDebounce(studentSearch, 500);
+
+  const { data: semestersData, isLoading: isLoadingSemesters } = useSemesters({
+    limit: 100,
+    search: debouncedSemesterSearch
+  });
+  const { data: subjectsData, isLoading: isLoadingSubjects } = useSubjects({
+    limit: 100,
+    search: debouncedSubjectSearch
+  });
+  const { data: roomsData, isLoading: isLoadingRooms } = useRooms({
+    limit: 100,
+    roomNumber: debouncedRoomSearch,
+    campus: formData.campus || undefined
+  });
+  const { data: proctorsData, isLoading: isLoadingProctors } = useProctors({
+    limit: 100,
+    search: debouncedProctorSearch,
+    isActive: true,
+  });
+  const { data: hallInvigilatorsData, isLoading: isLoadingHallInvigilators } = useUsers({
+    role: "HALL_INVIGILATOR",
+    limit: 100,
+    isActive: true,
+    search: debouncedHallInvigilatorSearch,
+  });
+
+  const semesterOptions = (semestersData?.data || []).map(s => ({
+    value: s.id,
+    label: s.name
+  }));
+
+  const subjectOptions = (subjectsData?.data || []).map(s => ({
+    value: s.code,
+    label: s.name ? `${s.code} - ${s.name}` : s.code
+  }));
+
+  const roomOptions = (roomsData?.data || []).map(r => ({
+    value: r.id,
+    label: `${r.roomNumber}${r.campus ? ` (${r.campus})` : ""}`
+  }));
+
+  const proctorOptions = (proctorsData?.data || []).map(p => ({
+    value: p.id,
+    label: `${p.fullName || p.username || p.code || "Unknown"} (${p.email || "No email"})`
+  }));
+
+  const hallInvigilatorOptions = (hallInvigilatorsData?.data || []).map(h => ({
+    value: h.id,
+    label: `${h.fullName || h.username || h.code || "Unknown"} (${h.email || "No email"})`
+  }));
+
+  const [selectedStudents, setSelectedStudents] = useState<{ id: string; code: string; fullName: string }[]>([]);
+  const [currentStudentId, setCurrentStudentId] = useState("");
+
+  const { data: studentsData, isLoading: isLoadingStudents } = useUsers({
+    role: "STUDENT",
+    limit: 100,
+    isActive: true,
+    search: debouncedStudentSearch
+  });
+  const studentOptions = (studentsData?.data || []).map(s => ({
+    value: s.id,
+    label: `${s.code} - ${s.fullName}`
+  }));
+
+  const handleAddStudent = () => {
+    if (!currentStudentId) return;
+    const student = studentsData?.data.find(s => s.id === currentStudentId);
+    if (student && !selectedStudents.some(s => s.id === student.id)) {
+      setSelectedStudents(prev => [...prev, {
+        id: student.id,
+        code: student.code || "",
+        fullName: student.fullName || ""
+      }]);
+    }
+    setCurrentStudentId("");
+  };
+
+  const handleRemoveStudent = (id: string) => {
+    setSelectedStudents(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await examSchedulesApi.downloadTemplate('student');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'StudentList_Template.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Template downloaded successfully");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download template");
+    }
+  };
+
+  const handleImportStudents = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+        const codes = data
+          .map(row => (row.studentCode || row['Mã sinh viên'] || row.StudentCode || row.code)?.toString().trim())
+          .filter(Boolean);
+
+        if (codes.length === 0) {
+          toast.error("No student codes found in file");
+          return;
+        }
+
+        const uniqueCodes = Array.from(new Set(codes));
+        const users = await searchByCodesMutation.mutateAsync(uniqueCodes);
+
+        if (users.length === 0) {
+          toast.error("No matching students found in system");
+          return;
+        }
+
+        const newStudents = users
+          .filter(u => !selectedStudents.some(s => s.id === u.id))
+          .map(u => ({
+            id: u.id,
+            code: u.code || "",
+            fullName: u.fullName || ""
+          }));
+
+        if (newStudents.length === 0) {
+          toast.info("All students in file are already added");
+        } else {
+          setSelectedStudents(prev => [...prev, ...newStudents]);
+          toast.success(`Successfully imported ${newStudents.length} students`);
+        }
+      } catch (error) {
+        console.error("Import error:", error);
+        toast.error("Failed to parse file. Please use the provided template.");
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const campusOptions = [
+    { value: "HCM", label: "Ho Chi Minh" },
+    { value: "HN", label: "Ha Noi" },
+    { value: "DN", label: "Da Nang" },
+    { value: "QN", label: "Quy Nhon" },
+    { value: "CT", label: "Can Tho" },
+  ];
 
   const examPartMap: Record<ExamPart, string> = {
     Final_Exam: "FE",
@@ -53,7 +252,6 @@ export default function CreateExamSchedulePage() {
     Listening: "L",
     Reading: "R",
     Writing: "W",
-
   };
 
   const generateSemesterAbbr = (semester: string): string => {
@@ -83,14 +281,17 @@ export default function CreateExamSchedulePage() {
       setError("Subject Code is required to generate code");
       return;
     }
+    if (!formData.campus) {
+      setError("Campus is required to generate code");
+      return;
+    }
 
     const examPartCode = examPartMap[formData.examPart];
-    const semesterCode = formData.semester
-      ? generateSemesterAbbr(formData.semester)
-      : "XXXX";
+    const selectedSemester = semestersData?.data.find(s => s.id === formData.semesterId);
+    const semesterCode = selectedSemester?.code || "XXXX";
     const randomCode = generateRandomCode();
 
-    const generatedCode = `${formData.subjectCode.toUpperCase()}_${examPartCode}_${semesterCode}_${randomCode}`;
+    const generatedCode = `${formData.campus ? formData.campus + "_" : ""}${formData.subjectCode.toUpperCase()}_${examPartCode}_${semesterCode}_${randomCode}`;
 
     setFormData((prev) => ({
       ...prev,
@@ -109,29 +310,64 @@ export default function CreateExamSchedulePage() {
     return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
   })();
 
-  const getTomorrowDate = (): string => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
+  const getTodayDate = (): string => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
   };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: value };
+
+      // Sync duration and end time
+      if (name === "startTime" || name === "endTime") {
+        if (newData.startTime && newData.endTime) {
+          const [sH, sM] = newData.startTime.split(":").map(Number);
+          const [eH, eM] = newData.endTime.split(":").map(Number);
+          const diff = (eH * 60 + eM) - (sH * 60 + sM);
+          if (diff > 0) {
+            newData.duration = diff.toString();
+          }
+        }
+      }
+
+      return newData;
+    });
+  };
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const durationMin = parseInt(value) || 0;
+
+    setFormData((prev) => {
+      const newData = { ...prev, duration: value };
+
+      if (newData.startTime && durationMin > 0) {
+        const [h, m] = newData.startTime.split(":").map(Number);
+        const totalMinutes = h * 60 + m + durationMin;
+        const newH = Math.floor(totalMinutes / 60) % 24;
+        const newM = totalMinutes % 60;
+        newData.endTime = `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+      }
+
+      return newData;
+    });
   };
 
   const validateForm = () => {
-    if (!formData.examCode.trim()) {
-      setError("Exam Code is required");
+    if (!formData.campus) {
+      setError("Campus is required");
       return false;
     }
     if (!formData.subjectCode.trim()) {
-      setError("Subject Code is required");
+      setError("Subject is required");
+      return false;
+    }
+    if (!formData.semesterId) {
+      setError("Semester is required");
       return false;
     }
     if (!formData.examDate) {
@@ -139,14 +375,13 @@ export default function CreateExamSchedulePage() {
       return false;
     }
 
-    // Validate exam date is from tomorrow onwards
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+    // Validate exam date is from today onwards
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(formData.examDate);
-    
-    if (selectedDate < tomorrow) {
-      setError("Cannot select today or past dates. Please choose tomorrow or later.");
+
+    if (selectedDate < today) {
+      setError("Cannot select past dates. Please choose today or later.");
       return false;
     }
 
@@ -185,13 +420,13 @@ export default function CreateExamSchedulePage() {
     setIsSubmitting(true);
     try {
       // Transform form data to API format aligned with API DTO
-      const apiData = {
+        const apiData: CreateExamScheduleData = {
         examCode: formData.examCode || undefined,
         openCode: formData.openCode || undefined,
-        semester: formData.semester || undefined,
-        note: formData.note || undefined,
-        examPart: examPartMap[formData.examPart] ? [examPartMap[formData.examPart]] : [],
+        semesterId: formData.semesterId || undefined,
+        examPart: [],
         subjectCode: formData.subjectCode,
+        campus: formData.campus,
         examOpenTime: (() => {
           if (!formData.examDate || !formData.startTime) return undefined;
           const [year, month, day] = formData.examDate.split('-').map(Number);
@@ -207,9 +442,11 @@ export default function CreateExamSchedulePage() {
         examRoomId: formData.examRoomId || undefined,
         proctorId: formData.proctorId || undefined,
         hallInvigilatorId: formData.hallInvigilatorId || undefined,
+        studentIds: selectedStudents.length > 0 ? selectedStudents.map(s => s.id) : undefined,
       };
 
       await createMutation.mutateAsync(apiData);
+      toast.success(t("examOfficer.createSchedule.successMessage") || "Exam schedule created successfully");
       router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || "Failed to create exam schedule";
@@ -278,7 +515,7 @@ export default function CreateExamSchedulePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    {t("examOfficer.createSchedule.examCode")} <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.examCode")} <span className="text-xs text-slate-400 font-normal">{t("examOfficer.createSchedule.openCodeOptional")}</span>
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -293,6 +530,7 @@ export default function CreateExamSchedulePage() {
                       type="button"
                       className="bg-orange-500 hover:bg-orange-600 text-white px-4 h-auto"
                       onClick={handleGenerateCode}
+                      disabled={!formData.subjectCode || !formData.semesterId || !formData.campus}
                     >
                       <Zap className="h-4 w-4" />
                     </Button>
@@ -302,15 +540,30 @@ export default function CreateExamSchedulePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    {t("examOfficer.createSchedule.semester")}
+                    {t("examOfficer.createSchedule.campus")} <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="semester"
+                  <SearchableSelect
+                    value={formData.campus}
+                    onChange={(val) => {
+                      setFormData(prev => ({ ...prev, campus: val, examRoomId: "" }));
+                    }}
+                    options={campusOptions}
+                    placeholder={t("examOfficer.createSchedule.campusPlaceholder")}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    {t("examOfficer.createSchedule.semester")} <span className="text-red-500">*</span>
+                  </label>
+                  <SearchableSelect
+                    value={formData.semesterId}
+                    onChange={(val) => setFormData(prev => ({ ...prev, semesterId: val }))}
+                    options={semesterOptions}
                     placeholder={t("examOfficer.createSchedule.semesterPlaceholder")}
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    selectedLabel={semestersData?.data.find(s => s.id === formData.semesterId)?.name}
+                    onSearchChange={setSemesterSearch}
+                    isLoading={isLoadingSemesters}
                   />
                 </div>
 
@@ -318,37 +571,66 @@ export default function CreateExamSchedulePage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     {t("examOfficer.createSchedule.subjectCode")} <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="subjectCode"
-                    placeholder={t("examOfficer.createSchedule.subjectCodePlaceholder")}
+                  <SearchableSelect
                     value={formData.subjectCode}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    onChange={(val) => setFormData(prev => ({ ...prev, subjectCode: val }))}
+                    options={subjectOptions}
+                    placeholder={t("examOfficer.createSchedule.subjectCodePlaceholder")}
+                    selectedLabel={formData.subjectCode ? (subjectsData?.data.find(s => s.code === formData.subjectCode)?.name ? `${formData.subjectCode} - ${subjectsData?.data.find(s => s.code === formData.subjectCode)?.name}` : formData.subjectCode) : undefined}
+                    onSearchChange={setSubjectSearch}
+                    isLoading={isLoadingSubjects}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    {t("examOfficer.createSchedule.examPart")} <span className="text-red-500">*</span>
+                    {t("examOfficer.createSchedule.examRoom")}
                   </label>
-                  <div className="flex gap-3">
-                    {Object.entries(examPartMap).map(([key, label]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, examPart: key as ExamPart }))}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${formData.examPart === key
-                          ? "bg-orange-50 text-orange-600 border-orange-300"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                          }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-
-                  </div>
+                  <SearchableSelect
+                    value={formData.examRoomId}
+                    onChange={(val) => setFormData(prev => ({ ...prev, examRoomId: val }))}
+                    options={roomOptions}
+                    placeholder={t("examOfficer.createSchedule.roomPlaceholder")}
+                    selectedLabel={formData.examRoomId ? roomsData?.data.find(r => r.id === formData.examRoomId)?.roomNumber : undefined}
+                    onSearchChange={setRoomSearch}
+                    isLoading={isLoadingRooms}
+                    disabled={!formData.campus}
+                  />
+                  {!formData.campus && (
+                    <p className="text-[10px] text-orange-500 mt-1">
+                      {t("examOfficer.createSchedule.campusPlaceholder")}
+                    </p>
+                  )}
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    {t("examOfficer.proctor")}
+                  </label>
+                  <SearchableSelect
+                    value={formData.proctorId}
+                    onChange={(val) => setFormData(prev => ({ ...prev, proctorId: val }))}
+                    options={proctorOptions}
+                    placeholder={t("examOfficer.createSchedule.proctorPlaceholder")}
+                    onSearchChange={setProctorSearch}
+                    isLoading={isLoadingProctors}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    {t("examOfficer.createSchedule.hallInvigilator")}
+                  </label>
+                  <SearchableSelect
+                    value={formData.hallInvigilatorId}
+                    onChange={(val) => setFormData(prev => ({ ...prev, hallInvigilatorId: val }))}
+                    options={hallInvigilatorOptions}
+                    placeholder={t("examOfficer.createSchedule.hallInvigilatorPlaceholder")}
+                    onSearchChange={setHallInvigilatorSearch}
+                    isLoading={isLoadingHallInvigilators}
+                  />
+                </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -359,7 +641,7 @@ export default function CreateExamSchedulePage() {
                     name="examDate"
                     value={formData.examDate}
                     onChange={handleInputChange}
-                    min={getTomorrowDate()}
+                    min={getTodayDate()}
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                   <p className="text-xs text-slate-400 mt-1">
@@ -368,10 +650,19 @@ export default function CreateExamSchedulePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">{t("examOfficer.createSchedule.duration")}</label>
-                  <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-slate-400" />
-                    {duration ? duration : t("examOfficer.createSchedule.durationAuto")}
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    {t("examOfficer.createSchedule.duration")} ({t("examOfficer.durationMinutes") || "min"})
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleDurationChange}
+                      min="1"
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <Clock className="absolute right-3 top-2.5 h-4 w-4 text-slate-400" />
                   </div>
                   <p className="text-xs text-slate-400 mt-1">{t("examOfficer.createSchedule.durationHelper")}</p>
                 </div>
@@ -407,6 +698,106 @@ export default function CreateExamSchedulePage() {
 
           <Card className="border-none shadow-sm">
             <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Users className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.createSchedule.addStudentsSection")}</h2>
+                  <span className="text-xs text-slate-500 font-medium">{t("examOfficer.createSchedule.openCodeOptional")}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadTemplate}
+                    className="text-slate-600 border-slate-200"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {t("examOfficer.createSchedule.downloadTemplate")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-slate-600 border-slate-200"
+                  >
+                    <FileUp className="h-4 w-4 mr-2" />
+                    {t("examOfficer.createSchedule.importStudents")}
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImportStudents}
+                    accept=".csv,.xlsx,.xls"
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={currentStudentId}
+                      onChange={setCurrentStudentId}
+                      options={studentOptions}
+                      placeholder={t("examOfficer.createSchedule.studentPlaceholder")}
+                      onSearchChange={setStudentSearch}
+                      isLoading={isLoadingStudents}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleAddStudent}
+                    disabled={!currentStudentId}
+                    className="bg-purple-500 hover:bg-purple-600 text-white px-4 h-12 rounded-2xl"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" /> {t("examOfficer.createSchedule.addBtn")}
+                  </Button>
+                </div>
+
+                {selectedStudents.length > 0 && (
+                  <div className="border border-slate-100 rounded-2xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-semibold text-slate-600">{t("examOfficer.createSchedule.studentCodeCol")}</th>
+                          <th className="px-4 py-2 text-left font-semibold text-slate-600">{t("examOfficer.createSchedule.fullNameCol")}</th>
+                          <th className="px-4 py-2 text-right font-semibold text-slate-600 w-20">{t("examOfficer.createSchedule.actionCol")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {selectedStudents.map((student) => (
+                          <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-2 font-medium text-slate-700">{student.code}</td>
+                            <td className="px-4 py-2 text-slate-600">{student.fullName}</td>
+                            <td className="px-4 py-2 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveStudent(student.id)}
+                                className="text-red-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-all"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="bg-slate-50 p-2 text-right">
+                      <span className="text-xs font-medium text-slate-500">{t("examOfficer.createSchedule.totalStudents", { count: selectedStudents.length })}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm">
+            <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-green-50 rounded-lg">
                   <Clock className="h-5 w-5 text-green-500" />
@@ -425,30 +816,6 @@ export default function CreateExamSchedulePage() {
               />
               <p className="text-xs text-slate-400 mt-2">
                 {t("examOfficer.createSchedule.openCodeHelper")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <BookOpen className="h-5 w-5 text-blue-500" />
-                </div>
-                <h2 className="text-lg font-bold text-slate-900">{t("examOfficer.createSchedule.notesSection")}</h2>
-                <span className="text-xs text-slate-500 font-medium">{t("examOfficer.createSchedule.openCodeOptional")}</span>
-              </div>
-
-              <textarea
-                name="note"
-                placeholder={t("examOfficer.createSchedule.notesPlaceholder")}
-                value={formData.note}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
-              />
-              <p className="text-xs text-slate-400 mt-2">
-                {t("examOfficer.createSchedule.notesHelper")}
               </p>
             </CardContent>
           </Card>

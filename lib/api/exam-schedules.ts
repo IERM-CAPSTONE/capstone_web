@@ -62,7 +62,7 @@ export interface ListExamSchedulesParams {
 
 export interface CreateExamScheduleData {
   examCode?: string;
-  semester?: string;
+  semesterId?: string;
   examPart?: string[];
   openCode?: string;
   note?: string;
@@ -72,6 +72,8 @@ export interface CreateExamScheduleData {
   subjectCode?: string;
   examOpenTime?: string;
   examCloseTime?: string;
+  studentIds?: string[];
+  campus?: string;
 }
 
 export interface UpdateExamScheduleData {
@@ -214,7 +216,7 @@ export const examSchedulesApi = {
   },
 
   // Download auto-generate templates
-  downloadTemplate: async (type: 'proctor' | 'registration' | 'course'): Promise<Blob> => {
+  downloadTemplate: async (type: 'proctor' | 'registration' | 'course' | 'student'): Promise<Blob> => {
     const response = await apiClient.get(`/exam-sessions/templates/${type}`, {
       responseType: 'blob',
     });

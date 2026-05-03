@@ -94,3 +94,9 @@ export function useImportStudents() {
     },
   });
 }
+
+export function useSearchUsersByCodes() {
+  return useMutation({
+    mutationFn: (codes: string[]) => usersApi.searchByCodes(codes),
+  });
+}
