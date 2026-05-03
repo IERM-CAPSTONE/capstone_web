@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils/cn";
 import { ExamSeat } from "@/hooks/use-seat-management";
 import { Lock, Unlock } from "lucide-react";
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 
 interface SeatCellProps {
   seat?: ExamSeat;
@@ -36,6 +37,7 @@ export function SeatCell({
   isSwapTarget = false,
   isSwapModeEnabled = false,
 }: SeatCellProps) {
+  const t = useTranslations("ProctorSession.seatStatus");
   const label = stt ? `#${stt}` : `R${row}C${col}`;
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
@@ -44,7 +46,7 @@ export function SeatCell({
   let seatStyles = "bg-[#F8FAFC] border-slate-100";
   let textStyles = "text-slate-400";
   let labelStyles = "text-slate-300";
-  let statusText = "Available";
+  let statusText = t("available");
   let statusIcon = null;
 
   if (seat?.status === 'Locked') {
@@ -52,32 +54,32 @@ export function SeatCell({
     seatStyles = "bg-indigo-50 border-indigo-100 opacity-70";
     textStyles = "text-indigo-400";
     labelStyles = "text-indigo-300";
-    statusText = "LOCKED";
+    statusText = t("locked").toUpperCase();
     statusIcon = <Lock className="h-3 w-3" />;
   } else if (seat?.status === 'Assigned') {
     // Assigned seat - Orange/Yellow
     seatStyles = "bg-orange-50 border-orange-200 shadow-sm";
     textStyles = "text-orange-700";
     labelStyles = "text-orange-800";
-    statusText = "ASSIGNED";
+    statusText = t("assigned").toUpperCase();
   } else if (seat?.status === 'Present') {
     // Present seat - Green (xanh lá)
     seatStyles = "bg-green-50 border-green-200 shadow-sm";
     textStyles = "text-green-700";
     labelStyles = "text-green-800";
-    statusText = "PRESENT";
+    statusText = t("present").toUpperCase();
   } else if (seat?.status === 'Absent') {
     // Absent seat - Red
     seatStyles = "bg-red-50 border-red-200 shadow-sm";
     textStyles = "text-red-700";
     labelStyles = "text-red-800";
-    statusText = "ABSENT";
+    statusText = t("absent").toUpperCase();
   } else if (seat?.status === 'Available') {
     // Available seat - Neutral
     seatStyles = "bg-[#F8FAFC] border-slate-100";
     textStyles = "text-slate-400";
     labelStyles = "text-slate-300";
-    statusText = "Available";
+    statusText = t("available");
   }
 
   // Override text if student is assigned
@@ -146,7 +148,7 @@ export function SeatCell({
     >
       {isSwapSource && (
         <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest shadow-md animate-bounce">
-          Picked up
+          {t("pickedUp")}
         </div>
       )}
 
@@ -167,7 +169,7 @@ export function SeatCell({
               ? "bg-orange-100 text-orange-600 hover:bg-orange-200"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
           )}
-          title={seat.status === 'Locked' ? 'Unlock seat' : 'Lock seat'}
+          title={seat.status === 'Locked' ? t("unlockSeat") : t("lockSeat")}
         >
           {seat.status === 'Locked' ? (
             <Unlock className="h-3 w-3" />

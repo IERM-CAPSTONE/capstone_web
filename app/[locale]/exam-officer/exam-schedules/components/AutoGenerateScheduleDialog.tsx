@@ -17,8 +17,9 @@ import {
     Upload,
     FileText,
     Users,
+    Download,
 } from "lucide-react";
-import { useAutoGenerateSchedule } from "@/hooks/use-exam-schedules";
+import { useAutoGenerateSchedule, useDownloadTemplate } from "@/hooks/use-exam-schedules";
 import { useSemesters } from "@/hooks/use-semesters";
 import { useRooms } from "@/hooks/use-rooms";
 import { toast } from "sonner";
@@ -60,11 +61,7 @@ export default function AutoGenerateScheduleDialog({
     useEffect(() => {
         const cleanupCalc = onSocket?.("AUTO_GENERATE_CALCULATED", (data: any) => {
             if (data.failedCount > 0) {
-                toast.warning(
-                    locale === "vi"
-                        ? `Đã tạo lịch nhưng còn ${data.failedCount} cụm chưa hoàn tất.`
-                        : `Schedule generated with ${data.failedCount} incomplete pools.`,
-                );
+                toast.warning(t("successCalcWarning", { count: data.failedCount }));
             }
             // Auto close this dialog because AutoGenerateReportDialog will open
             if (isOpen) {
@@ -80,7 +77,7 @@ export default function AutoGenerateScheduleDialog({
             if (cleanupCalc) cleanupCalc();
             if (cleanupComp) cleanupComp();
         };
-    }, [locale, onSocket, t, isOpen]);
+    }, [onSocket, t, isOpen]);
 
     const [roomPage, setRoomPage] = useState(1);
     const roomsPerPage = 20;
@@ -101,6 +98,7 @@ export default function AutoGenerateScheduleDialog({
     });
 
     const autoGenerateMutation = useAutoGenerateSchedule();
+    const downloadTemplateMutation = useDownloadTemplate();
 
     const semesters = semestersData?.data || [];
     const allRooms = roomsData?.data || [];
@@ -203,7 +201,7 @@ export default function AutoGenerateScheduleDialog({
         if (!file) return;
 
         if (!file.name.toLowerCase().endsWith(".csv")) {
-            toast.error(locale === "vi" ? "Vui lòng tải lên file CSV giám thị." : "Please upload a proctor CSV file.");
+            toast.error(t("errors.uploadFile"));
             return;
         }
 
@@ -211,14 +209,14 @@ export default function AutoGenerateScheduleDialog({
             const text = await file.text();
             const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
             if (lines.length < 2) {
-                setError(locale === "vi" ? "File CSV giám thị cần có header và ít nhất 1 email." : "Proctor CSV needs a header and at least 1 email.");
+                setError(t("errors.uploadFile"));
                 return;
             }
 
             const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
             const emailIndex = headers.findIndex(h => ["email", "proctoremail", "proctor_email", "giám thị", "giamthi", "giam_thi"].includes(h.replace(/\s+/g, "")));
             if (emailIndex < 0) {
-                setError(locale === "vi" ? "File giám thị phải có cột email." : "Proctor file must contain an email column.");
+                setError(t("proctorRequiredColumn"));
                 return;
             }
 
@@ -233,7 +231,7 @@ export default function AutoGenerateScheduleDialog({
 
             const proctorEmails = Array.from(emailSet);
             if (proctorEmails.length === 0) {
-                setError(locale === "vi" ? "Không tìm thấy email giám thị hợp lệ trong file." : "No valid proctor emails found in file.");
+                setError(t("errors.uploadFile"));
                 return;
             }
 
@@ -244,7 +242,7 @@ export default function AutoGenerateScheduleDialog({
                 proctorEmails,
             }));
         } catch (err: any) {
-            setError(err?.message || (locale === "vi" ? "Không đọc được file giám thị." : "Cannot read proctor file."));
+            setError(err?.message || t("errors.failed"));
         }
     };
 
@@ -298,11 +296,7 @@ export default function AutoGenerateScheduleDialog({
         }
         const missingFile = formData.campus.find(c => !formData.campusFiles[c]?.fileData);
         if (missingFile) {
-            setError(
-                locale === "vi"
-                    ? `Vui lòng tải lên file đăng ký sinh viên cho cơ sở: ${missingFile}`
-                    : `Please upload student registration file for campus: ${missingFile}`,
-            );
+            setError(t("errors.uploadFile"));
             return;
         }
         if (formData.selectedRooms.length === 0) {
@@ -481,12 +475,22 @@ export default function AutoGenerateScheduleDialog({
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-slate-400" />
-                                    {locale === "vi" ? "Danh sách giám thị" : "Proctor list"}
-                                    <span className="text-xs text-slate-400 font-normal">
-                                        {locale === "vi" ? "(CSV có cột email)" : "(CSV with email column)"}
-                                    </span>
+                                <label className="text-sm font-semibold text-slate-700 flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-slate-400" />
+                                        {t("proctorList")}
+                                        <span className="text-xs text-slate-400 font-normal">
+                                            {t("proctorCsvNote")}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => downloadTemplateMutation.mutate("proctor")}
+                                        className="text-[10px] text-orange-600 font-bold hover:underline flex items-center gap-1"
+                                    >
+                                        <Download className="h-3 w-3" />
+                                        {t("proctorTemplate")}
+                                    </button>
                                 </label>
                                 <div
                                     onClick={() => document.getElementById("auto-proctor-file")?.click()}
@@ -507,9 +511,7 @@ export default function AutoGenerateScheduleDialog({
                                             <div className="min-w-0">
                                                 <p className="text-sm font-bold text-emerald-900 truncate">{formData.proctorFileName}</p>
                                                 <p className="text-xs text-emerald-700">
-                                                    {locale === "vi"
-                                                        ? `${formData.proctorEmails.length} email giám thị hợp lệ`
-                                                        : `${formData.proctorEmails.length} valid proctor emails`}
+                                                    {t("successCount", { count: formData.proctorEmails.length })}
                                                 </p>
                                             </div>
                                             <FileText className="h-6 w-6 text-emerald-500 shrink-0" />
@@ -518,30 +520,38 @@ export default function AutoGenerateScheduleDialog({
                                         <div className="flex flex-col items-center gap-1 text-slate-400">
                                             <Upload className="h-6 w-6" />
                                             <p className="text-xs font-semibold text-slate-600">
-                                                {locale === "vi" ? "Tải lên CSV email giám thị" : "Upload proctor email CSV"}
+                                                {t("proctorUploadPlaceholder")}
                                             </p>
                                             <p className="text-[10px]">
-                                                {locale === "vi" ? "Cột bắt buộc: email" : "Required column: email"}
+                                                {t("proctorRequiredColumn")}
                                             </p>
                                         </div>
                                     )}
                                 </div>
                                 <p className="text-[11px] text-slate-500">
-                                    {locale === "vi"
-                                        ? "Hệ thống sẽ tự phân ngẫu nhiên giám thị, ưu tiên các ca trong cùng ngày nằm liền nhau để giảm thời gian chờ."
-                                        : "The system randomly assigns proctors while preferring contiguous same-day slots to reduce waiting time."}
+                                    {t("proctorLogicNote")}
                                 </p>
                             </div>
 
                             {/* Per-Campus File Upload */}
                             <div className="space-y-4">
                                 <div className="space-y-3">
-                                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                        <Upload className="h-4 w-4 text-slate-400" />
-                                        {locale === "vi" ? "File đăng ký" : "Registration Files"}
-                                        <span className="text-xs text-slate-400 font-normal">
-                                            {locale === "vi" ? "(bắt buộc cho từng cơ sở)" : "(required for each campus)"}
-                                        </span>
+                                    <label className="text-sm font-semibold text-slate-700 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <Upload className="h-4 w-4 text-slate-400" />
+                                            {t("registrationFiles")}
+                                            <span className="text-xs text-slate-400 font-normal">
+                                                {t("registrationRequiredNote")}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => downloadTemplateMutation.mutate("registration")}
+                                            className="text-[10px] text-orange-600 font-bold hover:underline flex items-center gap-1"
+                                        >
+                                            <Download className="h-3 w-3" />
+                                            {t("registrationTemplate")}
+                                        </button>
                                     </label>
                                     <div className={`grid gap-3 ${formData.campus.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                                         {formData.campus.map(campus => {
@@ -550,7 +560,7 @@ export default function AutoGenerateScheduleDialog({
                                                 <div key={campus} className="space-y-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs font-bold text-white bg-orange-500 px-2 py-0.5 rounded-md">{campus}</span>
-                                                        {campusFile && <span className="text-xs text-emerald-600 font-semibold">✓ Uploaded</span>}
+                                                        {campusFile && <span className="text-xs text-emerald-600 font-semibold">✓ {tDashboard("schedulesPage.board.uploaded")}</span>}
                                                     </div>
                                                     <div
                                                         onClick={() => document.getElementById(`reg-file-${campus}`)?.click()}
@@ -576,7 +586,7 @@ export default function AutoGenerateScheduleDialog({
                                                             <div className="flex flex-col items-center gap-1 text-slate-400">
                                                                 <Upload className="h-6 w-6" />
                                                                 <p className="text-xs font-semibold text-slate-600">{t("uploadPlaceholder")}</p>
-                                                                <p className="text-[10px]">.csv or .xlsx</p>
+                                                                <p className="text-[10px]">{t("uploadHint")}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -587,12 +597,22 @@ export default function AutoGenerateScheduleDialog({
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                        <CalendarDays className="h-4 w-4 text-slate-400" />
-                                        {locale === "vi" ? "File lịch học" : "Class Schedule Files"}
-                                        <span className="text-xs text-slate-400 font-normal">
-                                            {locale === "vi" ? "(tùy chọn, để tránh xung đột)" : "(optional, for conflict avoidance)"}
-                                        </span>
+                                    <label className="text-sm font-semibold text-slate-700 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <CalendarDays className="h-4 w-4 text-slate-400" />
+                                            {t("classScheduleFiles")}
+                                            <span className="text-xs text-slate-400 font-normal">
+                                                {t("classScheduleOptionalNote")}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => downloadTemplateMutation.mutate("course")}
+                                            className="text-[10px] text-orange-600 font-bold hover:underline flex items-center gap-1"
+                                        >
+                                            <Download className="h-3 w-3" />
+                                            {t("classScheduleTemplate")}
+                                        </button>
                                     </label>
                                     <div className={`grid gap-3 ${formData.campus.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                                         {formData.campus.map(campus => {
@@ -601,7 +621,7 @@ export default function AutoGenerateScheduleDialog({
                                                 <div key={campus} className="space-y-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs font-bold text-white bg-blue-500 px-2 py-0.5 rounded-md">{campus}</span>
-                                                        {schedFile && <span className="text-xs text-emerald-600 font-semibold">✓ Uploaded</span>}
+                                                        {schedFile && <span className="text-xs text-emerald-600 font-semibold">✓ {tDashboard("schedulesPage.board.uploaded")}</span>}
                                                     </div>
                                                     <div
                                                         onClick={() => document.getElementById(`sched-file-${campus}`)?.click()}
@@ -626,8 +646,8 @@ export default function AutoGenerateScheduleDialog({
                                                         ) : (
                                                             <div className="flex flex-col items-center gap-1 text-slate-400">
                                                                 <Upload className="h-6 w-6" />
-                                                                <p className="text-xs font-semibold text-slate-600">{locale === "vi" ? "Tải lên lịch học" : "Upload Class Schedule"}</p>
-                                                                <p className="text-[10px]">.csv or .xlsx</p>
+                                                                <p className="text-xs font-semibold text-slate-600">{t("classScheduleUploadPlaceholder")}</p>
+                                                                <p className="text-[10px]">{t("uploadHint")}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -642,24 +662,24 @@ export default function AutoGenerateScheduleDialog({
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                                         <Zap className="h-4 w-4 text-slate-400" />
-                                        {locale === "vi" ? "Loại kỳ thi" : "Exam Type"}
+                                        {t("examType")}
                                     </label>
                                     <select
                                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                                         value={formData.selectedType}
                                         onChange={(e) => setFormData({ ...formData, selectedType: e.target.value as any })}
                                     >
-                                        <option value="FE">{locale === "vi" ? "Thi cuối kỳ (FE)" : "Final Exam (FE)"}</option>
-                                        <option value="RE">{locale === "vi" ? "Thi lại (RE)" : "Retake Exam (RE)"}</option>
-                                        <option value="PE">{locale === "vi" ? "Thi thực hành (PE)" : "Practical Exam (PE)"}</option>
-                                        <option value="COURSERA_FE">Coursera (FE)</option>
-                                        <option value="COURSERA_RE">Coursera (RE)</option>
+                                        <option value="FE">{t("examTypes.FE")}</option>
+                                        <option value="RE">{t("examTypes.RE")}</option>
+                                        <option value="PE">{t("examTypes.PE")}</option>
+                                        <option value="COURSERA_FE">{t("examTypes.COURSERA_FE")}</option>
+                                        <option value="COURSERA_RE">{t("examTypes.COURSERA_RE")}</option>
                                     </select>
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-sm font-semibold text-slate-700">{locale === "vi" ? "Tuần thi" : "Week Number"}</label>
+                                        <label className="text-sm font-semibold text-slate-700">{t("weekNumber")}</label>
                                         {selectedSemester && (
                                             <span className="text-[10px] px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-bold">
                                                 {t("maxWeeks", { count: maxWeeks })}
@@ -670,7 +690,7 @@ export default function AutoGenerateScheduleDialog({
                                         type="number"
                                         min={1}
                                         max={maxWeeks}
-                                        placeholder={locale === "vi" ? "Nhập tuần (1-15)" : "Enter week (1-15)"}
+                                        placeholder={t("weekNumberPlaceholder")}
                                         className={`w-full px-3 py-2 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${formData.targetWeek && (parseInt(formData.targetWeek) > maxWeeks || parseInt(formData.targetWeek) < 1)
                                             ? "border-red-500 bg-red-50" : "border-slate-200"
                                             }`}
@@ -678,7 +698,7 @@ export default function AutoGenerateScheduleDialog({
                                         onChange={(e) => setFormData({ ...formData, targetWeek: e.target.value })}
                                     />
                                     <div className="flex items-center justify-between px-1">
-                                        <p className="text-[10px] text-slate-400 font-medium">{locale === "vi" ? "Ví dụ" : t("example")}: 11</p>
+                                        <p className="text-[10px] text-slate-400 font-medium">{t("example")}: 11</p>
                                         {formData.targetWeek && !isNaN(parseInt(formData.targetWeek)) && (
                                             <p className="text-[10px] text-orange-600 font-bold">{getWeekRange(formData.targetWeek)}</p>
                                         )}
@@ -688,20 +708,20 @@ export default function AutoGenerateScheduleDialog({
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                                         <CalendarDays className="h-4 w-4 text-slate-400" />
-                                        {locale === "vi" ? "Số ngày thi / tuần" : "Exam Days / Week"}
+                                        {t("examDaysPerWeek")}
                                     </label>
                                     <select
                                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                                         value={formData.examDays}
                                         onChange={(e) => setFormData({ ...formData, examDays: e.target.value })}
                                     >
-                                        <option value="1">{locale === "vi" ? "1 ngày" : "1 Day"}</option>
-                                        <option value="2">{locale === "vi" ? "2 ngày (Thứ 2 - Thứ 3)" : "2 Days (Mon - Tue)"}</option>
-                                        <option value="3">{locale === "vi" ? "3 ngày (Thứ 2 - Thứ 4)" : "3 Days (Mon - Wed)"}</option>
-                                        <option value="4">{locale === "vi" ? "4 ngày (Thứ 2 - Thứ 5)" : "4 Days (Mon - Thu)"}</option>
-                                        <option value="5">{locale === "vi" ? "5 ngày (Thứ 2 - Thứ 6)" : "5 Days (Mon - Fri)"}</option>
-                                        <option value="6">{locale === "vi" ? "6 ngày (Thứ 2 - Thứ 7)" : "6 Days (Mon - Sat)"}</option>
-                                        <option value="7">{locale === "vi" ? "7 ngày (Thứ 2 - Chủ nhật)" : "7 Days (Mon - Sun)"}</option>
+                                        <option value="1">{t("examDaysOptions.1")}</option>
+                                        <option value="2">{t("examDaysOptions.2")}</option>
+                                        <option value="3">{t("examDaysOptions.3")}</option>
+                                        <option value="4">{t("examDaysOptions.4")}</option>
+                                        <option value="5">{t("examDaysOptions.5")}</option>
+                                        <option value="6">{t("examDaysOptions.6")}</option>
+                                        <option value="7">{t("examDaysOptions.7")}</option>
                                     </select>
                                 </div>
                             </div>
@@ -776,6 +796,7 @@ export default function AutoGenerateScheduleDialog({
                                                 onClick={() => setRoomPage(p => Math.max(1, p - 1))}
                                                 disabled={roomPage === 1}
                                                 className="h-6 w-6 p-0 rounded-md"
+                                                title={tCommon("previous")}
                                             >
                                                 <X className="h-3 w-3 rotate-90" /> {/* Chevron placeholder or use others */}
                                             </Button>
@@ -809,6 +830,7 @@ export default function AutoGenerateScheduleDialog({
                                                 onClick={() => setRoomPage(p => Math.min(totalRoomPages, p + 1))}
                                                 disabled={roomPage === totalRoomPages}
                                                 className="h-6 w-6 p-0 rounded-md"
+                                                title={tCommon("next")}
                                             >
                                                 <X className="h-3 w-3 -rotate-90" />
                                             </Button>
@@ -826,9 +848,7 @@ export default function AutoGenerateScheduleDialog({
                             </div>
                             <h4 className="text-xl font-bold text-slate-900">{t("success")}</h4>
                             <p className="text-slate-600 max-w-sm mx-auto">
-                                {locale === "vi"
-                                    ? "Hệ thống đang tạo và xử lý lịch thi ở nền. Vui lòng chờ."
-                                    : "The exam schedules generation is running and processing in the background. Please wait."}
+                                {t("processingBackground")}
                             </p>
                             <div className="mt-6 pt-6">
                                 <Button
@@ -844,7 +864,7 @@ export default function AutoGenerateScheduleDialog({
                     {!isSuccess && (
                         <div className="p-6 border-t flex items-center justify-end gap-3 flex-shrink-0 bg-slate-50/50">
                             <Button variant="outline" onClick={handleClose} disabled={autoGenerateMutation.isPending}>
-                                {t("cancel")}
+                                {tCommon("cancel")}
                             </Button>
                             <Button
                                 className="bg-orange-500 hover:bg-orange-600 text-white min-w-[140px]"

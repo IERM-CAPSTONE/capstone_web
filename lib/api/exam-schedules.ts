@@ -213,6 +213,14 @@ export const examSchedulesApi = {
     return response.data;
   },
 
+  // Download auto-generate templates
+  downloadTemplate: async (type: 'proctor' | 'registration' | 'course'): Promise<Blob> => {
+    const response = await apiClient.get(`/exam-sessions/templates/${type}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
   // Update exam session fields (e.g. proctorId, status, note)
   update: async (id: string, data: Partial<{
     proctorId: string | null;

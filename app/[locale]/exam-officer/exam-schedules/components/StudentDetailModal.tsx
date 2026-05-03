@@ -17,6 +17,7 @@ import { ExamSeat } from "@/hooks/use-seat-management";
 import { StudentExam } from "@/lib/api/student-exams";
 import { useUpdateStudentExamPart } from "@/hooks/use-student-exams";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface StudentDetailModalProps {
   student: StudentExam | null;
@@ -37,6 +38,8 @@ export function StudentDetailModal({
   canChangeSeat = false,
   onChangeSeat,
 }: StudentDetailModalProps) {
+  const t = useTranslations("Dashboard.examOfficer.schedulesPage.board");
+  const tCommon = useTranslations("Common");
   const updatePartMutation = useUpdateStudentExamPart();
 
   if (!isOpen || !student || typeof document === 'undefined') {
@@ -60,14 +63,14 @@ export function StudentDetailModal({
           checkInTime: isCheckingIn ? new Date().toISOString() : null,
         }
       });
-      toast.success(`${student.studentName} is now ${isCheckingIn ? 'PRESENT' : 'ABSENT'} for part ${selectedPart}`);
+      toast.success(tCommon(`success.${isCheckingIn ? 'update' : 'update'}`)); // or a more specific message
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update attendance");
+      toast.error(err?.message || tCommon("errors.updateFailed"));
     }
   };
 
   const isPresent = partData ? partData.isCheckedIn : student.status === 'CHECKEDIN';
-  const displayStatus = partData ? (isPresent ? 'PRESENT' : 'ABSENT') : student.status;
+  const displayStatus = partData ? (isPresent ? t("legend.present") : t("legend.absent")) : tCommon(`statuses.${student.status}`);
 
   return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
@@ -89,10 +92,10 @@ export function StudentDetailModal({
               </div>
             </div>
             <h4 className="text-xl font-bold text-slate-900">
-              {student.studentName || "Unknown Student"}
+              {student.studentName || t("unknownStudent")}
             </h4>
             <p className="text-sm text-slate-500 font-medium mb-6">
-              Student ID: {student.studentCode}
+              {t("studentId")}: {student.studentCode}
             </p>
           </div>
 
@@ -103,10 +106,10 @@ export function StudentDetailModal({
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                  Assigned Seat
+                  {t("assignedSeat")}
                 </p>
                 <p className="text-sm font-bold text-slate-900">
-                  {seat ? `R${seat.row}C${seat.col}` : "No seat assigned"} (Desk {student.seatNumber})
+                  {seat ? `R${seat.row}C${seat.col}` : t("noSeatAssigned")} ({t("desk")} {student.seatNumber})
                 </p>
               </div>
             </div>
@@ -115,11 +118,11 @@ export function StudentDetailModal({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-600">Email</span>
+                  <span className="text-slate-600">{t("email")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <UserCheck className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-600">Status</span>
+                  <span className="text-slate-600">{t("status")}</span>
                 </div>
               </div>
               <div className="space-y-3 text-right">
@@ -145,9 +148,9 @@ export function StudentDetailModal({
                 <div className="flex items-start gap-3">
                   <ArrowRightCircle className="h-5 w-5 text-orange-500 mt-0.5" />
                   <div>
-                    <h5 className="font-bold text-slate-900 text-sm">Attendance Mode: {selectedPart}</h5>
+                    <h5 className="font-bold text-slate-900 text-sm">{t("attendanceMode")}: {selectedPart}</h5>
                     <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                      You are viewing and managing attendance specifically for the <span className="font-bold text-orange-600">{selectedPart}</span> portion of this exam.
+                      {t("attendanceModeDesc", { part: selectedPart })}
                     </p>
                   </div>
                 </div>
@@ -157,14 +160,14 @@ export function StudentDetailModal({
             {!partData && selectedPart && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500" />
-                <p className="text-[11px] text-red-600 font-medium">Student is not registered for this part.</p>
+                <p className="text-[11px] text-red-600 font-medium">{t("studentNotRegisteredPart")}</p>
               </div>
             )}
 
             {seat && seat.status === 'Locked' && (
               <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
                 <p className="text-[11px] text-orange-700 font-bold">
-                  ⚠️ This seat is locked and cannot be assigned to students.
+                  {t("seatLockedWarning")}
                 </p>
               </div>
             )}
@@ -180,7 +183,7 @@ export function StudentDetailModal({
                   onClose();
                 }}
               >
-                Change Seat
+                {t("changeSeat")}
               </Button>
             ) : (
               <Button
@@ -188,7 +191,7 @@ export function StudentDetailModal({
                 className="border-slate-200 text-slate-600 font-bold py-6 uppercase tracking-wider text-xs"
                 onClick={onClose}
               >
-                Cancel
+                {tCommon("cancel")}
               </Button>
             )}
             {selectedPart && partData ? (
@@ -203,9 +206,9 @@ export function StudentDetailModal({
                 {updatePartMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : isPresent ? (
-                  "Mark Absent"
+                  t("markAbsent")
                 ) : (
-                  "Mark Present"
+                  t("markPresent")
                 )}
               </Button>
             ) : (
@@ -213,7 +216,7 @@ export function StudentDetailModal({
                 className="bg-slate-900 hover:bg-slate-800 text-white py-6 text-xs font-black uppercase tracking-widest"
                 onClick={onClose}
               >
-                {canChangeSeat ? 'Close' : 'Ok'}
+                {canChangeSeat ? t("close") : t("ok")}
               </Button>
             )}
           </div>

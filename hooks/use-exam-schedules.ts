@@ -109,6 +109,44 @@ export function useDeleteExamSchedule() {
   });
 }
 
+export function useExportExamSchedules() {
+  return useMutation({
+    mutationFn: (params: any) => examSchedulesApi.export(params),
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `exam_sessions_${new Date().getTime()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    },
+  });
+}
+
+export function useDownloadTemplate() {
+  return useMutation({
+    mutationFn: (type: 'proctor' | 'registration' | 'course') => examSchedulesApi.downloadTemplate(type),
+    onSuccess: (blob, type) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const extension = (type === 'proctor' || type === 'registration') ? 'csv' : 'xlsx';
+      const filenames = {
+        proctor: 'ProctorList_Template',
+        registration: 'StudSub',
+        course: 'ClassSchedule_Template'
+      };
+      link.setAttribute("download", `${filenames[type]}.${extension}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    },
+  });
+}
+
 export function useArchiveExamSchedule() {
   const queryClient = useQueryClient();
 

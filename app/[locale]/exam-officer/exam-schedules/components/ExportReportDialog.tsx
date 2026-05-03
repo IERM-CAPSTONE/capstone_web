@@ -19,6 +19,8 @@ export default function ExportReportDialog({
     onClose,
     onExport
 }: ExportReportDialogProps) {
+    const t = useTranslations("Dashboard.examOfficer.exportReportDialog");
+    const tCommon = useTranslations("Common");
     const [campus, setCampus] = useState("");
     const [isExporting, setIsExporting] = useState(false);
 
@@ -42,9 +44,9 @@ export default function ExportReportDialog({
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-black flex items-center gap-2">
-                            <Download className="h-5 w-5" /> Export Report
+                            <Download className="h-5 w-5" /> {t("title")}
                         </h2>
-                        <p className="text-white/80 text-xs font-bold mt-1 tracking-wider uppercase">Select campus to download</p>
+                        <p className="text-white/80 text-xs font-bold mt-1 tracking-wider uppercase">{t("subtitle")}</p>
                     </div>
                     <Button
                         variant="ghost"
@@ -59,26 +61,26 @@ export default function ExportReportDialog({
 
                 <CardContent className="p-6">
                     <div className="space-y-3 mb-6">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 flex items-center gap-1.5"><Building2 className="w-3 h-3" /> Campus</label>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 flex items-center gap-1.5"><Building2 className="w-3 h-3" /> {t("campusLabel")}</label>
                         <select
                             className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500/20 hover:border-orange-200 transition-all"
                             value={campus}
                             onChange={(e) => setCampus(e.target.value)}
                             disabled={isExporting}
                         >
-                            <option value="">All Campuses</option>
+                            <option value="">{t("allCampuses")}</option>
                             {CAMPUSES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
 
                     <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
-                        <Button 
-                            variant="ghost" 
-                            onClick={onClose} 
+                        <Button
+                            variant="ghost"
+                            onClick={onClose}
                             disabled={isExporting}
                             className="font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl"
                         >
-                            Cancel
+                            {tCommon("cancel")}
                         </Button>
                         <Button
                             className="bg-orange-600 hover:bg-orange-700 text-white min-w-[140px] font-bold rounded-xl shadow-lg shadow-orange-200"
@@ -88,12 +90,12 @@ export default function ExportReportDialog({
                             {isExporting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Exporting...
+                                    {t("exporting")}
                                 </>
                             ) : (
                                 <>
                                     <Download className="mr-2 h-4 w-4" />
-                                    Download Excel
+                                    {t("downloadBtn")}
                                 </>
                             )}
                         </Button>

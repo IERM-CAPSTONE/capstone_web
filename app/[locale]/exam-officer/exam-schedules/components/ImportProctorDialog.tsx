@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,8 +24,7 @@ interface ImportProctorDialogProps {
 }
 
 export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDialogProps) {
-    const locale = useLocale();
-    const isVi = locale === "vi";
+    const t = useTranslations("AutoGenerate.importProctor");
 
     const {
         selectedFile,
@@ -78,7 +77,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
 
     const handleImport = async () => {
         if (!selectedFile) {
-            setImportError(isVi ? "Vui lòng chọn tệp trước." : "Please select a file first");
+            setImportError(t("selectFileFirst"));
             return;
         }
 
@@ -89,11 +88,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
             setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
 
             for (let i = 0; i < proctorChunks.length; i++) {
-                setImportStatus(
-                    isVi
-                        ? `Đang gửi dữ liệu giám thị: lô ${i + 1}/${proctorChunks.length}...`
-                        : `Sending proctors: batch ${i + 1}/${proctorChunks.length}...`,
-                );
+                setImportStatus(t("sendingBatch", { current: i + 1, total: proctorChunks.length }));
                 await proctorMutation.mutateAsync({
                     importType: "proctor" as any,
                     proctors: proctorChunks[i],
@@ -102,17 +97,13 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                 } as any);
             }
 
-            setImportStatus(
-                isVi
-                    ? "Đã gửi dữ liệu lên server. Hệ thống đang xử lý nền..."
-                    : "Data sent to server. Processing in background...",
-            );
+            setImportStatus(t("processingBackground"));
             setIsWaitingForWorker(true);
             setImportError("");
         } catch (err: any) {
             console.error(err);
             setImportError(
-                err?.response?.data?.message || err?.message || (isVi ? "Import thất bại." : "Failed to import."),
+                err?.response?.data?.message || err?.message || t("importFailed"),
             );
             setImportStatus("");
         }
@@ -144,10 +135,10 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">
-                                    {isVi ? "Import Giám Thị" : "Import Proctors"}
+                                    {t("title")}
                                 </h3>
                                 <p className="text-sm text-slate-500">
-                                    {isVi ? "Tải lên tệp phân công giám thị" : "Upload proctor assignment file"}
+                                    {t("description")}
                                 </p>
                             </div>
                         </div>
@@ -170,17 +161,17 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                 </div>
                                 <h4 className="mb-2 text-lg font-semibold text-slate-900">
                                     {workerProgress.errors > 0
-                                        ? (isVi ? "Import hoàn tất nhưng có lỗi" : "Import Completed with Errors")
-                                        : (isVi ? "Import thành công!" : "Import Successful!")}
+                                        ? t("successWithErrorsTitle")
+                                        : t("successTitle")}
                                 </h4>
                                 <p className="mb-6 text-sm text-slate-600">
-                                    {isVi ? "Đã xử lý" : "Processed"} {workerProgress.success + workerProgress.errors} {isVi ? "dòng" : "items"}:
+                                    {t("processedSummary", { count: workerProgress.success + workerProgress.errors })}
                                     <span className="ml-1 font-medium text-green-600">
-                                        {workerProgress.success} {isVi ? "thành công" : "success"}
+                                        {t("successCount", { count: workerProgress.success })}
                                     </span>
                                     ,
                                     <span className="ml-1 font-medium text-red-600">
-                                        {workerProgress.errors} {isVi ? "thất bại" : "failures"}
+                                        {t("failureCount", { count: workerProgress.errors })}
                                     </span>
                                     .
                                 </p>
@@ -190,7 +181,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-white text-left shadow-sm">
                                     <div className="border-b bg-slate-50 px-4 py-2">
                                         <span className="text-xs font-semibold uppercase tracking-wider text-red-600">
-                                            {isVi ? "Lỗi import giám thị" : "Proctor Errors"} ({workerProgress.failedItems.length})
+                                            {t("errorSectionTitle", { count: workerProgress.failedItems.length })}
                                         </span>
                                     </div>
 
@@ -199,10 +190,10 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                             <thead className="sticky top-0 bg-slate-50">
                                                 <tr>
                                                     <th className="w-1/3 px-4 py-2 text-left font-medium text-slate-500">
-                                                        {isVi ? "Dữ liệu dòng" : "Row Data"}
+                                                        {t("rowData")}
                                                     </th>
                                                     <th className="px-4 py-2 text-left font-medium text-slate-500">
-                                                        {isVi ? "Thông báo lỗi" : "Error Message"}
+                                                        {t("errorMessage")}
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -213,7 +204,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                                             {fail.data?.proctorEmail ||
                                                                 (fail.data
                                                                     ? `${fail.data.dateExam || ""} ${fail.data.timeExam || ""} ${fail.data.examRoom || ""}`
-                                                                    : (isVi ? "Không xác định" : "Unknown"))}
+                                                                    : t("unknown"))}
                                                         </td>
                                                         <td className="px-4 py-2 italic text-red-600">
                                                             {fail.message || fail.error}
@@ -233,10 +224,10 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                                 onClick={() => setErrorPage((p) => p - 1)}
                                                 className="h-7 text-[10px]"
                                             >
-                                                {isVi ? "Trước" : "Prev"}
+                                                {t("prev")}
                                             </Button>
                                             <span className="text-[10px] text-slate-500">
-                                                {isVi ? "Trang" : "Page"} {errorPage} {isVi ? "trên" : "of"} {totalErrorPages}
+                                                {t("pageOf", { current: errorPage, total: totalErrorPages })}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -245,7 +236,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                                 onClick={() => setErrorPage((p) => p + 1)}
                                                 className="h-7 text-[10px]"
                                             >
-                                                {isVi ? "Sau" : "Next"}
+                                                {t("next")}
                                             </Button>
                                         </div>
                                     )}
@@ -266,10 +257,10 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-700">
-                                                    {isVi ? "Bấm để tải lên hoặc kéo thả tệp" : "Click to upload or drag and drop"}
+                                                    {t("uploadCta")}
                                                 </p>
                                                 <p className="mt-1 text-xs text-slate-500">
-                                                    {isVi ? "Chỉ hỗ trợ tệp CSV hoặc Excel (tối đa 10MB)" : "CSV or Excel files only (Max 10MB)"}
+                                                    {t("uploadHint")}
                                                 </p>
                                             </div>
                                         </div>
@@ -308,12 +299,12 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                         <CardContent className="p-4">
                                             <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-900">
                                                 <FileText className="h-4 w-4" />
-                                                {isVi ? "Yêu cầu định dạng tệp" : "File Format Requirements"}
+                                                {t("fileFormatTitle")}
                                             </h4>
                                             <ul className="space-y-1 text-xs text-blue-700">
-                                                <li>• {isVi ? "Cột bắt buộc" : "Required columns"}: DateExam, TimeExam, ExamRoom, ProctorEmail</li>
-                                                <li>• {isVi ? "Định dạng ngày" : "Date format"}: DD/MM/YYYY</li>
-                                                <li>• {isVi ? "Định dạng giờ" : "Time format"}: HHhMM-HHhMM</li>
+                                                <li>• {t("requiredColumns")}</li>
+                                                <li>• {t("dateFormat")}</li>
+                                                <li>• {t("timeFormat")}</li>
                                             </ul>
                                         </CardContent>
                                     </Card>
@@ -322,7 +313,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                 <>
                                     <div className="mb-4 flex gap-4 border-b border-slate-200">
                                         <button className="border-b-2 border-green-600 px-4 py-2 text-sm font-medium text-green-600">
-                                            {isVi ? "Giám thị" : "Proctors"} ({proctorPreview.length})
+                                            {t("tabLabel", { count: proctorPreview.length })}
                                         </button>
                                     </div>
 
@@ -344,7 +335,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                             <thead className="sticky top-0 bg-slate-50">
                                                 <tr className="border-b border-slate-200 bg-slate-50">
                                                     <th className="whitespace-nowrap px-4 py-2 text-left font-semibold text-slate-700">
-                                                        {isVi ? "STT" : "No."}
+                                                        {t("index")}
                                                     </th>
                                                     {proctorPreview.length > 0 &&
                                                         Object.keys(proctorPreview[0])
@@ -361,7 +352,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                                                 );
                                                             })}
                                                     <th className="px-4 py-2 text-center font-semibold text-slate-700">
-                                                        {isVi ? "Thao tác" : "Actions"}
+                                                        {t("actions")}
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -393,10 +384,10 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                                                 {isEditing ? (
                                                                     <div className="flex items-center justify-center gap-2">
                                                                         <Button size="sm" onClick={() => handleSaveEdit()}>
-                                                                            {isVi ? "Lưu" : "Save"}
+                                                                            {t("save")}
                                                                         </Button>
                                                                         <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                                                                            {isVi ? "Hủy" : "Cancel"}
+                                                                            {t("cancel")}
                                                                         </Button>
                                                                     </div>
                                                                 ) : (
@@ -404,14 +395,14 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                                                         <button
                                                                             onClick={() => handleEditRow(row, actualIndex)}
                                                                             className="rounded p-1 text-blue-600 transition-colors hover:bg-blue-100"
-                                                                            title={isVi ? "Sửa" : "Edit"}
+                                                                            title={t("edit")}
                                                                         >
                                                                             <Edit2 className="h-4 w-4" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDeleteRow(actualIndex)}
                                                                             className="rounded p-1 text-red-600 transition-colors hover:bg-red-100"
-                                                                            title={isVi ? "Xóa" : "Delete"}
+                                                                            title={t("delete")}
                                                                         >
                                                                             <Trash2 className="h-4 w-4" />
                                                                         </button>
@@ -427,23 +418,27 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
 
                                     <div className="mb-4 flex items-center justify-between">
                                         <div className="text-sm text-slate-500">
-                                            {isVi ? "Hiển thị" : "Showing"} {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, proctorPreview.length)} {isVi ? "đến" : "to"} {Math.min(currentPage * ITEMS_PER_PAGE, proctorPreview.length)} {isVi ? "trong tổng số" : "of"} {proctorPreview.length} {isVi ? "dòng" : "entries"}
+                                            {t("showingEntries", {
+                                                from: Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, proctorPreview.length),
+                                                to: Math.min(currentPage * ITEMS_PER_PAGE, proctorPreview.length),
+                                                total: proctorPreview.length
+                                            })}
                                         </div>
                                         <div className="flex gap-2">
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                                                {isVi ? "Đầu" : "First"}
+                                                {t("first")}
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => p - 1)} disabled={currentPage === 1}>
-                                                {isVi ? "Trước" : "Previous"}
+                                                {t("prev")}
                                             </Button>
                                             <div className="flex items-center px-4 text-sm font-medium">
-                                                {isVi ? "Trang" : "Page"} {currentPage} {isVi ? "trên" : "of"} {totalPages}
+                                                {t("pageOf", { current: currentPage, total: totalPages })}
                                             </div>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage === totalPages}>
-                                                {isVi ? "Sau" : "Next"}
+                                                {t("next")}
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                                                {isVi ? "Cuối" : "Last"}
+                                                {t("last")}
                                             </Button>
                                         </div>
                                     </div>
@@ -453,7 +448,7 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
                                             onClick={() => fileInputRef.current?.click()}
                                             className="text-sm font-medium text-green-600 hover:text-green-700"
                                         >
-                                            {isVi ? "← Đổi tệp" : "← Change file"}
+                                            {t("changeFile")}
                                         </button>
                                     </div>
                                 </>
@@ -461,19 +456,19 @@ export default function ImportProctorDialog({ isOpen, onClose }: ImportProctorDi
 
                             <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-6">
                                 <Button variant="outline" onClick={handleClose} disabled={isPending}>
-                                    {isVi ? "Hủy" : "Cancel"}
+                                    {t("cancel")}
                                 </Button>
                                 {previewLoaded && (
                                     <Button onClick={handleImport} disabled={isPending || proctorPreview.length === 0}>
                                         {isPending ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                {isVi ? "Đang import..." : "Importing..."}
+                                                {t("importing")}
                                             </>
                                         ) : (
                                             <>
                                                 <Import className="mr-2 h-4 w-4" />
-                                                {isVi ? "Import giám thị" : "Import Proctors"}
+                                                {t("importBtn")}
                                             </>
                                         )}
                                     </Button>

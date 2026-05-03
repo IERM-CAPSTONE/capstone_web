@@ -13,6 +13,7 @@ import { StudentDetailModal } from "./StudentDetailModal";
 import { examSchedulesApi } from "@/lib/api/exam-schedules";
 import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { CheckCircle2 } from "lucide-react";
 
 interface SeatingPlanProps {
@@ -36,6 +37,9 @@ export default function SeatingPlan({
     const { data: studentsResponse, isLoading: studentsLoading, refetch: refetchStudents } = useStudentExamsBySession(examSessionId);
     const { on: onSocket } = useSocket();
 
+    const t = useTranslations("Dashboard.examOfficer.seatingPlan");
+    const tCommon = useTranslations("Common");
+
     // Listen for real-time face authentication events
     useEffect(() => {
         if (!onSocket) return;
@@ -45,8 +49,8 @@ export default function SeatingPlan({
             refetchStudents();
 
             // Show a nice notification
-            toast.success(`${data.studentName} is PRESENT`, {
-                description: `Face recognition successful (${data.studentCode})`,
+            toast.success(t("faceAuthenticated", { studentName: data.studentName }), {
+                description: t("faceAuthenticatedDesc", { studentCode: data.studentCode }),
                 icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
                 duration: 5000,
             });
@@ -125,7 +129,7 @@ export default function SeatingPlan({
         setActionError(null);
         setSwapSourceSeat(seat);
         setSelectedStudentId(null);
-        toast.info(`Swap mode enabled from R${seat.row}C${seat.col}. Select target seat.`);
+        toast.info(t("swapModeEnabled", { seat: `R${seat.row}C${seat.col}` }));
     };
 
     const cancelSwapMode = () => {
@@ -136,7 +140,7 @@ export default function SeatingPlan({
     const handleSwapTargetSelect = async (targetSeat: ExamSeat) => {
         if (!swapSourceSeat) return;
         if (targetSeat.id === swapSourceSeat.id) {
-            setActionError('Please select a different seat as swap target');
+            setActionError(t("swapTargetError"));
             return;
         }
 
@@ -145,16 +149,16 @@ export default function SeatingPlan({
             setIsSwappingSeat(true);
             const result = await swapSeats(swapSourceSeat.id, targetSeat.id);
             if (!result.success) {
-                setActionError(result.error || 'Failed to swap seats');
+                setActionError(result.error || t("swapError"));
                 return;
             }
 
-            toast.success(`Swapped seats R${swapSourceSeat.row}C${swapSourceSeat.col} and R${targetSeat.row}C${targetSeat.col}`);
+            toast.success(t("swapSuccess", { source: `R${swapSourceSeat.row}C${swapSourceSeat.col}`, target: `R${targetSeat.row}C${targetSeat.col}` }));
             setSwapSourceSeat(null);
             await refetchStudents();
             await refetchSchedule();
         } catch {
-            setActionError('An unexpected error occurred while swapping seats');
+            setActionError(t("swapUnexpectedError"));
         } finally {
             setIsSwappingSeat(false);
         }
@@ -168,16 +172,16 @@ export default function SeatingPlan({
             if (seat.status === 'Locked') {
                 const result = await unlockSeat(seat.id);
                 if (!result.success) {
-                    setActionError(result.error || 'Failed to unlock seat');
+                    setActionError(result.error || t("unlockError"));
                 }
             } else {
                 const result = await lockSeat(seat.id);
                 if (!result.success) {
-                    setActionError(result.error || 'Failed to lock seat');
+                    setActionError(result.error || t("lockError"));
                 }
             }
         } catch (err) {
-            setActionError('An unexpected error occurred');
+            setActionError(t("unexpectedError"));
         }
     };
 
@@ -190,7 +194,7 @@ export default function SeatingPlan({
             const result = await examSchedulesApi.finalizeSeats(examSessionId);
 
             if (result.success) {
-                toast.success(`Successfully assigned ${result.data.studentsAssigned} students to seats`);
+                toast.success(t("finalizeSuccess", { count: result.data.studentsAssigned }));
                 // Refresh all data
                 await Promise.all([
                     fetchSeats(),
@@ -199,7 +203,7 @@ export default function SeatingPlan({
                 ]);
             }
         } catch (err: any) {
-            const errorMsg = err?.response?.data?.message || 'Failed to finalize seat assignments';
+            const errorMsg = err?.response?.data?.message || t("finalizeError");
             setActionError(errorMsg);
             toast.error(errorMsg);
         } finally {
@@ -213,12 +217,12 @@ export default function SeatingPlan({
             setIsApplyingTemplate(true);
             const result = await applyTemplate('CHECKERBOARD');
             if (!result.success) {
-                setActionError(result.error || 'Failed to apply checkerboard template');
+                setActionError(result.error || t("checkerboardError"));
                 return;
             }
-            toast.success('Checkerboard template applied');
+            toast.success(t("checkerboardSuccess"));
         } catch {
-            setActionError('An unexpected error occurred while applying template');
+            setActionError(t("swapUnexpectedError"));
         } finally {
             setIsApplyingTemplate(false);
         }
@@ -230,12 +234,12 @@ export default function SeatingPlan({
             setIsApplyingTemplate(true);
             const result = await applyTemplate('RESET');
             if (!result.success) {
-                setActionError(result.error || 'Failed to reset seat locks');
+                setActionError(result.error || t("resetError"));
                 return;
             }
-            toast.success('Seat locks reset');
+            toast.success(t("resetSuccess"));
         } catch {
-            setActionError('An unexpected error occurred while resetting template');
+            setActionError(t("swapUnexpectedError"));
         } finally {
             setIsApplyingTemplate(false);
         }
@@ -248,14 +252,14 @@ export default function SeatingPlan({
             {swapSourceSeat && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3">
                     <p className="text-[12px] text-blue-700 font-medium">
-                        Swap mode: source seat <span className="font-bold">R{swapSourceSeat.row}C{swapSourceSeat.col}</span>. Select a target seat to complete swap.
+                        {t("swapModeHint", { seat: `R${swapSourceSeat.row}C${swapSourceSeat.col}` })}
                     </p>
                     <button
                         type="button"
                         onClick={cancelSwapMode}
                         className="text-[11px] px-3 py-1.5 rounded border border-blue-300 text-blue-700 font-bold hover:bg-blue-100"
                     >
-                        Cancel
+                        {tCommon("cancel")}
                     </button>
                 </div>
             )}
@@ -268,18 +272,18 @@ export default function SeatingPlan({
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                            Seating Plan ({checkedInCount}/{totalSeats || rows * cols})
+                            {t("title")} ({checkedInCount}/{totalSeats || rows * cols})
                         </h3>
                         {selectedPart && (
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                Attendance for Part: <span className="text-orange-500">{selectedPart}</span>
+                                {t("attendanceForPart")} <span className="text-orange-500">{selectedPart}</span>
                             </p>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                     <div className={`w-2 h-2 rounded-full animate-pulse ${selectedPart ? 'bg-green-500' : 'bg-slate-300'}`} />
-                    {selectedPart ? 'Part Mode Active' : 'Session Review'}
+                    {selectedPart ? t("partModeActive") : t("sessionReview")}
                 </div>
             </div>
 
@@ -301,10 +305,10 @@ export default function SeatingPlan({
 
             {/* Legend */}
             <div className="flex flex-wrap items-center gap-3">
-                <LegendItem color="bg-indigo-50 border-indigo-200" label="LOCKED" dotColor="bg-indigo-500" textColor="text-indigo-600" />
-                <LegendItem color="bg-orange-50 border-orange-200" label="ASSIGNED" dotColor="bg-orange-500" textColor="text-orange-600" />
-                <LegendItem color="bg-green-50 border-green-200" label="PRESENT" dotColor="bg-green-500" textColor="text-green-600" />
-                <LegendItem color="bg-red-50 border-red-200" label="ABSENT" dotColor="bg-red-500" textColor="text-red-600" />
+                <LegendItem color="bg-indigo-50 border-indigo-200" label={t("legend.locked")} dotColor="bg-indigo-500" textColor="text-indigo-600" />
+                <LegendItem color="bg-orange-50 border-orange-200" label={t("legend.assigned")} dotColor="bg-orange-500" textColor="text-orange-600" />
+                <LegendItem color="bg-green-50 border-green-200" label={t("legend.present")} dotColor="bg-green-500" textColor="text-green-600" />
+                <LegendItem color="bg-red-50 border-red-200" label={t("legend.absent")} dotColor="bg-red-500" textColor="text-red-600" />
             </div>
 
             {/* Loading state */}
