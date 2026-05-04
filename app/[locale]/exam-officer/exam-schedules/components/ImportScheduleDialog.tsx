@@ -1,6 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,8 @@ interface ImportScheduleDialogProps {
 }
 
 export default function ImportScheduleDialog({ isOpen, onClose }: ImportScheduleDialogProps) {
+    const t = useTranslations("Dashboard.examOfficer.importDialog");
+    const tCommon = useTranslations("Common");
     const {
         selectedFile,
         fileInputRef,
@@ -86,7 +89,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
 
     const handleImport = async () => {
         if (!selectedFile) {
-            setImportError("Please select a file first");
+            setImportError(tCommon("error"));
             return;
         }
 
@@ -104,7 +107,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                 const currentSchedules = isFirstBatch ? schedulePreview : [];
                 const currentStudents = (studentChunks[i] || []);
 
-                setImportStatus(`Sending batch ${i + 1}/${totalBatches}...`);
+                setImportStatus(t("common.sendingBatch", { current: i + 1, total: totalBatches }));
 
                 await scheduleMutation.mutateAsync({
                     importType: "schedule",
@@ -115,12 +118,12 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                 });
             }
 
-            setImportStatus("Data sent to server. Processing in background...");
+            setImportStatus(t("common.processInBackground"));
             setIsWaitingForWorker(true);
             setImportError("");
         } catch (err: any) {
             console.error(err);
-            setImportError(err?.response?.data?.message || err?.message || "Failed to import.");
+            setImportError(err?.response?.data?.message || err?.message || tCommon("error"));
             setImportStatus("");
         }
     };
@@ -151,8 +154,8 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                 <Import className="h-5 w-5 text-orange-500" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Import Exam Schedule</h3>
-                                <p className="text-sm text-slate-500">Upload exam schedule file (Ca thi + Students)</p>
+                                <h3 className="text-lg font-bold text-slate-900">{t("schedule.title")}</h3>
+                                <p className="text-sm text-slate-500">{t("schedule.description")}</p>
                             </div>
                         </div>
                         <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -174,12 +177,12 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                     </div>
                                 </div>
                                 <h4 className="text-lg font-semibold text-slate-900 mb-2">
-                                    {workerProgress.errors > 0 ? 'Import Completed with Errors' : 'Import Successful!'}
+                                    {workerProgress.errors > 0 ? t("common.importSuccessWithErrors") : t("common.importSuccess")}
                                 </h4>
                                 <p className="text-sm text-slate-600 mb-6">
-                                    Processed {workerProgress.success + workerProgress.errors} items:
-                                    <span className="text-green-600 font-medium ml-1">{workerProgress.success} success</span>,
-                                    <span className="text-red-600 font-medium ml-1">{workerProgress.errors} failures</span>.
+                                    {t("common.processedSummary", { total: workerProgress.success + workerProgress.errors })}
+                                    <span className="text-green-600 font-medium ml-1">{t("common.successSummary", { count: workerProgress.success })}</span>,
+                                    <span className="text-red-600 font-medium ml-1">{t("common.errorSummary", { count: workerProgress.errors })}</span>.
                                 </p>
                             </div>
 
@@ -191,13 +194,13 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                 onClick={() => { setFailureTab("schedule"); setErrorPage(1); }}
                                                 className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "schedule" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
                                             >
-                                                Schedule Errors ({workerProgress.failedItems.filter(f => f.type === 'schedule').length})
+                                                {t("common.scheduleErrors", { count: workerProgress.failedItems.filter(f => f.type === 'schedule').length })}
                                             </button>
                                             <button
                                                 onClick={() => { setFailureTab("student"); setErrorPage(1); }}
                                                 className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "student" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
                                             >
-                                                Student Errors ({workerProgress.failedItems.filter(f => f.type === 'student').length})
+                                                {t("common.studentErrors", { count: workerProgress.failedItems.filter(f => f.type === 'student').length })}
                                             </button>
                                         </div>
                                     </div>
@@ -206,16 +209,16 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                         <table className="w-full text-xs">
                                             <thead className="bg-slate-50 sticky top-0">
                                                 <tr>
-                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">Row Data</th>
-                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium">Error Message</th>
+                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">{t("common.rowData")}</th>
+                                                    <th className="px-4 py-2 text-left text-slate-500 font-medium">{t("common.errorMessage")}</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
                                                 {paginatedErrors.map((fail, idx) => (
                                                     <tr key={idx} className="hover:bg-red-50/30">
                                                         <td className="px-4 py-2 font-mono text-slate-600 break-all">
-                                                            {failureTab === "schedule" && (fail.data?.examSession || fail.item?.examSession || 'Unknown')}
-                                                            {failureTab === "student" && (fail.data?.studentCode || fail.item?.studentCode || 'Unknown')}
+                                                            {failureTab === "schedule" && (fail.data?.examSession || fail.item?.examSession || t("common.unknown"))}
+                                                            {failureTab === "student" && (fail.data?.studentCode || fail.item?.studentCode || t("common.unknown"))}
                                                         </td>
                                                         <td className="px-4 py-2 text-red-600 italic">
                                                             {fail.message || fail.error}
@@ -236,10 +239,10 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                 onClick={() => setErrorPage(p => p - 1)}
                                                 className="h-7 text-[10px]"
                                             >
-                                                Prev
+                                                {tCommon("previous")}
                                             </Button>
                                             <span className="text-[10px] text-slate-500">
-                                                Page {errorPage} of {totalErrorPages}
+                                                {tCommon("page")} {errorPage} {tCommon("of")} {totalErrorPages}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -248,7 +251,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                 onClick={() => setErrorPage(p => p + 1)}
                                                 className="h-7 text-[10px]"
                                             >
-                                                Next
+                                                {tCommon("next")}
                                             </Button>
                                         </div>
                                     )}
@@ -270,10 +273,10 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-700">
-                                                    Click to upload or drag and drop
+                                                    {t("common.uploadCta")}
                                                 </p>
                                                 <p className="text-xs text-slate-500 mt-1">
-                                                    CSV or Excel files only (Max 10MB)
+                                                    {t("common.uploadHint")}
                                                 </p>
                                             </div>
                                         </div>
@@ -313,12 +316,12 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                         <CardContent className="p-4">
                                             <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
                                                 <FileText className="h-4 w-4" />
-                                                File Format Requirements
+                                                {t("common.fileFormatRequirements")}
                                             </h4>
                                             <ul className="text-xs text-blue-700 space-y-1">
-                                                <li>• Columns: Ca thi, Mã SV, MemberCode, Họ tên, CCCD, STT, Môn thi</li>
-                                                <li>• Ca thi format: DD/MM/YYYY HHhMM-HHhMM ROOM</li>
-                                                <li>• First row should contain column headers</li>
+                                                {(t.raw("schedule.formatInfo") as string[]).map((info, idx) => (
+                                                    <li key={idx}>• {info}</li>
+                                                ))}
                                             </ul>
                                         </CardContent>
                                     </Card>
@@ -334,7 +337,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                 : "text-slate-600 hover:text-slate-900"
                                                 }`}
                                         >
-                                            Exam Schedules ({schedulePreview.length})
+                                            {t("schedule.tabSchedules", { count: schedulePreview.length })}
                                         </button>
                                         <button
                                             onClick={() => { setActiveTab("students"); setCurrentPage(1); }}
@@ -343,7 +346,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                 : "text-slate-600 hover:text-slate-900"
                                                 }`}
                                         >
-                                            Students ({studentPreview.length})
+                                            {t("schedule.tabStudents", { count: studentPreview.length })}
                                         </button>
                                     </div>
 
@@ -365,7 +368,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                         <table className="w-full text-sm">
                                             <thead className="bg-slate-50 sticky top-0">
                                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">No.</th>
+                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">{tCommon("table.index") || "No."}</th>
                                                     {currentData.length > 0 && Object.keys(currentData[0])
                                                         .filter(k => k !== "stt")
                                                         .map(key => {
@@ -377,7 +380,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                                 </th>
                                                             );
                                                         })}
-                                                    <th className="px-4 py-2 text-center font-semibold text-slate-700">Actions</th>
+                                                    <th className="px-4 py-2 text-center font-semibold text-slate-700">{tCommon("actions")}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -409,22 +412,22 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                                             <td className="px-4 py-2 text-center">
                                                                 {isEditing ? (
                                                                     <div className="flex items-center justify-center gap-2">
-                                                                        <Button size="sm" onClick={() => handleSaveEdit()}>Save</Button>
-                                                                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                                                                        <Button size="sm" onClick={() => handleSaveEdit()}>{tCommon("save")}</Button>
+                                                                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>{tCommon("cancel")}</Button>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="flex items-center justify-center gap-2">
                                                                         <button
                                                                             onClick={() => handleEditRow(row, actualIndex)}
                                                                             className="p-1 hover:bg-blue-100 rounded text-blue-600 transition-colors"
-                                                                            title="Edit"
+                                                                            title={tCommon("edit")}
                                                                         >
                                                                             <Edit2 className="h-4 w-4" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDeleteRow(actualIndex)}
                                                                             className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
-                                                                            title="Delete"
+                                                                            title={tCommon("delete")}
                                                                         >
                                                                             <Trash2 className="h-4 w-4" />
                                                                         </button>
@@ -441,23 +444,27 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                     {/* Pagination */}
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="text-sm text-slate-500">
-                                            Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, currentData.length)} to {Math.min(currentPage * ITEMS_PER_PAGE, currentData.length)} of {currentData.length} entries
+                                            {t("common.showingEntries", {
+                                                from: Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, currentData.length),
+                                                to: Math.min(currentPage * ITEMS_PER_PAGE, currentData.length),
+                                                total: currentData.length
+                                            })}
                                         </div>
                                         <div className="flex gap-2">
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                                                First
+                                                {tCommon("first")}
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>
-                                                Previous
+                                                {tCommon("previous")}
                                             </Button>
                                             <div className="flex items-center px-4 text-sm font-medium">
-                                                Page {currentPage} of {totalPages}
+                                                {tCommon("page")} {currentPage} {tCommon("of")} {totalPages}
                                             </div>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>
-                                                Next
+                                                {tCommon("next")}
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                                                Last
+                                                {tCommon("last")}
                                             </Button>
                                         </div>
                                     </div>
@@ -468,7 +475,7 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                                             onClick={() => fileInputRef.current?.click()}
                                             className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                                         >
-                                            ← Change file
+                                            ← {t("common.changeFile")}
                                         </button>
                                     </div>
                                 </>
@@ -477,19 +484,19 @@ export default function ImportScheduleDialog({ isOpen, onClose }: ImportSchedule
                             {/* Action Buttons */}
                             <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
                                 <Button variant="outline" onClick={handleClose} disabled={isPending}>
-                                    Cancel
+                                    {tCommon("cancel")}
                                 </Button>
                                 {previewLoaded && (
                                     <Button onClick={handleImport} disabled={isPending || (schedulePreview.length === 0 && studentPreview.length === 0)}>
                                         {isPending ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Importing...
+                                                {t("common.importingBtn")}
                                             </>
                                         ) : (
                                             <>
                                                 <Import className="mr-2 h-4 w-4" />
-                                                Import Prepared Schedule
+                                                {t("schedule.title")}
                                             </>
                                         )}
                                     </Button>

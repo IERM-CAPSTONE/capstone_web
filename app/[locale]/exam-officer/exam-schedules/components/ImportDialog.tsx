@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import {
     Loader2,
     AlertCircle,
@@ -26,6 +27,8 @@ interface ImportDialogProps {
 }
 
 export default function ImportDialog({ isOpen, onClose, importType }: ImportDialogProps) {
+    const t = useTranslations("Dashboard.examOfficer.importDialog");
+    const tCommon = useTranslations("Common");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [importError, setImportError] = useState("");
     const [importSuccess, setImportSuccess] = useState(false);
@@ -83,7 +86,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                     if (totalProcessed >= totalExpected) {
                         setIsWaitingForWorker(false);
                         setImportSuccess(true);
-                        toast.success(`Import fully completed: ${newSuccess} success, ${newErrors} errors`);
+                        toast.success(t("common.importCompletedToast", { success: newSuccess, errors: newErrors }));
                         setCurrentBatchId(null);
                     }
 
@@ -104,7 +107,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
         const file = e.target.files?.[0];
         if (file) {
             if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
-                setImportError("Please select a valid CSV or Excel file");
+                setImportError(t("common.invalidFileType"));
                 return;
             }
             setSelectedFile(file);
@@ -120,17 +123,17 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
 
             // Strict Validation
             if (importType === "schedule" && result.type !== "schedule") {
-                setImportError("Incorrect file type. Please upload a Schedule file (must contain 'Ca thi' or 'Mã SV').");
+                setImportError(t("schedule.errorFileType"));
                 setPreviewLoaded(false);
                 return;
             }
             if (importType === "proctor" && result.type !== "proctor") {
-                setImportError("Incorrect file type. Please upload a Proctor file (must contain 'ProctorEmail').");
+                setImportError(t("proctor.errorFileType"));
                 setPreviewLoaded(false);
                 return;
             }
             if (importType === "examcode" && result.type !== "examcode") {
-                setImportError("Incorrect file type. Please upload an Exam Code file (must contain 'Exam Code' or 'Mã đề').");
+                setImportError(t("examcode.errorFileType"));
                 setPreviewLoaded(false);
                 return;
             }
@@ -152,7 +155,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                 setStudentPreview([]);
                 setProctorPreview([]);
             } else {
-                setImportError("Could not determine file type from headers. Please check the file format.");
+                setImportError(t("common.determineTypeError"));
                 return;
             }
 
@@ -160,7 +163,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
             setImportError("");
             setCurrentPage(1);
         } catch (err: any) {
-            setImportError("Failed to parse file: " + err.message);
+            setImportError(t("common.parseError", { error: err.message }));
             setPreviewLoaded(false);
         }
     };
@@ -218,7 +221,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
 
     const handleImport = async () => {
         if (!selectedFile) {
-            setImportError("Please select a file first");
+            setImportError(tCommon("error")); // Or a specific "please select file" message if available
             return;
         }
 
@@ -237,7 +240,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                     const currentSchedules = isFirstBatch ? schedulePreview : [];
                     const currentStudents = (studentChunks[i] || []);
 
-                    setImportStatus(`Sending batch ${i + 1}/${totalBatches}...`);
+                    setImportStatus(t("common.sendingBatch", { current: i + 1, total: totalBatches }));
 
                     await scheduleMutation.mutateAsync({
                         importType: "schedule",
@@ -254,7 +257,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                 setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
 
                 for (let i = 0; i < proctorChunks.length; i++) {
-                    setImportStatus(`Sending proctors: batch ${i + 1}/${proctorChunks.length}...`);
+                    setImportStatus(t("common.sendingProctors", { current: i + 1, total: proctorChunks.length }));
                     await proctorMutation.mutateAsync({
                         importType: "proctor" as any,
                         proctors: proctorChunks[i],
@@ -269,7 +272,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                 setWorkerProgress({ success: 0, errors: 0, failedItems: [] });
 
                 for (let i = 0; i < codeChunks.length; i++) {
-                    setImportStatus(`Sending exam codes: batch ${i + 1}/${codeChunks.length}...`);
+                    setImportStatus(t("common.sendingExamCodes", { current: i + 1, total: codeChunks.length }));
                     await codesMutation.mutateAsync({
                         importType: "examcode" as any,
                         codes: codeChunks[i],
@@ -279,12 +282,12 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                 }
             }
 
-            setImportStatus("Data sent to server. Processing in background...");
+            setImportStatus(t("common.processInBackground"));
             setIsWaitingForWorker(true);
             setImportError("");
         } catch (err: any) {
             console.error(err);
-            setImportError(err?.response?.data?.message || err?.message || "Failed to import.");
+            setImportError(err?.response?.data?.message || err?.message || tCommon("error"));
             setImportSuccess(false);
             setImportStatus("");
         }
@@ -358,14 +361,14 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">
-                                    {importType === "schedule" && "Import Exam Schedule"}
-                                    {importType === "proctor" && "Import Giám Thị"}
-                                    {importType === "examcode" && "Import Exam Code & Open Code"}
+                                    {importType === "schedule" && t("schedule.title")}
+                                    {importType === "proctor" && t("proctor.title")}
+                                    {importType === "examcode" && t("examcode.title")}
                                 </h3>
                                 <p className="text-sm text-slate-500">
-                                    {importType === "schedule" && "Upload exam schedule file (Ca thi + Students)"}
-                                    {importType === "proctor" && "Upload proctor assignment file"}
-                                    {importType === "examcode" && "Upload exam code and open code file"}
+                                    {importType === "schedule" && t("schedule.description")}
+                                    {importType === "proctor" && t("proctor.description")}
+                                    {importType === "examcode" && t("examcode.description")}
                                 </p>
                             </div>
                         </div>
@@ -390,12 +393,12 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                     </div>
                                 </div>
                                 <h4 className="text-lg font-semibold text-slate-900 mb-2">
-                                    {workerProgress.errors > 0 ? 'Import Completed with Errors' : 'Import Successful!'}
+                                    {workerProgress.errors > 0 ? t("common.importSuccessWithErrors") : t("common.importSuccess")}
                                 </h4>
                                 <p className="text-sm text-slate-600 mb-6">
-                                    Processed {workerProgress.success + workerProgress.errors} items:
-                                    <span className="text-green-600 font-medium ml-1">{workerProgress.success} success</span>,
-                                    <span className="text-red-600 font-medium ml-1">{workerProgress.errors} failures</span>.
+                                    {t("common.processedSummary", { total: workerProgress.success + workerProgress.errors })}
+                                    <span className="text-green-600 font-medium ml-1">{t("common.successSummary", { count: workerProgress.success })}</span>,
+                                    <span className="text-red-600 font-medium ml-1">{t("common.errorSummary", { count: workerProgress.errors })}</span>.
                                 </p>
                             </div>
 
@@ -409,13 +412,13 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                         onClick={() => { setFailureTab("schedule"); setErrorPage(1); }}
                                                         className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "schedule" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
                                                     >
-                                                        Schedule Errors ({workerProgress.failedItems.filter(f => f.type === 'schedule').length})
+                                                        {t("common.scheduleErrors", { count: workerProgress.failedItems.filter(f => f.type === 'schedule').length })}
                                                     </button>
                                                     <button
                                                         onClick={() => { setFailureTab("student"); setErrorPage(1); }}
                                                         className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "student" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
                                                     >
-                                                        Student Errors ({workerProgress.failedItems.filter(f => f.type === 'student' || f.type === 'student_in_failed_group').length})
+                                                        {t("common.studentErrors", { count: workerProgress.failedItems.filter(f => f.type === 'student' || f.type === 'student_in_failed_group').length })}
                                                     </button>
                                                 </>
                                             )}
@@ -424,7 +427,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                     onClick={() => { setFailureTab("proctor"); setErrorPage(1); }}
                                                     className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "proctor" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
                                                 >
-                                                    Proctor Errors ({workerProgress.failedItems.filter(f => f.type === 'proctor').length})
+                                                    {t("common.proctorErrors", { count: workerProgress.failedItems.filter(f => f.type === 'proctor').length })}
                                                 </button>
                                             )}
                                             {previewType === "examcode" && (
@@ -432,7 +435,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                     onClick={() => { setFailureTab("examcode"); setErrorPage(1); }}
                                                     className={`text-xs font-semibold uppercase tracking-wider py-1 border-b-2 transition-colors ${failureTab === "examcode" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
                                                 >
-                                                    Exam Code Errors ({workerProgress.failedItems.filter(f => f.type === 'examcode').length})
+                                                    {t("common.examCodeErrors", { count: workerProgress.failedItems.filter(f => f.type === 'examcode').length })}
                                                 </button>
                                             )}
                                         </div>
@@ -457,18 +460,18 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                     <table className="w-full text-xs">
                                                         <thead className="bg-slate-50 sticky top-0">
                                                             <tr>
-                                                                <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">Row Data</th>
-                                                                <th className="px-4 py-2 text-left text-slate-500 font-medium">Error Message</th>
+                                                                <th className="px-4 py-2 text-left text-slate-500 font-medium w-1/3">{t("common.rowData")}</th>
+                                                                <th className="px-4 py-2 text-left text-slate-500 font-medium">{t("common.errorMessage")}</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y">
                                                             {paginatedErrors.length > 0 ? paginatedErrors.map((fail, idx) => (
                                                                 <tr key={idx} className="hover:bg-red-50/30">
                                                                     <td className="px-4 py-2 font-mono text-slate-600 break-all">
-                                                                        {failureTab === "schedule" && (fail.data?.examSession || fail.item?.examSession || 'Unknown')}
-                                                                        {failureTab === "student" && (fail.data?.studentCode || fail.item?.studentCode || 'Unknown')}
-                                                                        {failureTab === "proctor" && (fail.data?.proctorEmail || fail.item?.proctorEmail || 'Unknown')}
-                                                                        {failureTab === "examcode" && ((fail.data?.examRoom || fail.item?.examRoom || 'Unknown') + ' - ' + (fail.data?.dateExam || fail.item?.dateExam || ''))}
+                                                                        {failureTab === "schedule" && (fail.data?.examSession || fail.item?.examSession || t("common.unknown"))}
+                                                                        {failureTab === "student" && (fail.data?.studentCode || fail.item?.studentCode || t("common.unknown"))}
+                                                                        {failureTab === "proctor" && (fail.data?.proctorEmail || fail.item?.proctorEmail || t("common.unknown"))}
+                                                                        {failureTab === "examcode" && ((fail.data?.examRoom || fail.item?.examRoom || t("common.unknown")) + ' - ' + (fail.data?.dateExam || fail.item?.dateExam || ''))}
                                                                     </td>
                                                                     <td className="px-4 py-2 text-red-600 italic">
                                                                         {fail.message || fail.error}
@@ -477,7 +480,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                             )) : (
                                                                 <tr>
                                                                     <td colSpan={2} className="px-4 py-8 text-center text-slate-400 italic">
-                                                                        No errors found in this category
+                                                                        {t("common.noErrorsFound")}
                                                                     </td>
                                                                 </tr>
                                                             )}
@@ -493,10 +496,10 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                                 onClick={() => setErrorPage(p => p - 1)}
                                                                 className="h-7 text-[10px]"
                                                             >
-                                                                Prev
+                                                                {tCommon("previous")}
                                                             </Button>
                                                             <span className="text-[10px] text-slate-500">
-                                                                Page {errorPage} of {totalErrPages}
+                                                                {tCommon("page")} {errorPage} {tCommon("of")} {totalErrPages}
                                                             </span>
                                                             <Button
                                                                 variant="ghost"
@@ -505,7 +508,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                                 onClick={() => setErrorPage(p => p + 1)}
                                                                 className="h-7 text-[10px]"
                                                             >
-                                                                Next
+                                                                {tCommon("next")}
                                                             </Button>
                                                         </div>
                                                     )}
@@ -530,10 +533,10 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-700">
-                                                    Click to upload or drag and drop
+                                                    {t("common.uploadCta")}
                                                 </p>
                                                 <p className="text-xs text-slate-500 mt-1">
-                                                    CSV or Excel files only (Max 10MB)
+                                                    {t("common.uploadHint")}
                                                 </p>
                                             </div>
                                         </div>
@@ -574,27 +577,27 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                         <CardContent className="p-4">
                                             <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
                                                 <FileText className="h-4 w-4" />
-                                                File Format Requirements
+                                                {t("common.fileFormatRequirements")}
                                             </h4>
                                             {importType === "schedule" && (
                                                 <ul className="text-xs text-blue-700 space-y-1">
-                                                    <li>• Columns: Ca thi, Mã SV, MemberCode, Họ tên, CCCD, STT, Môn thi</li>
-                                                    <li>• Ca thi format: DD/MM/YYYY HHhMM-HHhMM ROOM</li>
-                                                    <li>• First row should contain column headers</li>
+                                                    {(t.raw("schedule.formatInfo") as string[]).map((info, idx) => (
+                                                        <li key={idx}>• {info}</li>
+                                                    ))}
                                                 </ul>
                                             )}
                                             {importType === "proctor" && (
                                                 <ul className="text-xs text-blue-700 space-y-1">
-                                                    <li>• Required columns: DateExam, TimeExam, ExamRoom, ProctorEmail</li>
-                                                    <li>• Date format: DD/MM/YYYY</li>
-                                                    <li>• Time format: HHhMM-HHhMM</li>
+                                                    {(t.raw("proctor.formatInfo") as string[]).map((info, idx) => (
+                                                        <li key={idx}>• {info}</li>
+                                                    ))}
                                                 </ul>
                                             )}
                                             {importType === "examcode" && (
                                                 <ul className="text-xs text-blue-700 space-y-1">
-                                                    <li>• Required columns: Start Date, Exam Code, Rooms</li>
-                                                    <li>• Start Date format: DD/MM/YYYY HH:mm</li>
-                                                    <li>• Exam Code supports "CODE (OPEN)" specific format</li>
+                                                    {(t.raw("examcode.formatInfo") as string[]).map((info, idx) => (
+                                                        <li key={idx}>• {info}</li>
+                                                    ))}
                                                 </ul>
                                             )}
                                         </CardContent>
@@ -612,7 +615,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                     : "text-slate-600 hover:text-slate-900"
                                                     }`}
                                             >
-                                                Exam Schedules ({schedulePreview.length})
+                                                {t("schedule.tabSchedules", { count: schedulePreview.length })}
                                             </button>
                                             <button
                                                 onClick={() => { setActiveTab("students"); setCurrentPage(1); }}
@@ -621,7 +624,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                     : "text-slate-600 hover:text-slate-900"
                                                     }`}
                                             >
-                                                Students ({studentPreview.length})
+                                                {t("schedule.tabStudents", { count: studentPreview.length })}
                                             </button>
                                         </div>
                                     ) : previewType === "proctor" ? (
@@ -629,7 +632,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                             <button
                                                 className="px-4 py-2 font-medium text-sm text-orange-600 border-b-2 border-orange-600"
                                             >
-                                                Proctors ({proctorPreview.length})
+                                                {t("proctor.tabLabel", { count: proctorPreview.length })}
                                             </button>
                                         </div>
                                     ) : (
@@ -637,7 +640,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                             <button
                                                 className="px-4 py-2 font-medium text-sm text-orange-600 border-b-2 border-orange-600"
                                             >
-                                                Exam Codes ({codePreview.length})
+                                                {t("examcode.tabLabel", { count: codePreview.length })}
                                             </button>
                                         </div>
                                     )}
@@ -654,7 +657,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                         <table className="w-full text-sm">
                                             <thead className="bg-slate-50 sticky top-0">
                                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">No.</th>
+                                                    <th className="px-4 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">{tCommon("table.index") || "No."}</th>
                                                     {(() => {
                                                         const sampleRow = currentData.length > 0 ? currentData[0] : null;
 
@@ -675,7 +678,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                         }
                                                         return null;
                                                     })()}
-                                                    <th className="px-4 py-2 text-center font-semibold text-slate-700">Actions</th>
+                                                    <th className="px-4 py-2 text-center font-semibold text-slate-700">{tCommon("actions")}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -684,7 +687,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                         return (
                                                             <tr>
                                                                 <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
-                                                                    No data to preview
+                                                                    {t("common.noDataPreview")}
                                                                 </td>
                                                             </tr>
                                                         );
@@ -712,7 +715,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                                             (currentPage - 1) * ITEMS_PER_PAGE + idx
                                                                         )}
                                                                         className="p-1 hover:bg-blue-100 rounded text-blue-600 transition-colors"
-                                                                        title="Edit"
+                                                                        title={tCommon("edit")}
                                                                     >
                                                                         <Edit2 className="h-4 w-4" />
                                                                     </button>
@@ -723,7 +726,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                                             (currentPage - 1) * ITEMS_PER_PAGE + idx
                                                                         )}
                                                                         className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
-                                                                        title="Delete"
+                                                                        title={tCommon("delete")}
                                                                     >
                                                                         <Trash2 className="h-4 w-4" />
                                                                     </button>
@@ -739,7 +742,11 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                     {/* Pagination Controls */}
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="text-sm text-slate-500">
-                                            Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, currentData.length)} to {Math.min(currentPage * ITEMS_PER_PAGE, currentData.length)} of {currentData.length} entries
+                                            {t("common.showingEntries", {
+                                                from: Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, currentData.length),
+                                                to: Math.min(currentPage * ITEMS_PER_PAGE, currentData.length),
+                                                total: currentData.length
+                                            })}
                                         </div>
                                         <div className="flex gap-2">
                                             <Button
@@ -748,7 +755,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                 onClick={() => handlePageChange(1)}
                                                 disabled={currentPage === 1}
                                             >
-                                                First
+                                                {tCommon("first") || "First"}
                                             </Button>
                                             <Button
                                                 variant="outline"
@@ -756,10 +763,10 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                 onClick={() => handlePageChange(currentPage - 1)}
                                                 disabled={currentPage === 1}
                                             >
-                                                Previous
+                                                {tCommon("previous") || "Previous"}
                                             </Button>
                                             <div className="flex items-center px-4 text-sm font-medium">
-                                                Page {currentPage} of {totalPages}
+                                                {tCommon("page")} {currentPage} {tCommon("of")} {totalPages}
                                             </div>
                                             <Button
                                                 variant="outline"
@@ -767,7 +774,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                 onClick={() => handlePageChange(currentPage + 1)}
                                                 disabled={currentPage === totalPages}
                                             >
-                                                Next
+                                                {tCommon("next") || "Next"}
                                             </Button>
                                             <Button
                                                 variant="outline"
@@ -775,7 +782,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                                 onClick={() => handlePageChange(totalPages)}
                                                 disabled={currentPage === totalPages}
                                             >
-                                                Last
+                                                {tCommon("last") || "Last"}
                                             </Button>
                                         </div>
                                     </div>
@@ -788,7 +795,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                             }}
                                             className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                                         >
-                                            ← Change file
+                                            ← {t("common.changeFile")}
                                         </button>
                                     </div>
                                 </>
@@ -801,7 +808,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                     onClick={handleClose}
                                     disabled={isPending}
                                 >
-                                    Cancel
+                                    {tCommon("cancel")}
                                 </Button>
                                 <Button
                                     className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
@@ -811,12 +818,12 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                     {isPending ? (
                                         <>
                                             <Loader2 className="h-4 w-4 animate-spin" />
-                                            {importStatus || "Importing..."}
+                                            {importStatus || t("common.importingBtn")}
                                         </>
                                     ) : (
                                         <>
                                             <Upload className="h-4 w-4" />
-                                            Import
+                                            {t("common.importBtn")}
                                         </>
                                     )}
                                 </Button>
@@ -833,7 +840,7 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                         <Card className="w-full max-w-lg border-none shadow-xl">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-bold text-slate-900">Edit Row</h3>
+                                    <h3 className="text-lg font-bold text-slate-900">{t("common.editRow")}</h3>
                                     <button
                                         onClick={() => {
                                             setEditingRow(null);
@@ -873,13 +880,13 @@ export default function ImportDialog({ isOpen, onClose, importType }: ImportDial
                                             setEditingType(null);
                                         }}
                                     >
-                                        Cancel
+                                        {tCommon("cancel")}
                                     </Button>
                                     <Button
                                         className="bg-orange-500 hover:bg-orange-600 text-white"
                                         onClick={handleSaveEdit}
                                     >
-                                        Save Changes
+                                        {tCommon("save")}
                                     </Button>
                                 </div>
                             </CardContent>

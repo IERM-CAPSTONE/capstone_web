@@ -9,6 +9,7 @@ import { CAMPUSES } from "@/lib/constants/exam";
 import { usePublishExamSessions } from "@/hooks/use-exam-schedules";
 import { useSemesters } from "@/hooks/use-semesters";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface PublishScheduleDialogProps {
     isOpen: boolean;
@@ -16,6 +17,8 @@ interface PublishScheduleDialogProps {
 }
 
 export default function PublishScheduleDialog({ isOpen, onClose }: PublishScheduleDialogProps) {
+    const t = useTranslations("Dashboard.examOfficer.publishScheduleDialog");
+    const tCommon = useTranslations("Common");
     const [semesterId, setSemesterId] = useState("");
     const [campus, setCampus] = useState("");
     const [confirmed, setConfirmed] = useState(false);
@@ -28,7 +31,7 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
 
     const handlePublish = async () => {
         if (!semesterId) {
-            toast.error("Please select a semester");
+            toast.error(t("errorSelectSemester"));
             return;
         }
         try {
@@ -36,9 +39,9 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
             if (campus) payload.campus = campus;
             const res: any = await publishMutation.mutateAsync(payload);
             setPublishedCount(res?.count ?? 0);
-            toast.success(`Published ${res?.count ?? 0} exam sessions successfully!`);
+            toast.success(t("publishSuccess", { count: res?.count ?? 0 }));
         } catch (err: any) {
-            toast.error("Publish failed: " + (err?.message || "Unknown error"));
+            toast.error(t("publishError", { error: err?.message || "Unknown error" }));
         }
     };
 
@@ -60,10 +63,10 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                 <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-6 text-white flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-black flex items-center gap-2">
-                            <Send className="h-5 w-5" /> Publish Exam Schedule
+                            <Send className="h-5 w-5" /> {t("title")}
                         </h2>
                         <p className="text-white/80 text-xs font-bold mt-1 tracking-wider uppercase">
-                            Change Draft → Scheduled
+                            {t("subtitle")}
                         </p>
                     </div>
                     <Button
@@ -84,24 +87,24 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                             </div>
                             <div>
                                 <p className="text-2xl font-black text-slate-900">{publishedCount.toLocaleString()}</p>
-                                <p className="text-sm font-bold text-slate-500 mt-1">exam sessions published successfully</p>
+                                <p className="text-sm font-bold text-slate-500 mt-1">{t("successDescription", { count: publishedCount })}</p>
                             </div>
                             <Button onClick={handleClose} className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-8">
-                                Done
+                                {tCommon("success.update")}
                             </Button>
                         </div>
                     ) : (
                         <>
                             {/* Semester Select */}
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Semester *</label>
+                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t("semesterLabel")}</label>
                                 <select
                                     className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 hover:border-emerald-200 transition-all"
                                     value={semesterId}
                                     onChange={(e) => setSemesterId(e.target.value)}
                                     disabled={publishMutation.isPending}
                                 >
-                                    <option value="">-- Select semester --</option>
+                                    <option value="">{t("semesterPlaceholder")}</option>
                                     {semesters.map((s: any) => (
                                         <option key={s.id} value={s.id}>{s.name || s.id}</option>
                                     ))}
@@ -111,7 +114,7 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                             {/* Campus Select */}
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 flex items-center gap-1.5">
-                                    <Building2 className="w-3 h-3" /> Campus (optional)
+                                    <Building2 className="w-3 h-3" /> {t("campusLabel")}
                                 </label>
                                 <select
                                     className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 hover:border-emerald-200 transition-all"
@@ -119,7 +122,7 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                                     onChange={(e) => setCampus(e.target.value)}
                                     disabled={publishMutation.isPending}
                                 >
-                                    <option value="">All Campuses</option>
+                                    <option value="">{t("allCampuses")}</option>
                                     {CAMPUSES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
@@ -128,9 +131,9 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 items-start">
                                 <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="text-sm font-black text-amber-800">Irreversible Action</p>
+                                    <p className="text-sm font-black text-amber-800">{t("warningTitle")}</p>
                                     <p className="text-xs text-amber-600 mt-1 font-medium">
-                                        All <strong>Draft</strong> sessions for the selected semester{campus ? ` (${campus})` : ""} will be changed to <strong>Scheduled</strong>. Students will be able to see their exam schedule.
+                                        {t("warningDescription", { campus: campus ? ` (${campus})` : "" })}
                                     </p>
                                 </div>
                             </div>
@@ -145,7 +148,7 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                                     disabled={publishMutation.isPending}
                                 />
                                 <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-                                    I understand and want to publish the schedule
+                                    {t("confirmationLabel")}
                                 </span>
                             </label>
 
@@ -153,7 +156,7 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                             <div className="flex gap-3 pt-2 border-t border-slate-100">
                                 <Button variant="ghost" onClick={handleClose} disabled={publishMutation.isPending}
                                     className="flex-1 font-bold text-slate-500 hover:text-slate-700 rounded-xl">
-                                    Cancel
+                                    {tCommon("cancel")}
                                 </Button>
                                 <Button
                                     onClick={handlePublish}
@@ -161,9 +164,9 @@ export default function PublishScheduleDialog({ isOpen, onClose }: PublishSchedu
                                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 disabled:opacity-50"
                                 >
                                     {publishMutation.isPending ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publishing...</>
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("publishing")}</>
                                     ) : (
-                                        <><Send className="mr-2 h-4 w-4" /> Publish Now</>
+                                        <><Send className="mr-2 h-4 w-4" /> {t("publishBtn")}</>
                                     )}
                                 </Button>
                             </div>

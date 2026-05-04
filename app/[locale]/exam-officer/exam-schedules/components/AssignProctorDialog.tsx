@@ -5,6 +5,7 @@ import { Search, UserCheck, Loader2, AlertCircle, CheckCircle2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { usersApi, User, UserRole } from "@/lib/api/users";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 interface AssignProctorDialogProps {
     isOpen: boolean;
@@ -31,18 +32,33 @@ export function AssignProctorDialog({
     currentProctorId,
     currentProctorName,
     onConfirm,
-    title = "Assign Proctor",
-    currentLabel = "Current",
-    searchPlaceholder = "Search by name, code, or email...",
-    unassignLabel = "No Proctor (Unassign)",
-    loadingLabel = "Loading proctors...",
-    emptyLabel = "No proctors found.",
-    confirmLabel = "Assign Proctor",
-    assigningLabel = "Assigning...",
-    loadErrorLabel = "Failed to load proctors.",
-    assignErrorLabel = "Failed to assign proctor.",
+    title,
+    currentLabel,
+    searchPlaceholder,
+    unassignLabel,
+    loadingLabel,
+    emptyLabel,
+    confirmLabel,
+    assigningLabel,
+    loadErrorLabel,
+    assignErrorLabel,
     roleFilter = "PROCTOR",
 }: AssignProctorDialogProps) {
+    const t = useTranslations("Dashboard.examOfficer.assignProctorDialog");
+    const tCommon = useTranslations("Common");
+
+    // Use translated defaults if props are not provided
+    const displayTitle = title ?? t("title");
+    const displayCurrentLabel = currentLabel ?? t("current");
+    const displaySearchPlaceholder = searchPlaceholder ?? t("searchPlaceholder");
+    const displayUnassignLabel = unassignLabel ?? t("unassignLabel");
+    const displayLoadingLabel = loadingLabel ?? t("loading");
+    const displayEmptyLabel = emptyLabel ?? t("empty");
+    const displayConfirmLabel = confirmLabel ?? t("confirm");
+    const displayAssigningLabel = assigningLabel ?? t("assigning");
+    const displayLoadErrorLabel = loadErrorLabel ?? t("loadError");
+    const displayAssignErrorLabel = assignErrorLabel ?? t("assignError");
+
     const [proctors, setProctors] = useState<User[]>([]);
     const [search, setSearch] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -63,13 +79,13 @@ export function AssignProctorDialog({
                     : await usersApi.getAll({ limit: 100, isActive: true, role: roleFilter });
                 setProctors(res.data ?? []);
             } catch {
-                setError(loadErrorLabel);
+                setError(displayLoadErrorLabel);
             } finally {
                 setIsLoading(false);
             }
         };
         fetchProctors();
-    }, [isOpen, currentProctorId, loadErrorLabel, roleFilter]);
+    }, [isOpen, currentProctorId, displayLoadErrorLabel, roleFilter]);
 
     const filtered = proctors.filter(p => {
         const q = search.toLowerCase();
@@ -84,7 +100,7 @@ export function AssignProctorDialog({
             await onConfirm(selectedId);
             onClose();
         } catch (err: any) {
-            setError(err?.response?.data?.message ?? assignErrorLabel);
+            setError(err?.response?.data?.message ?? displayAssignErrorLabel);
         } finally {
             setIsSubmitting(false);
         }
@@ -101,9 +117,9 @@ export function AssignProctorDialog({
                         <UserCheck className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white">{displayTitle}</h2>
                         {currentProctorName && (
-                            <p className="text-xs text-gray-400 mt-0.5">{currentLabel}: {currentProctorName}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{displayCurrentLabel}: {currentProctorName}</p>
                         )}
                     </div>
                 </div>
@@ -115,7 +131,7 @@ export function AssignProctorDialog({
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder={searchPlaceholder}
+                            placeholder={displaySearchPlaceholder}
                             className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
@@ -133,7 +149,7 @@ export function AssignProctorDialog({
                         onClick={() => setSelectedId(null)}
                     >
                         <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 text-sm font-bold">—</div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400 italic">{unassignLabel}</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 italic">{displayUnassignLabel}</span>
                         {selectedId === null && <CheckCircle2 className="w-4 h-4 text-orange-500 ml-auto" />}
                     </button>
 
@@ -142,7 +158,7 @@ export function AssignProctorDialog({
                         {isLoading ? (
                             <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="text-sm">{loadingLabel}</span>
+                                <span className="text-sm">{displayLoadingLabel}</span>
                             </div>
                         ) : error ? (
                             <div className="flex items-center justify-center py-8 gap-2 text-red-400">
@@ -150,7 +166,7 @@ export function AssignProctorDialog({
                                 <span className="text-sm">{error}</span>
                             </div>
                         ) : filtered.length === 0 ? (
-                            <div className="py-8 text-center text-sm text-gray-400">{emptyLabel}</div>
+                            <div className="py-8 text-center text-sm text-gray-400">{displayEmptyLabel}</div>
                         ) : (
                             filtered.map(p => (
                                 <button
@@ -183,14 +199,14 @@ export function AssignProctorDialog({
 
                 {/* Footer */}
                 <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>{tCommon("cancel")}</Button>
                     <Button
                         variant="primary"
                         className="bg-orange-500 hover:bg-orange-600 text-white"
                         onClick={handleConfirm}
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{assigningLabel}</> : confirmLabel}
+                        {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{displayAssigningLabel}</> : displayConfirmLabel}
                     </Button>
                 </div>
             </div>

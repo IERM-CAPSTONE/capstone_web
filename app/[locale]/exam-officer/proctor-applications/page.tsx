@@ -18,6 +18,7 @@ import {
 import { ProctorApplicationManagementTable } from "@/components/proctor-applications/proctor-application-management-table";
 import { useProctorApplications } from "@/hooks/use-proctor-applications";
 import { ProctorApplicationStatus } from "@/lib/api/proctor-applications";
+import { useTranslations } from "next-intl";
 
 function toLocalDateInputValue(date: Date) {
   const year = date.getFullYear();
