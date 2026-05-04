@@ -10,6 +10,7 @@ import { DashboardLoadingSkeleton } from "@/components/ui/page-loading";
 import { useSocket } from "@/hooks/use-socket";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProctorLayout({
     children,
@@ -87,6 +88,7 @@ function playProcessingSound() {
 function ProctorContent({ children }: { children: React.ReactNode }) {
     const { socket, isConnected, joinRoom } = useSocket();
     const user = useAuthStore((s) => s.user);
+    const queryClient = useQueryClient();
     const params = useParams();
     const locale = (params?.locale as string) || "vi";
 
@@ -206,6 +208,29 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
 
         socket.on("ticket:updated", handleUpdated);
 
+        const handleNewProctorApplication = (payload: any) => {
+            // payload is ProctorApplicationResponse
+            playProcessingSound();
+            toast.success(
+                <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                        <Megaphone className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">New proctor application</p>
+                        <p className="text-xs text-slate-600 mt-0.5">{payload.roomNumber ? `Room ${payload.roomNumber}` : "Room TBA"} • {payload.preferredDate ? new Date(payload.preferredDate).toLocaleString() : "Date TBA"}</p>
+                        {payload.notes && <p className="text-xs text-slate-500 mt-1 truncate">{payload.notes}</p>}
+                    </div>
+                </div>,
+                { duration: 8000, style: { borderLeft: "4px solid #fb923c" } }
+            );
+
+            // Invalidate proctor applications queries so UI refreshes
+            try { queryClient.invalidateQueries({ queryKey: ["proctor-applications"] }); } catch {}
+        };
+
+        socket.on('proctor:application:created', handleNewProctorApplication);
+
         const handleBroadcastAnnouncement = (payload: {
             title?: string;
             message?: string;
@@ -236,6 +261,7 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
         return () => {
             socket.off("ticket:resolved", handleResolved);
             socket.off("ticket:updated", handleUpdated);
+            socket.off('proctor:application:created', handleNewProctorApplication);
             socket.off("broadcast_announcement", handleBroadcastAnnouncement);
         };
     }, [socket, user?.id]);

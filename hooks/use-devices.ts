@@ -12,10 +12,14 @@ export function useAdminDevices(params?: ListAdminDevicesParams) {
   });
 }
 
-export function useAdminDeviceApplications(params?: ListAdminApplicationsParams) {
+export function useAdminDeviceApplications(
+  params?: ListAdminApplicationsParams,
+  queryOptions?: Record<string, any>
+) {
   return useQuery({
     queryKey: ["admin-device-applications", params],
     queryFn: () => devicesApi.listApplications(params),
+    ...queryOptions,
   });
 }
 

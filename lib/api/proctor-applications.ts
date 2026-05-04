@@ -8,11 +8,22 @@ export type ProctorApplicationStatus = "PENDING" | "APPROVED" | "REJECTED" | "CA
 export interface ProctorApplication {
   id: string;
   teacherId: string;
+  targetTeacherId: string | null;
+  examSessionId: string | null;
+  targetExamSessionId: string | null;
   teacherName: string | null;
   teacherCode: string | null;
+  targetTeacherName: string | null;
+  targetTeacherCode: string | null;
   preferredShift: PreferredShift;
   preferredType: PreferredType;
   preferredDate: string | null;
+  roomNumber: string | null;
+  examOpenTime: string | null;
+  examCloseTime: string | null;
+  targetRoomNumber: string | null;
+  targetExamOpenTime: string | null;
+  targetExamCloseTime: string | null;
   notes: string | null;
   status: ProctorApplicationStatus;
   createdAt: string;
@@ -20,6 +31,8 @@ export interface ProctorApplication {
 }
 
 export interface CreateProctorApplicationData {
+  examSessionId: string;
+  targetExamSessionId: string;
   preferredShift: PreferredShift;
   preferredType: PreferredType;
   preferredDate?: string | null;
@@ -27,6 +40,8 @@ export interface CreateProctorApplicationData {
 }
 
 export interface UpdateProctorApplicationData {
+  examSessionId?: string | null;
+  targetExamSessionId?: string | null;
   preferredShift?: PreferredShift;
   preferredType?: PreferredType;
   preferredDate?: string | null;

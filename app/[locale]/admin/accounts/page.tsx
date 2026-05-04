@@ -13,17 +13,18 @@ import { DeleteConfirmModal } from "@/components/users/delete-confirm-modal";
 import { ImportUsersModal } from "@/components/users/import-users-modal";
 
 import { useRouter } from "next/navigation";
-import { useSocket } from "@/lib/socket/socket-provider";
+// import { useSocket } from "@/lib/socket/socket-provider";
+import { useSocket } from "@/hooks/use-socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/lib/constants/routes";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
-import { useTranslations } from "next-intl";
+import { on } from "events";
 
 export default function AccountsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { socket } = useSocket();
-  const t = useTranslations("Accounts");
+  // const { socket } = useSocket();
+  const { on } = useSocket();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
@@ -44,19 +45,22 @@ export default function AccountsPage() {
   const toggleUserStatus = useToggleUserStatus();
 
   useEffect(() => {
-    if (!socket) return;
+    // if (!socket) return;
+    if (!on) return;
 
     const handleImportCompleted = () => {
       // Refresh the user list when an import finishes
       queryClient.invalidateQueries({ queryKey: ["users"] });
     };
 
-    socket.on("IMPORT_COMPLETED", handleImportCompleted);
-
-    return () => {
-      socket.off("IMPORT_COMPLETED", handleImportCompleted);
-    };
-  }, [socket, queryClient]);
+    // socket.on("IMPORT_COMPLETED", handleImportCompleted);
+    const cleanup = on("IMPORT_COMPLETED", handleImportCompleted);
+    return cleanup;
+  }, [on, queryClient]);
+  //   return () => {
+  //     socket.off("IMPORT_COMPLETED", handleImportCompleted);
+  //   };
+  // }, [socket, queryClient]);
 
   const locale = getCurrentLocale();
 
