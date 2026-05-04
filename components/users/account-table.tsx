@@ -60,6 +60,12 @@ export function AccountTable({
       PROCTOR: {
         className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
       },
+      HALL_INVIGILATOR: {
+        className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+      },
+      IT_SUPPORT: {
+        className: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
+      },
       STUDENT: {
         className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
       },
@@ -73,7 +79,16 @@ export function AccountTable({
       );
     }
 
-    const { className } = config[role];
+    const roleConfig = config[role];
+    if (!roleConfig) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          {role}
+        </span>
+      );
+    }
+
+    const { className } = roleConfig;
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${className}`}>
         {t(`roles.${role}`)}
@@ -116,7 +131,7 @@ export function AccountTable({
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
           {users.map((user, index) => {
             const accountNumber = index + 1 + (currentPage - 1) * pageSize;
-            const accountId = `ACC${String(accountNumber).padStart(3, '0')}`;
+            const accountId = user.code || `ACC${String(accountNumber).padStart(3, '0')}`;
 
             return (
               <tr

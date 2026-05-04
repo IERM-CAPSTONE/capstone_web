@@ -8,6 +8,7 @@ export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
 
 export class HttpClient {
   private instance: AxiosInstance;
+  private refreshPromise: Promise<AxiosResponse<any, any>> | null = null;
 
   constructor() {
     this.instance = axios.create({
@@ -54,14 +55,17 @@ export class HttpClient {
           originalRequest._retry = true;
 
           try {
-            // Attempt to refresh the token
-            // We use the same instance but since it's a new request, 
-            // if it fails it will hit the 'includes(/auth/refresh)' check above.
-            await this.instance.post('/auth/refresh');
+            if (!this.refreshPromise) {
+              this.refreshPromise = this.instance.post('/auth/refresh');
+            }
+
+            await this.refreshPromise;
+            this.refreshPromise = null;
 
             // If refresh successful, retry the original request
             return this.instance(originalRequest);
           } catch (refreshError) {
+            this.refreshPromise = null;
             // If refresh fails, logout
             this.handleLogout();
             return Promise.reject(refreshError);

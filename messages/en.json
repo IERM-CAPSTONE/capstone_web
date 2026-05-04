@@ -1938,6 +1938,8 @@
             "ADMIN": "Admin",
             "EXAM_OFFICER": "Exam Officer",
             "PROCTOR": "Proctor",
+            "HALL_INVIGILATOR": "Hall Invigilator",
+            "IT_SUPPORT": "IT Support",
             "STUDENT": "Student"
         },
         "statuses": {

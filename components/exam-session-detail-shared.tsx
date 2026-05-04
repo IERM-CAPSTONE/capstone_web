@@ -115,7 +115,7 @@ function computeStatus(open: Date | null, close: Date | null): ExamStatus {
 }
 
 function getHallInvigilatorDisplay(schedule: any) {
-    return schedule?.hallInvigilatorUsername || schedule?.hallInvigilatorName || "N/A";
+    return schedule?.hallInvigilatorName || schedule?.hallInvigilatorUsername || "N/A";
 }
 
 // â”€â”€â”€ Create Ticket Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

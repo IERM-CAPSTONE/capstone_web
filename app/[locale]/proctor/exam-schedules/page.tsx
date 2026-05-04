@@ -32,6 +32,7 @@ import { parseLocalDate } from "@/app/[locale]/exam-officer/exam-schedules/utils
 import { CAMPUSES } from "@/lib/constants/exam";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
+import { usersApi } from "@/lib/api/users";
 
 const FIXED_SLOTS = [
   { id: 1, start: "07:30", timeRange: "07:30 - 09:00" },
@@ -73,7 +74,7 @@ function getFormattedTimeRange(open: string | null, close: string | null) {
 }
 
 function getHallInvigilatorDisplay(schedule: { hallInvigilatorUsername?: string | null; hallInvigilatorName?: string | null }) {
-  return schedule.hallInvigilatorUsername || schedule.hallInvigilatorName || "CHƯA GÁN";
+  return schedule.hallInvigilatorName || schedule.hallInvigilatorUsername || "CHƯA GÁN";
 }
 
 export default function ProctorExamSchedulesPage() {
@@ -98,10 +99,12 @@ export default function ProctorExamSchedulesPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   useEffect(() => {
-    if (!user?.campus) return;
+    const campus = user?.campus;
+    if (!campus) return;
+
     setSearchParams((prev) => {
-      if (prev.campus === user.campus) return prev;
-      return { ...prev, campus: user.campus };
+      if (prev.campus === campus) return prev;
+      return { ...prev, campus };
     });
   }, [user?.campus]);
 
@@ -167,6 +170,47 @@ export default function ProctorExamSchedulesPage() {
     [schedules]
   );
 
+  const [proctorNamesById, setProctorNamesById] = useState<Record<string, string>>({});
+
+  // If backend returns username instead of full name, try to fetch fullName by proctorId
+  useEffect(() => {
+    const idsToFetch = Array.from(
+      new Set(
+        schedules
+          .filter((s) => s.proctorId && s.proctorId !== "")
+          .filter((s) => {
+            const name = s.proctorName || "";
+            // if name contains a space, assume it's already full name
+            return !name || !name.includes(" ");
+          })
+          .map((s) => s.proctorId as string)
+      )
+    ).filter(Boolean) as string[];
+
+    if (idsToFetch.length === 0) return;
+
+    let mounted = true;
+
+    (async () => {
+      const map: Record<string, string> = {};
+      await Promise.all(
+        idsToFetch.map(async (id) => {
+          try {
+            const u = await usersApi.getById(id);
+            if (u && u.fullName) map[id] = u.fullName;
+          } catch (err) {
+            // ignore
+          }
+        })
+      );
+      if (mounted) setProctorNamesById((prev) => ({ ...prev, ...map }));
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [schedules]);
+
   const gridDates = eachDayOfInterval({
     start: currentWeekStart,
     end: addDays(currentWeekStart, 6),
@@ -209,11 +253,10 @@ export default function ProctorExamSchedulesPage() {
             <Button
               size="sm"
               variant={viewMode === "grid" ? "outline" : "ghost"}
-              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${
-                viewMode === "grid"
+              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${viewMode === "grid"
                   ? "border-orange-200 bg-orange-50/50 text-orange-600 shadow-md"
                   : "border-transparent text-slate-400"
-              }`}
+                }`}
               onClick={() => setViewMode("grid")}
             >
               {t("examOfficer.schedulesPage.board.boardView")}
@@ -221,11 +264,10 @@ export default function ProctorExamSchedulesPage() {
             <Button
               size="sm"
               variant={viewMode === "list" ? "outline" : "ghost"}
-              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${
-                viewMode === "list"
+              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${viewMode === "list"
                   ? "border-orange-200 bg-orange-50/50 text-orange-600 shadow-md"
                   : "border-transparent text-slate-400"
-              }`}
+                }`}
               onClick={() => setViewMode("list")}
             >
               {t("examOfficer.schedulesPage.board.listView")}
@@ -311,7 +353,7 @@ export default function ProctorExamSchedulesPage() {
               <label className="ml-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{t("examOfficer.schedulesPage.filters.campus")}</label>
               <SearchableSelect
                 value={user?.campus ?? searchParams.campus}
-                onChange={() => {}}
+                onChange={() => { }}
                 placeholder={t("examOfficer.schedulesPage.allOptions.allCampuses")}
                 options={user?.campus ? [{ value: user.campus, label: user.campus }] : CAMPUSES.map((c) => ({ value: c, label: c }))}
                 disabled
@@ -492,7 +534,7 @@ export default function ProctorExamSchedulesPage() {
               <select
                 className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-4 text-xs font-black uppercase outline-none focus:ring-2 focus:ring-orange-500/20"
                 value={user?.campus ?? searchParams.campus}
-                onChange={() => {}}
+                onChange={() => { }}
                 disabled
               >
                 {user?.campus ? (
@@ -607,7 +649,7 @@ export default function ProctorExamSchedulesPage() {
                                                 </div>
                                                 <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-black text-slate-800 shadow-sm">
                                                   <Users className="h-3.5 w-3.5" />
-                                                  <span className="truncate font-black uppercase">{s.proctorName || "CHƯA GÁN"}</span>
+                                                  <span title={proctorNamesById[s.proctorId || ""] || s.proctorName || "CHƯA GÁN"} className="font-black uppercase whitespace-normal break-words">{proctorNamesById[s.proctorId || ""] || s.proctorName || "CHƯA GÁN"}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2.5 rounded-lg border border-emerald-100/60 bg-emerald-50/50 px-2 py-1 text-[11px] font-black text-emerald-800 shadow-sm">
                                                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -686,9 +728,8 @@ export default function ProctorExamSchedulesPage() {
                       <td className="p-5 font-black text-slate-700">{s.roomNumber}</td>
                       <td className="p-5 font-black text-orange-600">{s.studentCount || 0}</td>
                       <td className="p-5">
-                        <span className={`rounded-full border px-4 py-1.5 text-[10px] font-black shadow-sm ${
-                          s.status === "Draft" ? "border-orange-100 bg-orange-50 text-orange-600" : "border-green-100 bg-green-50 text-green-600"
-                        }`}>
+                        <span className={`rounded-full border px-4 py-1.5 text-[10px] font-black shadow-sm ${s.status === "Draft" ? "border-orange-100 bg-orange-50 text-orange-600" : "border-green-100 bg-green-50 text-green-600"
+                          }`}>
                           {tCommon(`statuses.${s.status}` as any)}
                         </span>
                       </td>
