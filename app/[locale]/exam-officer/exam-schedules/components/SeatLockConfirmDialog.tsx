@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExamSeat } from "@/hooks/use-seat-management";
 import { Lock, Unlock, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface SeatLockConfirmDialogProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export function SeatLockConfirmDialog({
   onConfirm,
   onCancel,
 }: SeatLockConfirmDialogProps) {
+  const t = useTranslations("ProctorSession.seatStatus.confirm");
+  const tCommon = useTranslations("Common");
   if (!isOpen || !seat || typeof document === 'undefined') return null;
 
   const isLocking = action === 'lock';
@@ -38,12 +41,12 @@ export function SeatLockConfirmDialog({
               )}
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-2">
-              {isLocking ? `Lock Seat R${seat.row}C${seat.col}?` : `Unlock Seat R${seat.row}C${seat.col}?`}
+              {isLocking ? t("lockTitle", { seat: `R${seat.row}C${seat.col}` }) : t("unlockTitle", { seat: `R${seat.row}C${seat.col}` })}
             </h3>
             <p className="text-sm text-slate-600">
-              {isLocking 
-                ? "This seat will be locked and cannot be assigned to any student during the exam session."
-                : "This seat will be unlocked and can be assigned to students again."
+              {isLocking
+                ? t("lockDescription")
+                : t("unlockDescription")
               }
             </p>
           </div>
@@ -54,17 +57,17 @@ export function SeatLockConfirmDialog({
               onClick={onCancel}
               className="flex-1"
             >
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button
               onClick={onConfirm}
               className={`flex-1 text-white ${
-                isLocking 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
+                isLocking
+                  ? 'bg-orange-600 hover:bg-orange-700'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {isLocking ? 'Lock Seat' : 'Unlock Seat'}
+              {isLocking ? t("lockBtn") : t("unlockBtn")}
             </Button>
           </div>
         </CardContent>

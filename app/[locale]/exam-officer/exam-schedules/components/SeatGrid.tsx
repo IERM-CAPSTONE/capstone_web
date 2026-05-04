@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { ExamSeat } from "@/hooks/use-seat-management";
 import { SeatCell } from "./SeatCell";
 import { StudentExam } from "@/lib/api/student-exams";
+import { useTranslations } from "next-intl";
 
 interface SeatGridProps {
   rows: number;
@@ -26,6 +27,7 @@ export function SeatGrid({
   userRole = 'GUEST',
   selectedPart = null,
 }: SeatGridProps) {
+  const t = useTranslations("ProctorSession");
   // Map students by their physical seat assignment.
   // seatPosition is the authoritative link after a swap.
   const studentMap = new Map<string, StudentExam>();
@@ -86,7 +88,7 @@ export function SeatGrid({
       {/* Legend: Teacher Desk Indicator */}
       <div className="mt-12 flex justify-center">
         <div className="px-12 py-3 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-200">
-          Teacher Desk / Entrance
+          {t("teacherDesk")}
         </div>
       </div>
     </Card>

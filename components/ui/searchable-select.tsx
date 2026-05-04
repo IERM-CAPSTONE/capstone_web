@@ -14,8 +14,11 @@ interface SearchableSelectProps {
     onChange: (value: string) => void;
     options: SelectOption[];
     placeholder?: string;
+    selectedLabel?: string;
     className?: string;
     disabled?: boolean;
+    onSearchChange?: (search: string) => void;
+    isLoading?: boolean;
 }
 
 export default function SearchableSelect({
@@ -23,20 +26,38 @@ export default function SearchableSelect({
     onChange,
     options,
     placeholder = "All",
+    selectedLabel: propSelectedLabel,
     className = "",
     disabled = false,
+    onSearchChange,
+    isLoading = false,
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+    const [internalLabel, setInternalLabel] = useState("");
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
 
-    const selectedLabel = options.find(o => o.value === value)?.label || placeholder;
-    const filtered = search
-        ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
-        : options;
+    // Update internal label when options change or value changes
+    useEffect(() => {
+        if (value) {
+            const opt = options.find(o => o.value === value);
+            if (opt) {
+                setInternalLabel(opt.label);
+            }
+        } else {
+            setInternalLabel("");
+        }
+    }, [value, options]);
+
+    const displayLabel = propSelectedLabel || (value ? (internalLabel || value) : placeholder);
+    const filtered = onSearchChange
+        ? options
+        : (search
+            ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+            : options);
 
     const openDropdown = () => {
         if (disabled) return;
@@ -57,6 +78,7 @@ export default function SearchableSelect({
     const closeDropdown = () => {
         setIsOpen(false);
         setSearch("");
+        if (onSearchChange) onSearchChange("");
     };
 
     const handleTriggerClick = () => {
@@ -73,6 +95,13 @@ export default function SearchableSelect({
         e.stopPropagation();
         onChange("");
         setSearch("");
+        if (onSearchChange) onSearchChange("");
+    };
+
+    const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setSearch(val);
+        if (onSearchChange) onSearchChange(val);
     };
 
     // Close only when clicking OUTSIDE both trigger and dropdown
@@ -106,7 +135,7 @@ export default function SearchableSelect({
                         ref={searchRef}
                         type="text"
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={handleSearchInput}
                         placeholder="Search..."
                         className="w-full h-9 bg-slate-50 rounded-xl pl-8 pr-3 text-xs font-bold outline-none border border-slate-100 focus:border-orange-300 focus:ring-1 focus:ring-orange-200 transition-all"
                     />
@@ -116,16 +145,20 @@ export default function SearchableSelect({
             {/* Options */}
             <div className="max-h-52 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-slate-200">
                 {/* "All" option */}
-                <button
-                    type="button"
-                    onClick={() => handleSelect("")}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-orange-50 hover:text-orange-700
-                        ${value === "" ? "bg-orange-50 text-orange-700" : "text-slate-500"}`}
-                >
-                    {placeholder}
-                </button>
+                {!onSearchChange && (
+                    <button
+                        type="button"
+                        onClick={() => handleSelect("")}
+                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-orange-50 hover:text-orange-700
+                            ${value === "" ? "bg-orange-50 text-orange-700" : "text-slate-500"}`}
+                    >
+                        {placeholder}
+                    </button>
+                )}
 
-                {filtered.length === 0 ? (
+                {isLoading ? (
+                    <p className="text-center text-xs text-slate-400 py-4">Loading...</p>
+                ) : filtered.length === 0 ? (
                     <p className="text-center text-xs text-slate-400 py-4 italic">No results</p>
                 ) : (
                     filtered.map(opt => (
@@ -157,7 +190,7 @@ export default function SearchableSelect({
                     ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
                 <span className={`truncate text-left ${value ? "text-slate-800" : "text-slate-400"}`}>
-                    {selectedLabel}
+                    {displayLabel}
                 </span>
                 <div className="flex items-center gap-1 shrink-0">
                     {value && (
