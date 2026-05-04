@@ -70,6 +70,7 @@ export const ROUTES = {
   HALL_INVIGILATOR: "/hall-invigilator",
   HALL_INVIGILATOR_TICKETS: "/hall-invigilator/tickets",
   HALL_INVIGILATOR_APPLICATIONS: "/hall-invigilator/applications",
+  HALL_INVIGILATOR_EXAM_SCHEDULES: "/hall-invigilator/exam-schedules",
 
   // IT Support routes
   IT_SUPPORT: "/it-support",

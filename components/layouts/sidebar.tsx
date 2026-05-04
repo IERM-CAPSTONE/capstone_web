@@ -31,7 +31,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user } = useAuthStore();
-  const pendingApplicationsQuery = useAdminDeviceApplications({ page: 1, limit: 1, status: "PENDING" });
+  const isAdmin = !user?.role || user.role === "admin";
+  const pendingApplicationsQuery = useAdminDeviceApplications(
+    { page: 1, limit: 1, status: "PENDING" },
+    { enabled: isAdmin }
+  );
   const pendingApplicationsCount = pendingApplicationsQuery.data?.total ?? 0;
 
   const adminMenuItems = [
@@ -60,10 +64,8 @@ export function Sidebar() {
   ];
 
   const hallInvigilatorMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"),          href: ROUTES.HALL_INVIGILATOR, exact: true },
     { icon: ClipboardList,  label: t("applications"),        href: ROUTES.HALL_INVIGILATOR_APPLICATIONS },
-    { icon: Ticket,         label: t("assignedTickets"),     href: ROUTES.HALL_INVIGILATOR_TICKETS },
-    { icon: Calendar,       label: t("schedules"),           href: ROUTES.EXAMS_SCHEDULE },
+    { icon: Calendar,       label: t("schedules"),           href: ROUTES.HALL_INVIGILATOR_EXAM_SCHEDULES },
   ];
 
   const studentMenuItems = [

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { useProctorApplications } from "@/hooks/use-proctor-applications";
 import { ProctorApplicationStatus } from "@/lib/api/proctor-applications";
 
 export default function ProctorApplicationsManagementPage() {
+  const locale = useLocale();
+  const isVi = locale === "vi";
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     status: "" as ProctorApplicationStatus | "",
@@ -49,6 +52,30 @@ export default function ProctorApplicationsManagementPage() {
   const approvedCount = applications.filter((a) => a.status === "APPROVED").length;
   const rejectedCount = applications.filter((a) => a.status === "REJECTED").length;
   const totalCount = visibleApplications.length;
+  const text = {
+    badge: isVi ? "Theo dõi khảo thí" : "Exam Officer Review",
+    title: isVi ? "Đơn đổi lịch giám thị" : "Invigilator Swap Requests",
+    description: isVi
+      ? "Theo dõi các yêu cầu đổi lịch giữa các giám thị sau khi lịch thi đã được công bố."
+      : "Monitor swap requests between assigned invigilators after the exam schedule has been published.",
+    workload: isVi ? "Khối lượng hiện tại" : "Current workload",
+    openRequests: isVi ? "yêu cầu đang mở" : "open requests",
+    filterTitle: isVi ? "Bộ lọc yêu cầu" : "Filter Requests",
+    filterDescription: isVi
+      ? "Lọc yêu cầu đổi lịch theo trạng thái, mã giám thị và ngày thi yêu cầu."
+      : "Narrow down swap requests by status, invigilator, and requested exam date.",
+    clearFilters: isVi ? "Xóa bộ lọc" : "Clear Filters",
+    status: isVi ? "Trạng thái" : "Status",
+    allStatuses: isVi ? "Tất cả trạng thái" : "All Statuses",
+    pending: isVi ? "Chờ phản hồi" : "Pending",
+    approved: isVi ? "Đã chấp nhận" : "Accepted",
+    rejected: isVi ? "Đã từ chối" : "Declined",
+    teacherId: isVi ? "Mã giám thị" : "Invigilator ID",
+    searchTeacher: isVi ? "Tìm theo mã giám thị..." : "Search by invigilator code...",
+    dateFrom: isVi ? "Từ ngày" : "Date From",
+    dateTo: isVi ? "Đến ngày" : "Date To",
+    total: isVi ? "Tổng" : "Total",
+  };
 
   return (
     <div className="mx-auto max-w-8xl px-6 py-8">
@@ -56,24 +83,24 @@ export default function ProctorApplicationsManagementPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-orange-700">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Exam Officer Review
+            {text.badge}
           </div>
           <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-900">
-            Proctor Applications
+            {text.title}
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Monitor swap requests between proctors after the exam schedule has been published.
+            {text.description}
           </p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-            Current workload
+            {text.workload}
           </p>
           <div className="mt-2 flex items-end gap-3">
             <span className="text-3xl font-black text-slate-900">{pendingCount}</span>
             <span className="pb-1 text-sm font-semibold text-slate-500">
-              open requests
+              {text.openRequests}
             </span>
           </div>
         </div>
@@ -87,15 +114,15 @@ export default function ProctorApplicationsManagementPage() {
                 <Filter className="h-4 w-4" />
               </div>
               <div>
-                <CardTitle className="text-lg font-black text-slate-900">Filter Requests</CardTitle>
+                <CardTitle className="text-lg font-black text-slate-900">{text.filterTitle}</CardTitle>
                 <p className="text-sm text-slate-500">
-                  Narrow down swap requests by status, proctor, and requested exam date.
+                  {text.filterDescription}
                 </p>
               </div>
             </div>
             {hasActiveFilters && (
               <Button variant="outline" size="sm" className="rounded-xl" onClick={clearFilters}>
-                Clear Filters
+                {text.clearFilters}
               </Button>
             )}
           </div>
@@ -104,30 +131,30 @@ export default function ProctorApplicationsManagementPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <label className="block text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                Status
+                {text.status}
               </label>
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange("status", e.target.value)}
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
               >
-                <option value="">All Statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
+                <option value="">{text.allStatuses}</option>
+                <option value="PENDING">{text.pending}</option>
+                <option value="APPROVED">{text.approved}</option>
+                <option value="REJECTED">{text.rejected}</option>
               </select>
             </div>
 
             <div className="space-y-2">
               <label className="block text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                Teacher ID
+                {text.teacherId}
               </label>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   value={filters.teacherId}
                   onChange={(e) => handleFilterChange("teacherId", e.target.value)}
-                  placeholder="Search by teacher code..."
+                  placeholder={text.searchTeacher}
                   className="h-12 rounded-2xl border-slate-200 pl-11 text-sm font-semibold"
                 />
               </div>
@@ -135,7 +162,7 @@ export default function ProctorApplicationsManagementPage() {
 
             <div className="space-y-2">
               <label className="block text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                Date From
+                {text.dateFrom}
               </label>
               <Input
                 type="date"
@@ -147,7 +174,7 @@ export default function ProctorApplicationsManagementPage() {
 
             <div className="space-y-2">
               <label className="block text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                Date To
+                {text.dateTo}
               </label>
               <Input
                 type="date"
@@ -168,7 +195,7 @@ export default function ProctorApplicationsManagementPage() {
             </div>
             <div>
               <div className="text-3xl font-black text-slate-900">{pendingCount}</div>
-              <p className="text-sm font-semibold text-slate-500">Pending</p>
+              <p className="text-sm font-semibold text-slate-500">{text.pending}</p>
             </div>
           </CardContent>
         </Card>
@@ -180,7 +207,7 @@ export default function ProctorApplicationsManagementPage() {
             </div>
             <div>
               <div className="text-3xl font-black text-emerald-600">{approvedCount}</div>
-              <p className="text-sm font-semibold text-slate-500">Accepted</p>
+              <p className="text-sm font-semibold text-slate-500">{text.approved}</p>
             </div>
           </CardContent>
         </Card>
@@ -192,7 +219,7 @@ export default function ProctorApplicationsManagementPage() {
             </div>
             <div>
               <div className="text-3xl font-black text-rose-600">{rejectedCount}</div>
-              <p className="text-sm font-semibold text-slate-500">Declined</p>
+              <p className="text-sm font-semibold text-slate-500">{text.rejected}</p>
             </div>
           </CardContent>
         </Card>
@@ -204,7 +231,7 @@ export default function ProctorApplicationsManagementPage() {
             </div>
             <div>
               <div className="text-3xl font-black text-slate-900">{totalCount}</div>
-              <p className="text-sm font-semibold text-slate-500">Total</p>
+              <p className="text-sm font-semibold text-slate-500">{text.total}</p>
             </div>
           </CardContent>
         </Card>

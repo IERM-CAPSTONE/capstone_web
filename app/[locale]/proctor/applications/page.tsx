@@ -20,6 +20,15 @@ export default function ProctorApplicationsPage() {
   const t = useTranslations("ProctorSwap");
   const locale = useLocale();
   const { user } = useAuth();
+  const isHallInvigilator = user?.role === "hall_invigilator";
+  const otherInvigilatorLabel =
+    locale === "vi"
+      ? isHallInvigilator
+        ? "giám thị hành lang khác"
+        : "giám thị khác"
+      : isHallInvigilator
+        ? "another hall invigilator"
+        : "another proctor";
   const { data: applications = [], isLoading } = useMyProctorApplications();
   const cancelApplication = useCancelProctorApplication();
   const respondToApplication = useUpdateProctorApplicationStatus();
@@ -116,8 +125,8 @@ export default function ProctorApplicationsPage() {
               </div>
               <CardTitle className="text-xl font-bold text-slate-900">
                 {direction === "incoming"
-                  ? t("incomingTitle", { name: application.teacherName || t("anotherProctor") })
-                  : t("outgoingTitle", { name: application.targetTeacherName || t("anotherProctorLower") })}
+                  ? t("incomingTitle", { name: application.teacherName || otherInvigilatorLabel })
+                  : t("outgoingTitle", { name: application.targetTeacherName || otherInvigilatorLabel })}
               </CardTitle>
             </div>
             {getStatusBadge(application.status)}
@@ -202,7 +211,11 @@ export default function ProctorApplicationsPage() {
         <div>
           <h1 className="text-3xl font-bold">{t("pageTitle")}</h1>
           <p className="mt-1 text-gray-600">
-            {t("pageDescription")}
+            {isHallInvigilator
+              ? locale === "vi"
+                ? "Gửi yêu cầu đổi ca giám thị hành lang với giám thị khác sau khi lịch thi đã được công bố."
+                : "Request a hall invigilator swap with another invigilator after the exam schedule has been published."
+              : t("pageDescription")}
           </p>
         </div>
         <Button onClick={handleCreate} className="bg-[#F37021] hover:bg-[#F37021]/90">

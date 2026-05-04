@@ -70,6 +70,24 @@ export function ProctorApplicationFormModal({
   const t = useTranslations("ProctorSwap.modal");
   const locale = useLocale();
   const { user } = useAuth();
+  const isHallInvigilator = user?.role === "hall_invigilator";
+  const swapType: PreferredType = isHallInvigilator ? "HALL" : "ROOM";
+  const assigneeNameLabel =
+    locale === "vi"
+      ? isHallInvigilator
+        ? "Giám thị hành lang hiện tại"
+        : "Giám thị phòng hiện tại"
+      : isHallInvigilator
+        ? "Current Hall Invigilator"
+        : "Current Proctor";
+  const fallbackAssigneeLabel =
+    locale === "vi"
+      ? isHallInvigilator
+        ? "giám thị hành lang khác"
+        : "giám thị khác"
+      : isHallInvigilator
+        ? "another hall invigilator"
+        : "another proctor";
   const isEdit = !!application;
   const createApplication = useCreateProctorApplication();
   const updateApplication = useUpdateProctorApplication();
@@ -78,9 +96,10 @@ export function ProctorApplicationFormModal({
       page: 1,
       limit: 1000,
       semester: semester || undefined,
-      proctorId: user?.id || undefined,
+      proctorId: isHallInvigilator ? undefined : user?.id || undefined,
+      hallInvigilatorId: isHallInvigilator ? user?.id || undefined : undefined,
       campus: user?.campus || undefined,
-    } as any,
+    },
     { enabled: Boolean(user?.id) }
   );
   const { data: examSchedulesResponse, isLoading: allSessionsLoading } = useExamSchedules(
@@ -104,7 +123,7 @@ export function ProctorApplicationFormModal({
     examSessionId: application?.examSessionId || "",
     targetExamSessionId: application?.targetExamSessionId || "",
     preferredShift: (application?.preferredShift || "MORNING") as PreferredShift,
-    preferredType: "ROOM" as PreferredType,
+    preferredType: (application?.preferredType || swapType) as PreferredType,
     preferredDate: application?.preferredDate || "",
     notes: application?.notes || "",
   });
@@ -118,29 +137,33 @@ export function ProctorApplicationFormModal({
         examSessionId: application.examSessionId || "",
         targetExamSessionId: application.targetExamSessionId || "",
         preferredShift: application.preferredShift,
-        preferredType: "ROOM",
+        preferredType: application.preferredType || swapType,
         preferredDate: application.preferredDate || "",
         notes: application.notes || "",
       });
     }
-  }, [application]);
+  }, [application, swapType]);
 
   const activeSwapRequests = useMemo(
     () =>
       existingApplications.filter(
         (item) =>
           item.id !== application?.id &&
+          item.preferredType === swapType &&
           item.status === "PENDING"
       ),
-    [application?.id, existingApplications]
+    [application?.id, existingApplications, swapType]
   );
 
   const myAssignedSessions = useMemo(
     () =>
       myAvailableSessions.filter(
-        (session) => session.proctorId === user?.id
+        (session) =>
+          isHallInvigilator
+            ? session.hallInvigilatorId === user?.id
+            : session.proctorId === user?.id
       ),
-    [myAvailableSessions, user?.id]
+    [isHallInvigilator, myAvailableSessions, user?.id]
   );
 
   const selectedSourceSession = useMemo(
@@ -152,18 +175,21 @@ export function ProctorApplicationFormModal({
     if (!selectedSourceSession) return [];
 
     return examSessions.filter((session) => {
-      if (!session.proctorId || session.proctorId === user?.id) return false;
+      const targetAssigneeId = isHallInvigilator ? session.hallInvigilatorId : session.proctorId;
+      const targetAssigneeName = isHallInvigilator ? session.hallInvigilatorName : session.proctorName;
+
+      if (!targetAssigneeId || targetAssigneeId === user?.id) return false;
       if (session.id === selectedSourceSession.id) return false;
       if (!isSameExamDay(session.examOpenTime, selectedSourceSession.examOpenTime)) return false;
 
       const matchesSearch =
         !targetSearch ||
         session.roomNumber?.toLowerCase().includes(targetSearch.toLowerCase()) ||
-        session.proctorName?.toLowerCase().includes(targetSearch.toLowerCase());
+        targetAssigneeName?.toLowerCase().includes(targetSearch.toLowerCase());
 
       return matchesSearch;
     });
-  }, [examSessions, selectedSourceSession, targetSearch, user?.id]);
+  }, [examSessions, isHallInvigilator, selectedSourceSession, targetSearch, user?.id]);
 
   const selectedTargetSession = useMemo(
     () => candidateTargetSessions.find((session) => session.id === formData.targetExamSessionId)
@@ -198,6 +224,7 @@ export function ProctorApplicationFormModal({
       examSessionId: sourceSessionId,
       targetExamSessionId: "",
       preferredShift,
+      preferredType: swapType,
       preferredDate: sourceSession?.examOpenTime || "",
     }));
   };
@@ -246,7 +273,7 @@ export function ProctorApplicationFormModal({
           examSessionId: formData.examSessionId,
           targetExamSessionId: formData.targetExamSessionId,
           preferredShift: formData.preferredShift,
-          preferredType: "ROOM",
+          preferredType: swapType,
           preferredDate: formData.preferredDate || null,
           notes: formData.notes || null,
         };
@@ -256,7 +283,7 @@ export function ProctorApplicationFormModal({
           examSessionId: formData.examSessionId,
           targetExamSessionId: formData.targetExamSessionId,
           preferredShift: formData.preferredShift,
-          preferredType: "ROOM",
+          preferredType: swapType,
           preferredDate: formData.preferredDate || null,
           notes: formData.notes || null,
         };
@@ -324,6 +351,17 @@ export function ProctorApplicationFormModal({
                     </div>
                   </div>
                 )}
+
+                {isHallInvigilator && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <span className="font-semibold">
+                      {locale === "vi" ? "Lưu ý:" : "Note:"}
+                    </span>{" "}
+                    {locale === "vi"
+                      ? "Đơn đổi lịch của giám thị hành lang sẽ áp dụng cho toàn bộ cụm phòng bạn đang phụ trách trong khung giờ này."
+                      : "Hall invigilator swap requests apply to the entire room cluster you are responsible for in this time slot."}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -358,7 +396,7 @@ export function ProctorApplicationFormModal({
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-3 py-2 text-left">{t("table.room")}</th>
-                      <th className="px-3 py-2 text-left">{t("table.currentProctor")}</th>
+                      <th className="px-3 py-2 text-left">{assigneeNameLabel}</th>
                       <th className="px-3 py-2 text-left">{t("table.time")}</th>
                       <th className="px-3 py-2 text-left">{t("table.action")}</th>
                     </tr>
@@ -378,7 +416,9 @@ export function ProctorApplicationFormModal({
                         >
                           <td className="px-3 py-2 font-medium">{t("roomLabel", { room: session.roomNumber || "-" })}</td>
                           <td className="px-3 py-2">
-                            <div className="font-semibold text-slate-700">{session.proctorName || t("assignedProctor")}</div>
+                            <div className="font-semibold text-slate-700">
+                              {(isHallInvigilator ? session.hallInvigilatorName : session.proctorName) || fallbackAssigneeLabel}
+                            </div>
                             {duplicateRequest && (
                               <div className="mt-1 text-xs text-amber-700">
                                 {t("duplicateHint")}
@@ -412,10 +452,12 @@ export function ProctorApplicationFormModal({
             </div>
 
             {selectedTargetSession && (
-              <div className="rounded-lg border bg-emerald-50 p-4 text-sm text-emerald-900">
+                  <div className="rounded-lg border bg-emerald-50 p-4 text-sm text-emerald-900">
                 {t("swapTargetSummary", {
                   room: selectedTargetSession.roomNumber || "-",
-                  proctor: selectedTargetSession.proctorName || t("anotherProctor"),
+                  proctor:
+                    (isHallInvigilator ? selectedTargetSession.hallInvigilatorName : selectedTargetSession.proctorName)
+                    || fallbackAssigneeLabel,
                 })}
               </div>
             )}

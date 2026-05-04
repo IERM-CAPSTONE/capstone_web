@@ -22,6 +22,8 @@ export default function DashboardRedirectPage() {
         router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
       } else if (user.role === "proctor") {
         router.replace(`/${locale}${ROUTES.PROCTOR_EXAM_SCHEDULES}`);
+      } else if (user.role === "hall_invigilator") {
+        router.replace(`/${locale}${ROUTES.HALL_INVIGILATOR_APPLICATIONS}`);
       } else {
         // Redirect to a default authenticated page for other roles
         router.replace(`/${locale}${ROUTES.DASHBOARD}`);
