@@ -24,8 +24,6 @@ interface StudentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPart?: string | null;
-  canChangeSeat?: boolean;
-  onChangeSeat?: () => void;
 }
 
 export function StudentDetailModal({
@@ -34,8 +32,6 @@ export function StudentDetailModal({
   isOpen,
   onClose,
   selectedPart = null,
-  canChangeSeat = false,
-  onChangeSeat,
 }: StudentDetailModalProps) {
   const updatePartMutation = useUpdateStudentExamPart();
 
@@ -171,26 +167,13 @@ export function StudentDetailModal({
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3">
-            {canChangeSeat ? (
-              <Button
-                variant="outline"
-                className="border-orange-200 text-orange-700 font-bold py-6 uppercase tracking-wider text-xs"
-                onClick={() => {
-                  onChangeSeat?.();
-                  onClose();
-                }}
-              >
-                Change Seat
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                className="border-slate-200 text-slate-600 font-bold py-6 uppercase tracking-wider text-xs"
-                onClick={onClose}
-              >
-                Cancel
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="border-slate-200 text-slate-600 font-bold py-6 uppercase tracking-wider text-xs"
+              onClick={onClose}
+            >
+              {tCommon("cancel")}
+            </Button>
             {selectedPart && partData ? (
               <Button
                 className={`text-white py-6 text-xs font-black uppercase tracking-widest shadow-lg transition-all duration-300 ${isPresent
@@ -213,7 +196,7 @@ export function StudentDetailModal({
                 className="bg-slate-900 hover:bg-slate-800 text-white py-6 text-xs font-black uppercase tracking-widest"
                 onClick={onClose}
               >
-                {canChangeSeat ? 'Close' : 'Ok'}
+                {t("ok")}
               </Button>
             )}
           </div>

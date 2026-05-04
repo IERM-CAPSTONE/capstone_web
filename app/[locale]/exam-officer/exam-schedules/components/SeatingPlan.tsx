@@ -36,6 +36,8 @@ export default function SeatingPlan({
     const { data: studentsResponse, isLoading: studentsLoading, refetch: refetchStudents } = useStudentExamsBySession(examSessionId);
     const { on: onSocket } = useSocket();
 
+    const t = useTranslations("Dashboard.examOfficer.seatingPlan");
+
     // Listen for real-time face authentication events
     useEffect(() => {
         if (!onSocket) return;
@@ -65,7 +67,6 @@ export default function SeatingPlan({
         lockSeat,
         unlockSeat,
         applyTemplate,
-        swapSeats,
     } = useSeatManagement(examSessionId);
 
     // UI state
@@ -74,8 +75,6 @@ export default function SeatingPlan({
     const [actionError, setActionError] = useState<string | null>(null);
     const [isFinalizingSeats, setIsFinalizingSeats] = useState(false);
     const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
-    const [swapSourceSeat, setSwapSourceSeat] = useState<ExamSeat | null>(null);
-    const [isSwappingSeat, setIsSwappingSeat] = useState(false);
 
     const students = studentsResponse?.data || [];
     const rows = maxRows || 5;
@@ -83,7 +82,6 @@ export default function SeatingPlan({
     const unassignedStudentsCount = students.filter(s => !s.seatPosition).length;
     const hasStudentsImported = !!scheduleData?.hasStudentsImported;
     const normalizedRole = String(user?.role || '').toLowerCase();
-    const canSwapSeat = ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
 
     // Compute check-in count based on selected part
     const checkedInCount = selectedPart
@@ -110,54 +108,9 @@ export default function SeatingPlan({
     const handleSeatSelect = (seat: ExamSeat | undefined) => {
         if (!seat) return;
 
-        if (swapSourceSeat) {
-            void handleSwapTargetSelect(seat);
-            return;
-        }
-
         // Find corresponding student by the physical seat assignment only.
         const linkedStudent = students.find(s => s.seatPosition === seat.id);
         setSelectedStudentId(linkedStudent?.id ?? null);
-    };
-
-    const startSwapFromSeat = (seat: ExamSeat) => {
-        if (!canSwapSeat) return;
-        setActionError(null);
-        setSwapSourceSeat(seat);
-        setSelectedStudentId(null);
-        toast.info(`Swap mode enabled from R${seat.row}C${seat.col}. Select target seat.`);
-    };
-
-    const cancelSwapMode = () => {
-        setSwapSourceSeat(null);
-        setIsSwappingSeat(false);
-    };
-
-    const handleSwapTargetSelect = async (targetSeat: ExamSeat) => {
-        if (!swapSourceSeat) return;
-        if (targetSeat.id === swapSourceSeat.id) {
-            setActionError('Please select a different seat as swap target');
-            return;
-        }
-
-        try {
-            setActionError(null);
-            setIsSwappingSeat(true);
-            const result = await swapSeats(swapSourceSeat.id, targetSeat.id);
-            if (!result.success) {
-                setActionError(result.error || 'Failed to swap seats');
-                return;
-            }
-
-            toast.success(`Swapped seats R${swapSourceSeat.row}C${swapSourceSeat.col} and R${targetSeat.row}C${targetSeat.col}`);
-            setSwapSourceSeat(null);
-            await refetchStudents();
-            await refetchSchedule();
-        } catch {
-            setActionError('An unexpected error occurred while swapping seats');
-        } finally {
-            setIsSwappingSeat(false);
-        }
     };
 
     // Handle seat lock/unlock - toggle directly without confirmation
@@ -245,21 +198,6 @@ export default function SeatingPlan({
 
     return (
         <div className="space-y-6">
-            {swapSourceSeat && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3">
-                    <p className="text-[12px] text-blue-700 font-medium">
-                        Swap mode: source seat <span className="font-bold">R{swapSourceSeat.row}C{swapSourceSeat.col}</span>. Select a target seat to complete swap.
-                    </p>
-                    <button
-                        type="button"
-                        onClick={cancelSwapMode}
-                        className="text-[11px] px-3 py-1.5 rounded border border-blue-300 text-blue-700 font-bold hover:bg-blue-100"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            )}
-
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -340,12 +278,6 @@ export default function SeatingPlan({
                     setSelectedStudentId(null);
                 }}
                 selectedPart={selectedPart}
-                canChangeSeat={canSwapSeat && !isSwappingSeat}
-                onChangeSeat={() => {
-                    if (selectedSeat) {
-                        startSwapFromSeat(selectedSeat);
-                    }
-                }}
             />
         </div>
     );

@@ -949,7 +949,7 @@ export default function ExamSessionDetailShared({ mode = "proctor" }: ExamSessio
     };
 
     const normalizedRole = String(user?.role || '').toLowerCase();
-    const canSwapSeat = ["admin", "exam_officer", "proctor"].includes(normalizedRole);
+    const canSwapSeat = ["admin", "proctor"].includes(normalizedRole);
 
     const startSwapModeFromSeat = (seat: ExamSeat, student: StudentExam | null) => {
         if (!canSwapSeat) return;
