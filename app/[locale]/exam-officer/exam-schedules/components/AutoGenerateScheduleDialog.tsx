@@ -91,7 +91,6 @@ export default function AutoGenerateScheduleDialog({
 
     const semestersParams = useMemo(() => ({
         limit: 100,
-        fromDate: new Date().toISOString()
     }), []);
 
     const { data: semestersData } = useSemesters(semestersParams);

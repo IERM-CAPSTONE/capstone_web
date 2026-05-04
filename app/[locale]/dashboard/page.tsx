@@ -18,10 +18,10 @@ export default function DashboardRedirectPage() {
 
       if (user.role === "admin") {
         router.replace(`/${locale}${ROUTES.DASHBOARD_ADMIN}`);
-      } else if (user.role === "exam_officer" || user.role === "proctor") {
+      } else if (user.role === "exam_officer") {
         router.replace(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
       } else if (user.role === "proctor") {
-        router.replace(`/${locale}${ROUTES.DASHBOARD_PROCTOR}`);
+        router.replace(`/${locale}${ROUTES.PROCTOR_EXAM_SCHEDULES}`);
       } else {
         // Redirect to a default authenticated page for other roles
         router.replace(`/${locale}${ROUTES.DASHBOARD}`);

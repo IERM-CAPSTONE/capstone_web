@@ -55,9 +55,7 @@ export function Sidebar() {
   ];
 
   const proctorMenuItems = [
-    { icon: LayoutDashboard, label: t("dashboard"),     href: ROUTES.DASHBOARD_PROCTOR, exact: true },
     { icon: ClipboardList,  label: t("applications"),  href: ROUTES.PROCTOR_APPLICATIONS },
-    { icon: Ticket,         label: t("myTickets"),      href: ROUTES.PROCTOR_TICKETS },
     { icon: Calendar,       label: t("schedules"),      href: ROUTES.PROCTOR_EXAM_SCHEDULES },
   ];
 

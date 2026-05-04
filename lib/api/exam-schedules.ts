@@ -29,6 +29,10 @@ export interface ExamSchedule {
   campus?: string | null;
   examType?: string | null; // PE | FE | TE | RE
   studentCount: number;
+  roomPendingApplicantNames?: string[];
+  roomApprovedApplicantNames?: string[];
+  hallPendingApplicantNames?: string[];
+  hallApprovedApplicantNames?: string[];
 }
 
 export interface PaginatedExamScheduleResponse {
