@@ -18,6 +18,7 @@ import {
 import { auditLogApi, AttendanceSnapshotItem, FaceEnrollmentItem } from "@/lib/api/audit-log";
 import type { TicketFull } from "@/lib/api/tickets";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 type AuditResult = {
   tickets: Partial<TicketFull>[];
@@ -63,6 +64,7 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
 }
 
 export default function ExamOfficerAuditLogPage() {
+  const t = useTranslations("AuditLog");
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -87,7 +89,7 @@ export default function ExamOfficerAuditLogPage() {
 
     const trimmed = keyword.trim();
     if (!trimmed) {
-      toast.error("Nhập MSSV hoặc email để tra cứu.");
+      toast.error(t("errors.emptyKeyword"));
       return;
     }
 
@@ -97,7 +99,7 @@ export default function ExamOfficerAuditLogPage() {
       setResult(data);
       setSearched(true);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể tải audit log.");
+      toast.error(error?.response?.data?.message || t("errors.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -110,17 +112,17 @@ export default function ExamOfficerAuditLogPage() {
           <div className="border-b border-slate-100 px-6 py-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#F37021]">Exam Officer</p>
-                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900">Audit log</h1>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#F37021]">{t("badge")}</p>
+                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900">{t("title")}</h1>
                 <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                  Tra cứu ticket và ảnh điểm danh theo MSSV hoặc email để hậu kiểm nhanh trong các tình huống cần đối soát.
+                  {t("description")}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <StatCard label="Tickets" value={summary.ticketCount} icon={<Ticket className="h-4 w-4" />} />
-                <StatCard label="Snapshots" value={summary.snapshotCount} icon={<Camera className="h-4 w-4" />} />
-                <StatCard label="Enrollments" value={summary.enrollmentCount} icon={<Fingerprint className="h-4 w-4" />} />
-                <StatCard label="Matched" value={summary.matchedCount} icon={<CheckCircle2 className="h-4 w-4" />} />
+                <StatCard label={t("stats.tickets")} value={summary.ticketCount} icon={<Ticket className="h-4 w-4" />} />
+                <StatCard label={t("stats.snapshots")} value={summary.snapshotCount} icon={<Camera className="h-4 w-4" />} />
+                <StatCard label={t("stats.enrollments")} value={summary.enrollmentCount} icon={<Fingerprint className="h-4 w-4" />} />
+                <StatCard label={t("stats.matched")} value={summary.matchedCount} icon={<CheckCircle2 className="h-4 w-4" />} />
               </div>
             </div>
           </div>
@@ -133,7 +135,7 @@ export default function ExamOfficerAuditLogPage() {
                   <input
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
-                    placeholder="Nhập MSSV hoặc email"
+                    placeholder={t("search.placeholder")}
                     className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:border-[#F37021] focus:ring-4 focus:ring-orange-100"
                   />
                 </div>
@@ -143,7 +145,7 @@ export default function ExamOfficerAuditLogPage() {
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#F37021] px-5 text-sm font-bold text-white transition hover:bg-[#dd641c] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserRoundSearch className="h-4 w-4" />}
-                  Tìm kiếm
+                  {t("search.button")}
                 </button>
               </div>
             </form>
@@ -156,29 +158,29 @@ export default function ExamOfficerAuditLogPage() {
                   <Ticket className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-slate-900">Tickets liên quan</h2>
-                  <p className="text-xs text-slate-500">Các ticket gắn theo MSSV hoặc do người dùng này tạo.</p>
+                  <h2 className="text-sm font-black text-slate-900">{t("tickets.title")}</h2>
+                  <p className="text-xs text-slate-500">{t("tickets.description")}</p>
                 </div>
               </div>
               <div className="max-h-[720px] space-y-3 overflow-y-auto p-5">
-                {!searched && <EmptyState icon={<Ticket className="h-5 w-5" />} text="Hãy thực hiện tìm kiếm để xem ticket." />}
-                {searched && result.tickets.length === 0 && <EmptyState icon={<Ticket className="h-5 w-5" />} text="Không tìm thấy ticket liên quan." />}
+                {!searched && <EmptyState icon={<Ticket className="h-5 w-5" />} text={t("tickets.emptyBeforeSearch")} />}
+                {searched && result.tickets.length === 0 && <EmptyState icon={<Ticket className="h-5 w-5" />} text={t("tickets.emptyAfterSearch")} />}
                 {result.tickets.map((ticket) => (
                   <article key={ticket.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-bold text-slate-900">{ticket.issueName || "Untitled ticket"}</h3>
-                        <p className="mt-1 text-xs text-slate-500">{ticket.issueType || "Unknown type"}</p>
+                        <h3 className="truncate text-sm font-bold text-slate-900">{ticket.issueName || t("tickets.untitledTicket")}</h3>
+                        <p className="mt-1 text-xs text-slate-500">{ticket.issueType || t("tickets.unknownType")}</p>
                       </div>
                       <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">
-                        {ticket.status || "UNKNOWN"}
+                        {ticket.status || t("tickets.unknownStatus")}
                       </span>
                     </div>
                     <div className="mt-3 grid gap-2 text-xs text-slate-600">
-                      {ticket.studentCode && <p><span className="font-semibold text-slate-800">MSSV:</span> {ticket.studentCode}</p>}
-                      {ticket.sessionId && <p><span className="font-semibold text-slate-800">Session:</span> {ticket.sessionId}</p>}
-                      {ticket.description && <p className="line-clamp-3"><span className="font-semibold text-slate-800">Mô tả:</span> {ticket.description}</p>}
-                      <p><span className="font-semibold text-slate-800">Tạo lúc:</span> {ticket.createdAt ? format(new Date(ticket.createdAt), "dd/MM/yyyy HH:mm") : "N/A"}</p>
+                      {ticket.studentCode && <p><span className="font-semibold text-slate-800">{t("labels.studentCode")}:</span> {ticket.studentCode}</p>}
+                      {ticket.sessionId && <p><span className="font-semibold text-slate-800">{t("labels.session")}:</span> {ticket.sessionId}</p>}
+                      {ticket.description && <p className="line-clamp-3"><span className="font-semibold text-slate-800">{t("labels.description")}:</span> {ticket.description}</p>}
+                      <p><span className="font-semibold text-slate-800">{t("labels.createdAt")}:</span> {ticket.createdAt ? format(new Date(ticket.createdAt), "dd/MM/yyyy HH:mm") : t("labels.na")}</p>
                     </div>
                   </article>
                 ))}
@@ -191,13 +193,13 @@ export default function ExamOfficerAuditLogPage() {
                   <Fingerprint className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-slate-900">Ảnh đăng ký</h2>
-                  <p className="text-xs text-slate-500">Ảnh khuôn mặt gốc được dùng làm dữ liệu mẫu.</p>
+                  <h2 className="text-sm font-black text-slate-900">{t("enrollments.title")}</h2>
+                  <p className="text-xs text-slate-500">{t("enrollments.description")}</p>
                 </div>
               </div>
               <div className="max-h-[720px] overflow-y-auto p-5">
-                {!searched && <EmptyState icon={<Fingerprint className="h-5 w-5" />} text="Hãy thực hiện tìm kiếm để xem ảnh đăng ký." />}
-                {searched && result.faceEnrollments.length === 0 && <EmptyState icon={<Fingerprint className="h-5 w-5" />} text="Không tìm thấy ảnh đăng ký." />}
+                {!searched && <EmptyState icon={<Fingerprint className="h-5 w-5" />} text={t("enrollments.emptyBeforeSearch")} />}
+                {searched && result.faceEnrollments.length === 0 && <EmptyState icon={<Fingerprint className="h-5 w-5" />} text={t("enrollments.emptyAfterSearch")} />}
                 <div className="space-y-4">
                   {result.faceEnrollments.map((enrollment) => {
                     const images = enrollment.capturedImageUrls
@@ -208,7 +210,7 @@ export default function ExamOfficerAuditLogPage() {
                       <div key={enrollment.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
                         <div className="mb-3 flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            Bản ghi {format(new Date(enrollment.createdAt), "dd/MM/yyyy")}
+                            {t("enrollments.record", { date: format(new Date(enrollment.createdAt), "dd/MM/yyyy") })}
                           </span>
                           <span className={cn(
                             "rounded-full px-2 py-0.5 text-[10px] font-bold ring-1",
@@ -235,7 +237,7 @@ export default function ExamOfficerAuditLogPage() {
                         </div>
                         {enrollment.supervisorName && (
                           <p className="mt-3 text-[10px] text-slate-500">
-                            <span className="font-semibold text-slate-700">Giám thị:</span> {enrollment.supervisorName}
+                            <span className="font-semibold text-slate-700">{t("labels.supervisor")}:</span> {enrollment.supervisorName}
                           </p>
                         )}
                       </div>
@@ -251,13 +253,13 @@ export default function ExamOfficerAuditLogPage() {
                   <Camera className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-slate-900">Ảnh điểm danh</h2>
-                  <p className="text-xs text-slate-500">Snapshot phục vụ hậu kiểm nhận diện khuôn mặt.</p>
+                  <h2 className="text-sm font-black text-slate-900">{t("snapshots.title")}</h2>
+                  <p className="text-xs text-slate-500">{t("snapshots.description")}</p>
                 </div>
               </div>
               <div className="max-h-[720px] overflow-y-auto p-5">
-                {!searched && <EmptyState icon={<Camera className="h-5 w-5" />} text="Hãy thực hiện tìm kiếm để xem ảnh điểm danh." />}
-                {searched && result.attendanceSnapshots.length === 0 && <EmptyState icon={<Camera className="h-5 w-5" />} text="Không tìm thấy ảnh điểm danh." />}
+                {!searched && <EmptyState icon={<Camera className="h-5 w-5" />} text={t("snapshots.emptyBeforeSearch")} />}
+                {searched && result.attendanceSnapshots.length === 0 && <EmptyState icon={<Camera className="h-5 w-5" />} text={t("snapshots.emptyAfterSearch")} />}
                 <div className="grid gap-4 sm:grid-cols-2">
                   {result.attendanceSnapshots.map((snapshot) => (
                     <article key={snapshot.id} className="overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50">
@@ -287,9 +289,9 @@ export default function ExamOfficerAuditLogPage() {
                           </span>
                         </div>
                         <div className="space-y-1.5 text-[11px] text-slate-600">
-                          <p><span className="font-semibold text-slate-800">Session:</span> {snapshot.examSessionId}</p>
-                          {snapshot.confidence != null && <p><span className="font-semibold text-slate-800">Confidence:</span> {(snapshot.confidence * 100).toFixed(1)}%</p>}
-                          <p><span className="font-semibold text-slate-800">Thời gian:</span> {format(new Date(snapshot.captureTimestamp), "dd/MM/yyyy HH:mm")}</p>
+                          <p><span className="font-semibold text-slate-800">{t("labels.session")}:</span> {snapshot.examSessionId}</p>
+                          {snapshot.confidence != null && <p><span className="font-semibold text-slate-800">{t("labels.confidence")}:</span> {(snapshot.confidence * 100).toFixed(1)}%</p>}
+                          <p><span className="font-semibold text-slate-800">{t("labels.time")}:</span> {format(new Date(snapshot.captureTimestamp), "dd/MM/yyyy HH:mm")}</p>
                         </div>
                       </div>
                     </article>

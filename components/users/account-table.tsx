@@ -4,7 +4,8 @@ import { User } from "@/lib/api/users";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Eye, Lock, Unlock } from "lucide-react";
 import { format as dateFnsFormat, parseISO } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, vi } from "date-fns/locale";
+import { useTranslations, useLocale } from "next-intl";
 
 interface AccountTableProps {
   users: User[];
@@ -29,10 +30,13 @@ export function AccountTable({
   pageSize = 10,
   total = 0,
 }: AccountTableProps) {
+  const t = useTranslations("Accounts");
+  const locale = useLocale();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Đang tải...</div>
+        <div className="text-gray-500">{t("table.loading")}</div>
       </div>
     );
   }
@@ -40,7 +44,7 @@ export function AccountTable({
   if (users.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-gray-500 mb-4">Chưa có tài khoản nào</p>
+        <p className="text-gray-500 mb-4">{t("table.noAccounts")}</p>
       </div>
     );
   }
@@ -48,19 +52,15 @@ export function AccountTable({
   const getRoleBadge = (role: User["role"]) => {
     const config = {
       ADMIN: {
-        label: "Admin",
         className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
       },
       EXAM_OFFICER: {
-        label: "Exam Officer",
         className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
       },
       PROCTOR: {
-        label: "Proctor",
         className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
       },
       STUDENT: {
-        label: "Student",
         className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
       },
     };
@@ -68,15 +68,15 @@ export function AccountTable({
     if (!role) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-          No Role
+          {t("table.noRole")}
         </span>
       );
     }
 
-    const { label, className } = config[role];
+    const { className } = config[role];
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${className}`}>
-        {label}
+        {t(`roles.${role}`)}
       </span>
     );
   };
@@ -86,14 +86,14 @@ export function AccountTable({
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
           <span className="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-green-400"></span>
-          Active
+          {t("statuses.active")}
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
         <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400"></span>
-        Locked
+        {t("statuses.locked")}
       </span>
     );
   };
@@ -103,14 +103,14 @@ export function AccountTable({
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">ACCOUNT ID</th>
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">FULL NAME</th>
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">EMAIL</th>
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">USERNAME</th>
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">ROLE</th>
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">STATUS</th>
-            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">CREATED DATE</th>
-            <th className="text-right py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">ACTIONS</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.accountId")}</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.fullName")}</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.email")}</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.username")}</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.role")}</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.status")}</th>
+            <th className="text-left py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.createdDate")}</th>
+            <th className="text-right py-3 px-4 font-bold text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t("table.actions")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -135,7 +135,7 @@ export function AccountTable({
                   {user.email || <span className="text-gray-300 italic">N/A</span>}
                 </td>
                 <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {user.username || <span className="text-gray-300 italic">None</span>}
+                  {user.username || <span className="text-gray-300 italic">N/A</span>}
                 </td>
                 <td className="py-4 px-4 whitespace-nowrap">{getRoleBadge(user.role)}</td>
                 <td className="py-4 px-4 whitespace-nowrap">{getStatusBadge(user.isActive)}</td>
@@ -143,7 +143,7 @@ export function AccountTable({
                   {(() => {
                     try {
                       const date = typeof user.createdAt === "string" ? parseISO(user.createdAt) : user.createdAt;
-                      return dateFnsFormat(date, "MMM dd, yyyy", { locale: enUS });
+                      return dateFnsFormat(date, "MMM dd, yyyy", { locale: locale === "vi" ? vi : enUS });
                     } catch {
                       return "";
                     }
@@ -154,7 +154,7 @@ export function AccountTable({
                     {onView ? (
                       <button
                         onClick={() => onView(user)}
-                        title="View details"
+                        title={t("table.viewDetails")}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
                       >
                         <Eye className="h-4 w-4" />
@@ -163,7 +163,7 @@ export function AccountTable({
                       <a
                         href={`/dashboard/accounts/${user.id}`}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
-                        title="View details"
+                        title={t("table.viewDetails")}
                       >
                         <Eye className="h-4 w-4" />
                       </a>
@@ -171,7 +171,7 @@ export function AccountTable({
                     {onToggleLock && (
                       <button
                         onClick={() => onToggleLock(user.id, user.isActive)}
-                        title={user.isActive ? "Lock account" : "Unlock account"}
+                        title={user.isActive ? t("table.lockAccount") : t("table.unlockAccount")}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
                       >
                         {user.isActive ? (
@@ -184,7 +184,7 @@ export function AccountTable({
                     {onEdit && (
                       <button
                         onClick={() => onEdit(user)}
-                        title="Edit account"
+                        title={t("table.editAccount")}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
                       >
                         <Edit className="h-4 w-4" />
@@ -200,3 +200,4 @@ export function AccountTable({
     </div>
   );
 }
+

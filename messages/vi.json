@@ -228,7 +228,8 @@
                 "viewEvents": "Xem sự kiện",
                 "createSchedule": "Tạo lịch thi",
                 "autoCreateSchedule": "Tạo lịch thi tự động",
-                "importSchedule": "Nhập lịch thi sẵn",
+                "importSchedule": "Nhập lịch thi",
+                "publishSchedule": "Công bố lịch thi",
                 "importProctors": "Nhập Giám thị",
                 "importExamCodes": "Nhập Mã đề thi",
                 "publishSchedule": "Công bố lịch thi",
@@ -322,149 +323,6 @@
                 "edit": "Chỉnh sửa",
                 "importing": "Đang import..."
             },
-            "importDialog": {
-                "schedule": {
-                    "title": "Nhập lịch thi",
-                    "description": "Tải lên tệp lịch thi (Ca thi + Sinh viên)",
-                    "tabSchedules": "Lịch thi ({count})",
-                    "tabStudents": "Sinh viên ({count})",
-                    "errorFileType": "Sai loại tệp. Vui lòng tải lên tệp Lịch thi (phải chứa 'Ca thi' hoặc 'Mã SV').",
-                    "formatInfo": [
-                        "Các cột: Ca thi, Mã SV, MemberCode, Họ tên, CCCD, STT, Môn thi",
-                        "Định dạng Ca thi: DD/MM/YYYY HHhMM-HHhMM ROOM",
-                        "Dòng đầu tiên phải chứa tiêu đề cột"
-                    ]
-                },
-                "proctor": {
-                    "title": "Nhập Giám Thị",
-                    "description": "Tải lên tệp phân công giám thị",
-                    "tabLabel": "Giám thị ({count})",
-                    "errorFileType": "Sai loại tệp. Vui lòng tải lên tệp Giám thị (phải chứa 'ProctorEmail').",
-                    "formatInfo": [
-                        "Các cột bắt buộc: DateExam, TimeExam, ExamRoom, ProctorEmail",
-                        "Định dạng ngày: DD/MM/YYYY",
-                        "Định dạng giờ: HHhMM-HHhMM"
-                    ]
-                },
-                "examcode": {
-                    "title": "Nhập mã đề & mã mở đề",
-                    "description": "Tải lên tệp mã đề thi và mã mở đề",
-                    "tabLabel": "Mã đề ({count})",
-                    "errorFileType": "Sai loại tệp. Vui lòng tải lên tệp Mã đề (phải chứa 'Exam Code' hoặc 'Mã đề').",
-                    "formatInfo": [
-                        "Các cột bắt buộc: Start Date, Exam Code, Rooms",
-                        "Định dạng Start Date: DD/MM/YYYY HH:mm",
-                        "Mã đề hỗ trợ định dạng đặc biệt \"CODE (OPEN)\""
-                    ]
-                },
-                "common": {
-                    "invalidFileType": "Vui lòng chọn tệp CSV hoặc Excel hợp lệ",
-                    "parseError": "Lỗi khi đọc tệp: {error}",
-                    "determineTypeError": "Không thể xác định loại tệp từ tiêu đề. Vui lòng kiểm tra lại định dạng.",
-                    "importSuccess": "Import thành công!",
-                    "importSuccessWithErrors": "Import hoàn tất nhưng có lỗi",
-                    "processedSummary": "Đã xử lý {total} mục:",
-                    "successSummary": "{count} thành công",
-                    "errorSummary": "{count} thất bại",
-                    "scheduleErrors": "Lỗi lịch thi ({count})",
-                    "studentErrors": "Lỗi sinh viên ({count})",
-                    "proctorErrors": "Lỗi giám thị ({count})",
-                    "examCodeErrors": "Lỗi mã đề ({count})",
-                    "noErrorsFound": "Không tìm thấy lỗi trong mục này",
-                    "uploadCta": "Bấm để tải lên hoặc kéo thả tệp",
-                    "uploadHint": "Chỉ chấp nhận tệp CSV hoặc Excel (tối đa 10MB)",
-                    "fileFormatRequirements": "Yêu cầu định dạng tệp",
-                    "noDataPreview": "Không có dữ liệu để xem trước",
-                    "showingEntries": "Hiển thị {from} đến {to} trên {total} dòng",
-                    "changeFile": "Đổi tệp",
-                    "editRow": "Chỉnh sửa dòng",
-                    "importBtn": "Import",
-                    "importingBtn": "Đang import...",
-                    "sendingBatch": "Đang gửi lô {current}/{total}...",
-                    "sendingProctors": "Đang gửi giám thị: lô {current}/{total}...",
-                    "sendingExamCodes": "Đang gửi mã đề: lô {current}/{total}...",
-                    "processInBackground": "Dữ liệu đã được gửi. Đang xử lý ở nền...",
-                    "importCompletedToast": "Import hoàn tất: {success} thành công, {errors} thất bại"
-                }
-            },
-            "assignProctorDialog": {
-                "title": "Phân công giám thị",
-                "current": "Hiện tại",
-                "searchPlaceholder": "Tìm theo tên, mã, hoặc email...",
-                "unassignLabel": "Không có giám thị (Bỏ phân công)",
-                "loading": "Đang tải danh sách...",
-                "empty": "Không tìm thấy giám thị.",
-                "confirm": "Phân công giám thị",
-                "assigning": "Đang phân công...",
-                "loadError": "Lỗi khi tải danh sách giám thị.",
-                "assignError": "Lỗi khi phân công giám thị."
-            },
-            "exportReportDialog": {
-                "title": "Xuất báo cáo",
-                "subtitle": "Chọn cơ sở để tải về",
-                "campusLabel": "Cơ sở",
-                "allCampuses": "Tất cả cơ sở",
-                "exporting": "Đang xuất...",
-                "downloadBtn": "Tải Excel"
-            },
-            "publishScheduleDialog": {
-                "title": "Công bố lịch thi",
-                "subtitle": "Chuyển từ Bản nháp → Đã lên lịch",
-                "successTitle": "Công bố thành công",
-                "successDescription": "Đã công bố {count} ca thi thành công",
-                "semesterLabel": "Học kỳ *",
-                "semesterPlaceholder": "-- Chọn học kỳ --",
-                "campusLabel": "Cơ sở (tùy chọn)",
-                "allCampuses": "Tất cả cơ sở",
-                "warningTitle": "Hành động không thể hoàn tác",
-                "warningDescription": "Tất cả các ca thi ở trạng thái Bản nháp trong học kỳ đã chọn{campus} sẽ được chuyển sang Đã lên lịch. Sinh viên sẽ có thể xem lịch thi của mình.",
-                "confirmationLabel": "Tôi đã hiểu và muốn công bố lịch thi",
-                "publishing": "Đang công bố...",
-                "publishBtn": "Công bố ngay",
-                "errorSelectSemester": "Vui lòng chọn học kỳ",
-                "publishSuccess": "Đã công bố {count} ca thi thành công!",
-                "publishError": "Công bố thất bại: {error}"
-            },
-            "seatActionsPanel": {
-                "editSeats": "Chỉnh sửa chỗ ngồi",
-                "assigning": "Đang phân chỗ...",
-                "assignStudents": "Xếp chỗ cho sinh viên",
-                "editModeActive": "Đang ở chế độ chỉnh sửa",
-                "doneEditing": "Hoàn tất",
-                "checkerboardLock": "Khoá bàn cờ",
-                "resetLocks": "Xoá khoá",
-                "refresh": "Làm mới",
-                "editHint": "Nhấn vào chỗ ngồi để chuyển đổi giữa Trống ⇄ Đã khoá. Chỗ đã khoá sẽ không được xếp sinh viên.",
-                "unassignedHint": "Sinh viên đã được nhập nhưng chưa được xếp chỗ. Hãy khoá các chỗ không muốn dùng, sau đó nhấn \"Xếp chỗ cho sinh viên\" để hoàn tất.",
-                "finalizedHint": "Chỗ ngồi đã được chốt. Chế độ chỉnh sửa sơ đồ đã bị khoá."
-            },
-            "seatingPlan": {
-                "title": "Sơ đồ chỗ ngồi",
-                "attendanceForPart": "Điểm danh cho phần:",
-                "partModeActive": "Chế độ phần thi",
-                "sessionReview": "Xem lại phiên thi",
-                "swapModeHint": "Chế độ đổi chỗ: chỗ nguồn {seat}. Chọn chỗ đích để hoàn tất.",
-                "swapModeEnabled": "Đã bật chế độ đổi chỗ từ {seat}. Chọn chỗ đích.",
-                "swapTargetError": "Vui lòng chọn một chỗ khác làm đích",
-                "swapSuccess": "Đã đổi chỗ {source} và {target}",
-                "swapError": "Đổi chỗ thất bại",
-                "swapUnexpectedError": "Đã xảy ra lỗi không mong muốn khi đổi chỗ",
-                "lockError": "Khoá chỗ thất bại",
-                "unlockError": "Mở khoá chỗ thất bại",
-                "finalizeSuccess": "Đã xếp chỗ cho {count} sinh viên thành công",
-                "finalizeError": "Xếp chỗ thất bại",
-                "checkerboardSuccess": "Đã áp dụng mẫu bàn cờ",
-                "checkerboardError": "Áp dụng mẫu bàn cờ thất bại",
-                "resetSuccess": "Đã xoá tất cả khoá chỗ",
-                "resetError": "Xoá khoá chỗ thất bại",
-                "unexpectedError": "Đã xảy ra lỗi không mong muốn",
-                "legend": {
-                    "locked": "ĐÃ KHOÁ",
-                    "assigned": "ĐÃ XẾP",
-                    "present": "CÓ MẶT",
-                    "absent": "VẮNG"
-                }
-            },
             "schedulesPage": {
                 "missionControl": "HỆ THỐNG ĐIỀU HÀNH THI",
                 "stats": {
@@ -545,6 +403,8 @@
         }
     },
     "Rooms": {
+        "enterpriseRegistry": "Quản lý đơn vị",
+        "officerPortal": "Cổng Khảo thí",
         "detailTitle": "Chi tiết phòng thi",
         "listTitle": "Quản lý phòng thi",
         "subtitle": "Hệ thống quản lý và cấu hình danh sách phòng thi",
@@ -635,12 +495,34 @@
             "canceled": "Đã hủy"
         },
         "filters": {
+            "title": "Bộ lọc",
             "allStatuses": "Tất cả trạng thái",
             "teacherId": "Mã giảng viên",
             "startDate": "Ngày bắt đầu",
             "endDate": "Ngày kết thúc",
             "apply": "Áp dụng",
             "reset": "Đặt lại"
+        },
+        "table": {
+            "proctor": "Giám thị",
+            "date": "Ngày",
+            "shift": "Ca",
+            "type": "Loại",
+            "status": "Trạng thái",
+            "notes": "Ghi chú",
+            "applied": "Ngày nộp",
+            "actions": "Thao tác",
+            "loading": "Đang tải...",
+            "unknown": "Không rõ",
+            "notSpecified": "Chưa chỉ định",
+            "teacherCodePlaceholder": "Lọc theo mã giảng viên...",
+            "showing": "Hiển thị {from} đến {to} trên tổng {total} kết quả"
+        },
+        "confirm": {
+            "approveTitle": "Duyệt đơn đăng ký",
+            "rejectTitle": "Từ chối đơn đăng ký",
+            "approveDescription": "Bạn có chắc chắn muốn duyệt đơn đăng ký này?",
+            "rejectDescription": "Bạn có chắc chắn muốn từ chối đơn đăng ký này?"
         },
         "statistics": {
             "pending": "Chờ duyệt",
@@ -746,6 +628,7 @@
     "Subjects": {
         "title": "Quản lý môn học",
         "subtitle": "Quản lý môn thi và các thành phần thi linh hoạt",
+        "curriculumRegistry": "Hồ sơ chương trình",
         "addSubject": "Thêm môn học",
         "importSubjects": "Nhập môn học",
         "searchPlaceholder": "Tìm kiếm theo mã, tên hoặc bộ môn...",
@@ -1714,6 +1597,57 @@
             "confirm": "Xác nhận"
         }
     },
+    "AuditLog": {
+        "badge": "Khảo thí",
+        "title": "Nhật ký đối soát",
+        "description": "Tra cứu ticket và ảnh điểm danh theo MSSV hoặc email để hậu kiểm nhanh trong các tình huống cần đối soát.",
+        "stats": {
+            "tickets": "Phiếu yêu cầu",
+            "snapshots": "Ảnh ghi nhận",
+            "enrollments": "Dữ liệu đăng ký",
+            "matched": "Đã đối chiếu"
+        },
+        "search": {
+            "placeholder": "Nhập MSSV hoặc email",
+            "button": "Tìm kiếm"
+        },
+        "tickets": {
+            "title": "Tickets liên quan",
+            "description": "Các ticket gắn theo MSSV hoặc do người dùng này tạo.",
+            "emptyBeforeSearch": "Hãy thực hiện tìm kiếm để xem ticket.",
+            "emptyAfterSearch": "Không tìm thấy ticket liên quan.",
+            "untitledTicket": "Ticket chưa đặt tên",
+            "unknownType": "Không rõ loại",
+            "unknownStatus": "KHÔNG RÕ"
+        },
+        "enrollments": {
+            "title": "Ảnh đăng ký",
+            "description": "Ảnh khuôn mặt gốc được dùng làm dữ liệu mẫu.",
+            "emptyBeforeSearch": "Hãy thực hiện tìm kiếm để xem ảnh đăng ký.",
+            "emptyAfterSearch": "Không tìm thấy ảnh đăng ký.",
+            "record": "Bản ghi {date}"
+        },
+        "snapshots": {
+            "title": "Ảnh điểm danh",
+            "description": "Snapshot phục vụ hậu kiểm nhận diện khuôn mặt.",
+            "emptyBeforeSearch": "Hãy thực hiện tìm kiếm để xem ảnh điểm danh.",
+            "emptyAfterSearch": "Không tìm thấy ảnh điểm danh."
+        },
+        "labels": {
+            "studentCode": "MSSV",
+            "session": "Phiên",
+            "description": "Mô tả",
+            "createdAt": "Tạo lúc",
+            "na": "N/A",
+            "supervisor": "Giám thị",
+            "confidence": "Độ tin cậy",
+            "time": "Thời gian"
+        },
+        "errors": {
+            "emptyKeyword": "Nhập MSSV hoặc email để tra cứu.",
+            "loadFailed": "Không thể tải audit log."
+        }
+    },
     "MonitorDashboard": {
         "title": "Giám sát phòng thi",
         "subtitle": "Theo dõi thời gian thực các phòng thi đang diễn ra",
@@ -1759,6 +1693,80 @@
             "hasTickets": "Có ticket pending",
             "lowAttendance": "Điểm danh thấp",
             "searchPlaceholder": "Tìm kiếm môn hoặc phòng..."
+        }
+    },
+    "Accounts": {
+        "breadcrumbDashboard": "Bảng điều khiển",
+        "breadcrumbTitle": "Quản lý tài khoản",
+        "title": "Quản lý tài khoản",
+        "subtitle": "Quản lý tài khoản người dùng hệ thống",
+        "importExcel": "Nhập Excel",
+        "createAccount": "Tạo tài khoản",
+        "search": "Tìm kiếm",
+        "searchPlaceholder": "Tìm theo tên, email hoặc tên đăng nhập",
+        "role": "Vai trò",
+        "status": "Trạng thái",
+        "allRoles": "Tất cả vai trò",
+        "allStatus": "Tất cả trạng thái",
+        "errorLoading": "Lỗi khi tải danh sách tài khoản. Vui lòng thử lại.",
+        "table": {
+            "accountId": "Mã tài khoản",
+            "fullName": "Họ và tên",
+            "email": "Email",
+            "username": "Tên đăng nhập",
+            "role": "Vai trò",
+            "status": "Trạng thái",
+            "createdDate": "Ngày tạo",
+            "actions": "Thao tác",
+            "loading": "Đang tải...",
+            "noAccounts": "Chưa có tài khoản nào",
+            "noRole": "Chưa có vai trò",
+            "viewDetails": "Xem chi tiết",
+            "lockAccount": "Khóa tài khoản",
+            "unlockAccount": "Mở khóa tài khoản",
+            "editAccount": "Chỉnh sửa tài khoản"
+        },
+        "roles": {
+            "ADMIN": "Quản trị viên",
+            "EXAM_OFFICER": "Cán bộ khảo thí",
+            "PROCTOR": "Giám thị",
+            "STUDENT": "Sinh viên"
+        },
+        "statuses": {
+            "active": "Hoạt động",
+            "locked": "Đã khóa"
+        },
+        "pagination": {
+            "showing": "Hiển thị",
+            "to": "đến",
+            "of": "trên",
+            "accounts": "tài khoản",
+            "show": "Hiển thị",
+            "previous": "Trước",
+            "next": "Sau"
+        },
+        "deleteModal": {
+            "title": "Xác nhận xóa",
+            "message": "Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác.",
+            "roleLabel": "Vai trò",
+            "noRole": "Chưa có vai trò",
+            "cancel": "Hủy",
+            "deleting": "Đang xóa...",
+            "delete": "Xóa"
+        },
+        "importModal": {
+            "title": "Nhập tài khoản",
+            "description": "Tải lên tệp Excel hoặc CSV để nhập tài khoản hàng loạt. Hệ thống sẽ xử lý dữ liệu ở chế độ nền và thông báo khi hoàn tất.",
+            "downloadTemplate": "Tải mẫu (.csv)",
+            "uploadCta": "Nhấp để tải lên hoặc kéo thả",
+            "uploadHint": "Tệp Excel (.xlsx, .xls) hoặc CSV tối đa 5MB",
+            "readyToImport": "Sẵn sàng nhập",
+            "invalidFormat": "Vui lòng chọn tệp Excel (.xlsx, .xls) hoặc CSV.",
+            "fileTooLarge": "Kích thước tệp phải nhỏ hơn 5MB.",
+            "importFailed": "Không thể bắt đầu quá trình nhập.",
+            "cancel": "Hủy",
+            "starting": "Đang bắt đầu...",
+            "importAccounts": "Nhập tài khoản"
         }
     }
 }

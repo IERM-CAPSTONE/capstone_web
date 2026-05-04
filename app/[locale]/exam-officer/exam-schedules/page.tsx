@@ -28,7 +28,6 @@ import {
   X,
   Send,
   Upload,
-  Download,
 } from "lucide-react";
 import { format, addDays, subDays, eachDayOfInterval, startOfWeek, parseISO, isSameDay } from "date-fns";
 import { ROUTES } from "@/lib/constants/routes";
@@ -258,29 +257,6 @@ export default function ExamOfficerDashboardPage() {
             onClick={() => setShowImportDialog(true)}
           >
             <Upload className="h-4 w-4" /> {t("examOfficer.actions.importSchedule")}
-          </Button>
-          <Button
-            variant="outline"
-            className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-purple-600 border-purple-100 bg-purple-50/30"
-            disabled={exportMutation.isPending}
-            onClick={async () => {
-              try {
-                const toastId = toast.loading(tCommon("processing"));
-                await exportMutation.mutateAsync({
-                  ...searchParams,
-                  // If in grid view, we might want to respect the grid dates if no specific dates are set
-                  fromDate: searchParams.fromDate || (viewMode === 'grid' ? gridFromDate : ""),
-                  toDate: searchParams.toDate || (viewMode === 'grid' ? gridToDate : ""),
-                });
-                toast.dismiss(toastId);
-                toast.success(tCommon("success.update"));
-              } catch (error) {
-                toast.error(tCommon("error"));
-              }
-            }}
-          >
-            <Download className={`h-4 w-4 ${exportMutation.isPending ? "animate-bounce" : ""}`} />
-            {exportMutation.isPending ? tCommon("processing") : t("examOfficer.actions.export")}
           </Button>
           <Button variant="outline" className="h-11 rounded-2xl border-slate-200 hover:bg-white hover:shadow-md font-bold gap-2 px-4 transition-all text-emerald-600 border-emerald-100 bg-emerald-50/30" onClick={() => setShowPublishDialog(true)}>
             <Send className="h-4 w-4" /> {t("examOfficer.actions.publishSchedule")}

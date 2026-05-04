@@ -228,7 +228,8 @@
                 "viewEvents": "View Events",
                 "createSchedule": "Create Schedule",
                 "autoCreateSchedule": "Auto Create Schedule",
-                "importSchedule": "Import Prepared Schedule",
+                "importSchedule": "Import Schedule",
+                "publishSchedule": "Publish Schedule",
                 "importProctors": "Import Proctors",
                 "importExamCodes": "Import Exam Codes",
                 "publishSchedule": "Publish Schedule",
@@ -322,149 +323,6 @@
                 "edit": "Edit",
                 "importing": "Importing..."
             },
-            "importDialog": {
-                "schedule": {
-                    "title": "Import Exam Schedule",
-                    "description": "Upload exam schedule file (Ca thi + Students)",
-                    "tabSchedules": "Exam Schedules ({count})",
-                    "tabStudents": "Students ({count})",
-                    "errorFileType": "Incorrect file type. Please upload a Schedule file (must contain 'Ca thi' or 'Mã SV').",
-                    "formatInfo": [
-                        "Columns: Ca thi, Mã SV, MemberCode, Họ tên, CCCD, STT, Môn thi",
-                        "Ca thi format: DD/MM/YYYY HHhMM-HHhMM ROOM",
-                        "First row should contain column headers"
-                    ]
-                },
-                "proctor": {
-                    "title": "Import Proctors",
-                    "description": "Upload proctor assignment file",
-                    "tabLabel": "Proctors ({count})",
-                    "errorFileType": "Incorrect file type. Please upload a Proctor file (must contain 'ProctorEmail').",
-                    "formatInfo": [
-                        "Required columns: DateExam, TimeExam, ExamRoom, ProctorEmail",
-                        "Date format: DD/MM/YYYY",
-                        "Time format: HHhMM-HHhMM"
-                    ]
-                },
-                "examcode": {
-                    "title": "Import Exam Code & Open Code",
-                    "description": "Upload exam code and open code file",
-                    "tabLabel": "Exam Codes ({count})",
-                    "errorFileType": "Incorrect file type. Please upload an Exam Code file (must contain 'Exam Code' or 'Mã đề').",
-                    "formatInfo": [
-                        "Required columns: Start Date, Exam Code, Rooms",
-                        "Start Date format: DD/MM/YYYY HH:mm",
-                        "Exam Code supports \"CODE (OPEN)\" specific format"
-                    ]
-                },
-                "common": {
-                    "invalidFileType": "Please select a valid CSV or Excel file",
-                    "parseError": "Failed to parse file: {error}",
-                    "determineTypeError": "Could not determine file type from headers. Please check the file format.",
-                    "importSuccess": "Import Successful!",
-                    "importSuccessWithErrors": "Import Completed with Errors",
-                    "processedSummary": "Processed {total} items:",
-                    "successSummary": "{count} success",
-                    "errorSummary": "{count} failures",
-                    "scheduleErrors": "Schedule Errors ({count})",
-                    "studentErrors": "Student Errors ({count})",
-                    "proctorErrors": "Proctor Errors ({count})",
-                    "examCodeErrors": "Exam Code Errors ({count})",
-                    "noErrorsFound": "No errors found in this category",
-                    "uploadCta": "Click to upload or drag and drop",
-                    "uploadHint": "CSV or Excel files only (Max 10MB)",
-                    "fileFormatRequirements": "File Format Requirements",
-                    "noDataPreview": "No data to preview",
-                    "showingEntries": "Showing {from} to {to} of {total} entries",
-                    "changeFile": "Change file",
-                    "editRow": "Edit Row",
-                    "importBtn": "Import",
-                    "importingBtn": "Importing...",
-                    "sendingBatch": "Sending batch {current}/{total}...",
-                    "sendingProctors": "Sending proctors: batch {current}/{total}...",
-                    "sendingExamCodes": "Sending exam codes: batch {current}/{total}...",
-                    "processInBackground": "Data sent to server. Processing in background...",
-                    "importCompletedToast": "Import fully completed: {success} success, {errors} errors"
-                }
-            },
-            "assignProctorDialog": {
-                "title": "Assign Proctor",
-                "current": "Current",
-                "searchPlaceholder": "Search by name, code, or email...",
-                "unassignLabel": "No Proctor (Unassign)",
-                "loading": "Loading proctors...",
-                "empty": "No proctors found.",
-                "confirm": "Assign Proctor",
-                "assigning": "Assigning...",
-                "loadError": "Failed to load proctors.",
-                "assignError": "Failed to assign proctor."
-            },
-            "exportReportDialog": {
-                "title": "Export Report",
-                "subtitle": "Select campus to download",
-                "campusLabel": "Campus",
-                "allCampuses": "All Campuses",
-                "exporting": "Exporting...",
-                "downloadBtn": "Download Excel"
-            },
-            "publishScheduleDialog": {
-                "title": "Publish Exam Schedule",
-                "subtitle": "Change Draft → Scheduled",
-                "successTitle": "Publish Successful",
-                "successDescription": "{count} exam sessions published successfully",
-                "semesterLabel": "Semester *",
-                "semesterPlaceholder": "-- Select semester --",
-                "campusLabel": "Campus (optional)",
-                "allCampuses": "All Campuses",
-                "warningTitle": "Irreversible Action",
-                "warningDescription": "All Draft sessions for the selected semester{campus} will be changed to Scheduled. Students will be able to see their exam schedule.",
-                "confirmationLabel": "I understand and want to publish the schedule",
-                "publishing": "Publishing...",
-                "publishBtn": "Publish Now",
-                "errorSelectSemester": "Please select a semester",
-                "publishSuccess": "Published {count} exam sessions successfully!",
-                "publishError": "Publish failed: {error}"
-            },
-            "seatActionsPanel": {
-                "editSeats": "Edit Seats",
-                "assigning": "Assigning...",
-                "assignStudents": "Assign Students to Seats",
-                "editModeActive": "Edit Mode Active",
-                "doneEditing": "Done Editing",
-                "checkerboardLock": "Checkerboard Lock",
-                "resetLocks": "Reset Locks",
-                "refresh": "Refresh",
-                "editHint": "Click a seat to toggle Available ⇄ Locked. Locked seats cannot be assigned to students.",
-                "unassignedHint": "Students have been imported but not assigned to seats yet. Lock unwanted seats, then click \"Assign Students to Seats\" to finalize the layout.",
-                "finalizedHint": "Seats have been finalized. Layout editing is locked."
-            },
-            "seatingPlan": {
-                "title": "Seating Plan",
-                "attendanceForPart": "Attendance for Part:",
-                "partModeActive": "Part Mode Active",
-                "sessionReview": "Session Review",
-                "swapModeHint": "Swap mode: source seat {seat}. Select a target seat to complete swap.",
-                "swapModeEnabled": "Swap mode enabled from {seat}. Select target seat.",
-                "swapTargetError": "Please select a different seat as swap target",
-                "swapSuccess": "Swapped seats {source} and {target}",
-                "swapError": "Failed to swap seats",
-                "swapUnexpectedError": "An unexpected error occurred while swapping seats",
-                "lockError": "Failed to lock seat",
-                "unlockError": "Failed to unlock seat",
-                "finalizeSuccess": "Successfully assigned {count} students to seats",
-                "finalizeError": "Failed to finalize seat assignments",
-                "checkerboardSuccess": "Checkerboard template applied",
-                "checkerboardError": "Failed to apply checkerboard template",
-                "resetSuccess": "Seat locks reset",
-                "resetError": "Failed to reset seat locks",
-                "unexpectedError": "An unexpected error occurred",
-                "legend": {
-                    "locked": "LOCKED",
-                    "assigned": "ASSIGNED",
-                    "present": "PRESENT",
-                    "absent": "ABSENT"
-                }
-            },
             "schedulesPage": {
                 "missionControl": "MISSION CONTROL SYSTEM",
                 "stats": {
@@ -545,6 +403,8 @@
         }
     },
     "Rooms": {
+        "enterpriseRegistry": "Enterprise Registry",
+        "officerPortal": "Officer Portal",
         "detailTitle": "Room Detail",
         "listTitle": "Room Management",
         "subtitle": "Manage and configure exam room settings",
@@ -634,12 +494,34 @@
             "canceled": "Canceled"
         },
         "filters": {
+            "title": "Filters",
             "allStatuses": "All Statuses",
             "teacherId": "Teacher ID",
             "startDate": "Start Date",
             "endDate": "End Date",
             "apply": "Apply Filters",
             "reset": "Reset"
+        },
+        "table": {
+            "proctor": "Proctor",
+            "date": "Date",
+            "shift": "Shift",
+            "type": "Type",
+            "status": "Status",
+            "notes": "Notes",
+            "applied": "Applied",
+            "actions": "Actions",
+            "loading": "Loading...",
+            "unknown": "Unknown",
+            "notSpecified": "Not specified",
+            "teacherCodePlaceholder": "Filter by teacher...",
+            "showing": "Showing {from} to {to} of {total} results"
+        },
+        "confirm": {
+            "approveTitle": "Approve Application",
+            "rejectTitle": "Reject Application",
+            "approveDescription": "Are you sure you want to approve this application?",
+            "rejectDescription": "Are you sure you want to reject this application?"
         },
         "statistics": {
             "pending": "Pending",
@@ -745,6 +627,7 @@
     "Subjects": {
         "title": "Subject Management",
         "subtitle": "Manage exam subjects and their components",
+        "curriculumRegistry": "Curriculum Registry",
         "addSubject": "Add Subject",
         "importSubjects": "Import Subjects",
         "searchPlaceholder": "Search by code or name...",
@@ -1638,6 +1521,57 @@
             "confirm": "Confirm"
         }
     },
+    "AuditLog": {
+        "badge": "Exam Officer",
+        "title": "Audit log",
+        "description": "Look up tickets and attendance snapshots by student code or email for quick post-exam verification.",
+        "stats": {
+            "tickets": "Tickets",
+            "snapshots": "Snapshots",
+            "enrollments": "Enrollments",
+            "matched": "Matched"
+        },
+        "search": {
+            "placeholder": "Enter student code or email",
+            "button": "Search"
+        },
+        "tickets": {
+            "title": "Related tickets",
+            "description": "Tickets linked to this student code or created by this user.",
+            "emptyBeforeSearch": "Run a search to view tickets.",
+            "emptyAfterSearch": "No related tickets found.",
+            "untitledTicket": "Untitled ticket",
+            "unknownType": "Unknown type",
+            "unknownStatus": "UNKNOWN"
+        },
+        "enrollments": {
+            "title": "Enrollment images",
+            "description": "Original face images used as enrollment samples.",
+            "emptyBeforeSearch": "Run a search to view enrollment images.",
+            "emptyAfterSearch": "No enrollment images found.",
+            "record": "Record {date}"
+        },
+        "snapshots": {
+            "title": "Attendance snapshots",
+            "description": "Snapshots used for post-exam face verification.",
+            "emptyBeforeSearch": "Run a search to view attendance snapshots.",
+            "emptyAfterSearch": "No attendance snapshots found."
+        },
+        "labels": {
+            "studentCode": "Student code",
+            "session": "Session",
+            "description": "Description",
+            "createdAt": "Created at",
+            "na": "N/A",
+            "supervisor": "Supervisor",
+            "confidence": "Confidence",
+            "time": "Time"
+        },
+        "errors": {
+            "emptyKeyword": "Enter student code or email to search.",
+            "loadFailed": "Unable to load audit log."
+        }
+    },
     "Devices": {
         "title": "Device Management",
         "breadcrumb": "Device Management",
@@ -1758,6 +1692,80 @@
             "detailRejectedReason": "Rejected Reason",
             "detailMetadata": "Metadata",
             "noMetadata": "No metadata available"
+        }
+    },
+    "Accounts": {
+        "breadcrumbDashboard": "Dashboard",
+        "breadcrumbTitle": "Account Management",
+        "title": "Account Management",
+        "subtitle": "Manage system user accounts",
+        "importExcel": "Import Excel",
+        "createAccount": "Create Account",
+        "search": "Search",
+        "searchPlaceholder": "Search by name, email, or username",
+        "role": "Role",
+        "status": "Status",
+        "allRoles": "All Roles",
+        "allStatus": "All Status",
+        "errorLoading": "Error loading accounts. Please try again.",
+        "table": {
+            "accountId": "Account ID",
+            "fullName": "Full Name",
+            "email": "Email",
+            "username": "Username",
+            "role": "Role",
+            "status": "Status",
+            "createdDate": "Created Date",
+            "actions": "Actions",
+            "loading": "Loading...",
+            "noAccounts": "No accounts found",
+            "noRole": "No Role",
+            "viewDetails": "View details",
+            "lockAccount": "Lock account",
+            "unlockAccount": "Unlock account",
+            "editAccount": "Edit account"
+        },
+        "roles": {
+            "ADMIN": "Admin",
+            "EXAM_OFFICER": "Exam Officer",
+            "PROCTOR": "Proctor",
+            "STUDENT": "Student"
+        },
+        "statuses": {
+            "active": "Active",
+            "locked": "Locked"
+        },
+        "pagination": {
+            "showing": "Showing",
+            "to": "to",
+            "of": "of",
+            "accounts": "accounts",
+            "show": "Show",
+            "previous": "Previous",
+            "next": "Next"
+        },
+        "deleteModal": {
+            "title": "Confirm Delete",
+            "message": "Are you sure you want to delete this account? This action cannot be undone.",
+            "roleLabel": "Role",
+            "noRole": "No Role",
+            "cancel": "Cancel",
+            "deleting": "Deleting...",
+            "delete": "Delete"
+        },
+        "importModal": {
+            "title": "Import Accounts",
+            "description": "Upload an Excel or CSV file to bulk import accounts. The system will process the data in the background and notify you when finished.",
+            "downloadTemplate": "Download Template (.csv)",
+            "uploadCta": "Click to upload or drag & drop",
+            "uploadHint": "Excel (.xlsx, .xls) or CSV files up to 5MB",
+            "readyToImport": "Ready to import",
+            "invalidFormat": "Please select an Excel file (.xlsx, .xls) or CSV file.",
+            "fileTooLarge": "File size should be less than 5MB.",
+            "importFailed": "Failed to start import process.",
+            "cancel": "Cancel",
+            "starting": "Starting...",
+            "importAccounts": "Import accounts"
         }
     }
 }

@@ -5,7 +5,8 @@ import { ProctorApplication } from "@/lib/api/proctor-applications";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import { format as dateFnsFormat, parseISO } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, vi } from "date-fns/locale";
+import { useLocale, useTranslations } from "next-intl";
 
 interface ProctorApplicationManagementTableProps {
   applications: ProctorApplication[];
@@ -28,6 +29,9 @@ export function ProctorApplicationManagementTable({
   total = 0,
   onPageChange,
 }: ProctorApplicationManagementTableProps) {
+  const t = useTranslations("ProctorApplications");
+  const locale = useLocale();
+  const dateLocale = locale === "vi" ? vi : enUS;
   const [confirmAction, setConfirmAction] = useState<{
     id: string;
     type: "approve" | "reject";
@@ -36,7 +40,7 @@ export function ProctorApplicationManagementTable({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">{t("table.loading")}</div>
       </div>
     );
   }
@@ -44,7 +48,7 @@ export function ProctorApplicationManagementTable({
   if (applications.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-gray-500 mb-4">No applications found</p>
+        <p className="text-gray-500 mb-4">{t("messages.noApplications")}</p>
       </div>
     );
   }
@@ -52,21 +56,21 @@ export function ProctorApplicationManagementTable({
   const getStatusBadge = (status: ProctorApplication["status"]) => {
     const config = {
       PENDING: {
-        label: "Pending",
+        label: t("statuses.pending"),
         className:
           "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
       },
       APPROVED: {
-        label: "Approved",
+        label: t("statuses.approved"),
         className:
           "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
       },
       REJECTED: {
-        label: "Rejected",
+        label: t("statuses.rejected"),
         className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
       },
       CANCELED: {
-        label: "Canceled",
+        label: t("statuses.canceled"),
         className:
           "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
       },
@@ -83,11 +87,11 @@ export function ProctorApplicationManagementTable({
   };
 
   const getShiftLabel = (shift: string) => {
-    return shift === "MORNING" ? "Morning" : "Afternoon";
+    return shift === "MORNING" ? t("shifts.morning") : t("shifts.afternoon");
   };
 
   const getTypeLabel = (type: string) => {
-    return type === "ROOM" ? "Room Proctor" : "Hall Invigilator";
+    return type === "ROOM" ? t("types.room") : t("types.hall");
   };
 
   const handleConfirm = () => {
@@ -111,28 +115,28 @@ export function ProctorApplicationManagementTable({
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Proctor
+                {t("table.proctor")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Date
+                {t("table.date")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Shift
+                {t("table.shift")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Type
+                {t("table.type")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
+                {t("table.status")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Notes
+                {t("table.notes")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Applied
+                {t("table.applied")}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Actions
+                {t("table.actions")}
               </th>
             </tr>
           </thead>
@@ -147,7 +151,7 @@ export function ProctorApplicationManagementTable({
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {application.teacherName || "Unknown"}
+                      {application.teacherName || t("table.unknown")}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                       {application.teacherCode || "-"}
@@ -158,9 +162,9 @@ export function ProctorApplicationManagementTable({
                       ? dateFnsFormat(
                           parseISO(application.preferredDate),
                           "MMM d, yyyy",
-                          { locale: enUS }
+                          { locale: dateLocale }
                         )
-                      : "Not specified"}
+                      : t("table.notSpecified")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {getShiftLabel(application.preferredShift)}
@@ -176,7 +180,7 @@ export function ProctorApplicationManagementTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {dateFnsFormat(parseISO(application.createdAt), "MMM d, yyyy", {
-                      locale: enUS,
+                      locale: dateLocale,
                     })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -191,7 +195,7 @@ export function ProctorApplicationManagementTable({
                           className="text-green-600 hover:text-green-700 hover:border-green-600"
                         >
                           <Check className="h-4 w-4 mr-1" />
-                          Approve
+                          {t("buttons.approve")}
                         </Button>
                         <Button
                           variant="outline"
@@ -202,7 +206,7 @@ export function ProctorApplicationManagementTable({
                           className="text-red-600 hover:text-red-700 hover:border-red-600"
                         >
                           <X className="h-4 w-4 mr-1" />
-                          Reject
+                          {t("buttons.reject")}
                         </Button>
                       </div>
                     )}
@@ -218,8 +222,11 @@ export function ProctorApplicationManagementTable({
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-4 border-t dark:border-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, total)} of {total} results
+            {t("table.showing", {
+              from: (currentPage - 1) * pageSize + 1,
+              to: Math.min(currentPage * pageSize, total),
+              total,
+            })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -228,7 +235,7 @@ export function ProctorApplicationManagementTable({
               onClick={() => onPageChange?.(currentPage - 1)}
               disabled={currentPage === 1}
             >
-              Previous
+              {t("pagination.previous")}
             </Button>
             <Button
               variant="outline"
@@ -236,7 +243,7 @@ export function ProctorApplicationManagementTable({
               onClick={() => onPageChange?.(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
-              Next
+              {t("pagination.next")}
             </Button>
           </div>
         </div>
@@ -247,17 +254,17 @@ export function ProctorApplicationManagementTable({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">
-              {confirmAction.type === "approve" ? "Approve" : "Reject"} Application
+              {confirmAction.type === "approve" ? t("confirm.approveTitle") : t("confirm.rejectTitle")}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to {confirmAction.type} this application?
+              {confirmAction.type === "approve" ? t("confirm.approveDescription") : t("confirm.rejectDescription")}
             </p>
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => setConfirmAction(null)}
               >
-                Cancel
+                {t("buttons.cancel")}
               </Button>
               <Button
                 onClick={handleConfirm}
@@ -267,7 +274,7 @@ export function ProctorApplicationManagementTable({
                     : "bg-red-600 hover:bg-red-700"
                 }
               >
-                {confirmAction.type === "approve" ? "Approve" : "Reject"}
+                {confirmAction.type === "approve" ? t("buttons.approve") : t("buttons.reject")}
               </Button>
             </div>
           </div>

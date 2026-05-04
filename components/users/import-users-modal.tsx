@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUp, FileSpreadsheet, X, Download, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useImportStudents } from "@/hooks/use-users";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 interface ImportUsersModalProps {
     isOpen: boolean;
@@ -17,6 +18,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const importMutation = useImportStudents();
+    const t = useTranslations("Accounts.importModal");
 
     if (!isOpen) return null;
 
@@ -27,11 +29,11 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
         if (selectedFile) {
             const extension = selectedFile.name.split(".").pop()?.toLowerCase();
             if (extension !== "xlsx" && extension !== "xls" && extension !== "csv") {
-                setError("Please select an Excel file (.xlsx, .xls) or CSV file.");
+                setError(t("invalidFormat"));
                 return;
             }
             if (selectedFile.size > 5 * 1024 * 1024) {
-                setError("File size should be less than 5MB.");
+                setError(t("fileTooLarge"));
                 return;
             }
             setFile(selectedFile);
@@ -44,7 +46,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
         if (droppedFile) {
             const extension = droppedFile.name.split(".").pop()?.toLowerCase();
             if (extension !== "xlsx" && extension !== "xls" && extension !== "csv") {
-                setError("Please select an Excel file (.xlsx, .xls) or CSV file.");
+                setError(t("invalidFormat"));
                 return;
             }
             setFile(droppedFile);
@@ -59,7 +61,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
             onClose();
             setFile(null);
         } catch (err: any) {
-            setError(err.response?.data?.message || "Failed to start import process.");
+            setError(err.response?.data?.message || t("importFailed"));
         }
     };
 
@@ -95,7 +97,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                 <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                         <FileSpreadsheet className="h-5 w-5 text-orange-600" />
-                        Import Accounts
+                        {t("title")}
                     </CardTitle>
                     <Button variant="ghost" size="sm" onClick={onClose} disabled={importMutation.isPending} className="h-8 w-8 p-0">
                         <X className="h-4 w-4" />
@@ -105,8 +107,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                 <CardContent className="pt-6">
                     <div className="space-y-5">
                         <p className="text-sm text-gray-500 leading-relaxed">
-                            Upload an Excel or CSV file to bulk import accounts.
-                            The system will process the data in the background and notify you when finished.
+                            {t("description")}
                         </p>
 
                         <Button
@@ -115,7 +116,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                             onClick={downloadTemplate}
                         >
                             <Download className="h-4 w-4" />
-                            Download Template (.csv)
+                            {t("downloadTemplate")}
                         </Button>
 
                         <div
@@ -150,7 +151,7 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                                     </div>
                                     <div className="text-center">
                                         <p className="text-sm font-semibold text-gray-900">{file.name}</p>
-                                        <p className="text-xs text-orange-600 font-medium mt-1">Ready to import • {(file.size / 1024).toFixed(1)} KB</p>
+                                        <p className="text-xs text-orange-600 font-medium mt-1">{t("readyToImport")} • {(file.size / 1024).toFixed(1)} KB</p>
                                     </div>
                                 </>
                             ) : (
@@ -159,8 +160,8 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
                                         <FileUp className="h-7 w-7 text-gray-400 group-hover:text-orange-500" />
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-sm font-semibold text-gray-700">Click to upload or drag & drop</p>
-                                        <p className="text-xs text-gray-400 mt-1">Excel (.xlsx, .xls) or CSV files up to 5MB</p>
+                                        <p className="text-sm font-semibold text-gray-700">{t("uploadCta")}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{t("uploadHint")}</p>
                                     </div>
                                 </>
                             )}
@@ -175,14 +176,14 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
 
                         <div className="flex justify-end gap-3 pt-2">
                             <Button variant="outline" onClick={onClose} disabled={importMutation.isPending} className="px-6 h-10">
-                                Cancel
+                                {t("cancel")}
                             </Button>
                             <Button
                                 onClick={handleImport}
                                 disabled={!file || importMutation.isPending}
                                 className="bg-[#F37021] hover:bg-[#d95d15] text-white px-8 h-10 font-bold shadow-sm disabled:opacity-50"
                             >
-                                {importMutation.isPending ? "Starting..." : "Import accounts"}
+                                {importMutation.isPending ? t("starting") : t("importAccounts")}
                             </Button>
                         </div>
                     </div>
@@ -191,3 +192,4 @@ export function ImportUsersModal({ isOpen, onClose }: ImportUsersModalProps) {
         </div>
     );
 }
+
