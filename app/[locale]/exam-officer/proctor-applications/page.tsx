@@ -9,6 +9,7 @@ import { CheckCircle2, Clock3, Filter, Search, ShieldCheck, XCircle } from "luci
 import { ProctorApplicationManagementTable } from "@/components/proctor-applications/proctor-application-management-table";
 import { useProctorApplications } from "@/hooks/use-proctor-applications";
 import { ProctorApplicationStatus } from "@/lib/api/proctor-applications";
+import { useTranslations } from "next-intl";
 
 export default function ProctorApplicationsManagementPage() {
   const locale = useLocale();

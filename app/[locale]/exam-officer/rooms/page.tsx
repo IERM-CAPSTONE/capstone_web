@@ -38,7 +38,7 @@ export default function ExamOfficerRoomsPage() {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-orange-50 border border-orange-100">
                 <div className="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />
-                <span className="text-[11px] uppercase tracking-[0.2em] font-black text-orange-600">Officer Portal</span>
+                <span className="text-[11px] uppercase tracking-[0.2em] font-black text-orange-600">{t("officerPortal")}</span>
               </div>
               <h1 className="text-4xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
                 {t("listTitle") || "Room Management"}

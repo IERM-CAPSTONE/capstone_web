@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Edit2, Save, X, CheckCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface SeatActionsPanelProps {
   isEditing: boolean;
@@ -30,6 +31,8 @@ export function SeatActionsPanel({
   isFinalizingSeats = false,
   isApplyingTemplate = false,
 }: SeatActionsPanelProps) {
+  const t = useTranslations("Dashboard.examOfficer.seatActionsPanel");
+  const tCommon = useTranslations("Common");
   const normalizedRole = String(userRole || '').toLowerCase();
   const canEdit = ['admin', 'exam_officer', 'proctor'].includes(normalizedRole);
 
@@ -52,7 +55,7 @@ export function SeatActionsPanel({
               disabled={hasStudentsImported}
             >
               <Edit2 className="h-4 w-4" />
-              Edit Seats
+              {t("editSeats")}
             </Button>
             {showFinalizeButton && (
               <Button
@@ -64,12 +67,12 @@ export function SeatActionsPanel({
                 {isFinalizingSeats ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Assigning...
+                    {t("assigning")}
                   </>
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4" />
-                    Assign Students to Seats
+                    {t("assignStudents")}
                   </>
                 )}
               </Button>
@@ -82,7 +85,7 @@ export function SeatActionsPanel({
               className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 cursor-default pointer-events-none"
             >
               <Edit2 className="h-4 w-4" />
-              Edit Mode Active
+              {t("editModeActive")}
             </Button>
             <Button
               onClick={() => onEditToggle(false)}
@@ -90,7 +93,7 @@ export function SeatActionsPanel({
               className="bg-green-600 hover:bg-green-700 gap-2"
             >
               <Save className="h-4 w-4" />
-              Done Editing
+              {t("doneEditing")}
             </Button>
             <Button
               onClick={() => onEditToggle(false)}
@@ -98,7 +101,7 @@ export function SeatActionsPanel({
               className="gap-2"
             >
               <X className="h-4 w-4" />
-              Cancel
+              {tCommon("cancel")}
             </Button>
             {onApplyCheckerboardTemplate && (
               <Button
@@ -107,7 +110,7 @@ export function SeatActionsPanel({
                 className="gap-2"
                 disabled={isApplyingTemplate}
               >
-                Checkerboard Lock
+                {t("checkerboardLock")}
               </Button>
             )}
             {onResetTemplate && (
@@ -117,7 +120,7 @@ export function SeatActionsPanel({
                 className="gap-2"
                 disabled={isApplyingTemplate}
               >
-                Reset Locks
+                {t("resetLocks")}
               </Button>
             )}
           </div>
@@ -128,7 +131,7 @@ export function SeatActionsPanel({
           size="sm"
           className="ml-auto"
         >
-          Refresh
+          {t("refresh")}
         </Button>
       </div>
 
@@ -136,7 +139,7 @@ export function SeatActionsPanel({
       {isEditing && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-[12px] text-blue-700 font-medium">
-            💡 Click a seat to toggle Available ⇄ Locked. Locked seats cannot be assigned to students.
+            💡 {t("editHint")}
           </p>
         </div>
       )}
@@ -145,7 +148,7 @@ export function SeatActionsPanel({
       {showFinalizeButton && (
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-[12px] text-yellow-700 font-medium">
-            ⚠️ Students have been imported but not assigned to seats yet. Lock unwanted seats, then click "Assign Students to Seats" to finalize the layout.
+            ⚠️ {t("unassignedHint")}
           </p>
         </div>
       )}
@@ -154,7 +157,7 @@ export function SeatActionsPanel({
       {hasStudentsImported && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-[12px] text-green-700 font-medium">
-            ✅ Seats have been finalized. Layout editing is locked.
+            ✅ {t("finalizedHint")}
           </p>
         </div>
       )}

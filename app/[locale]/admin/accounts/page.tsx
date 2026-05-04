@@ -108,17 +108,17 @@ export default function AccountsPage() {
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <div className="flex items-center text-sm text-gray-500">
-        <span className="hover:text-gray-700 cursor-pointer">Dashboard</span>
+        <span className="hover:text-gray-700 cursor-pointer">{t("breadcrumbDashboard")}</span>
         <span className="mx-2">›</span>
-        <span className="font-medium text-gray-900 dark:text-gray-100">Account Management</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100">{t("breadcrumbTitle")}</span>
       </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Account Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{t("title")}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage system user accounts
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -128,11 +128,11 @@ export default function AccountsPage() {
             className="border-gray-300 text-gray-700 hover:bg-gray-50 font-medium px-4 py-2"
           >
             <FileUp className="mr-2 h-4 w-4" />
-            Import Excel
+            {t("importExcel")}
           </Button>
           <Button onClick={handleCreate} className="bg-[#F37021] hover:bg-[#d95d15] text-white font-medium px-4 py-2">
             <Plus className="mr-2 h-4 w-4" />
-            Create Account
+            {t("createAccount")}
           </Button>
         </div>
       </div>
@@ -143,12 +143,12 @@ export default function AccountsPage() {
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12 md:col-span-6">
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
-                Search
+                {t("search")}
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name, email, or username"
+                  placeholder={t("searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -161,7 +161,7 @@ export default function AccountsPage() {
 
             <div className="col-span-12 md:col-span-3">
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
-                Role
+                {t("role")}
               </label>
               <select
                 value={roleFilter}
@@ -171,17 +171,17 @@ export default function AccountsPage() {
                 }}
                 className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700"
               >
-                <option value="">All Roles</option>
-                <option value="ADMIN">Admin</option>
-                <option value="EXAM_OFFICER">Exam Officer</option>
-                <option value="PROCTOR">Proctor</option>
-                <option value="STUDENT">Student</option>
+                <option value="">{t("allRoles")}</option>
+                <option value="ADMIN">{t("roles.ADMIN")}</option>
+                <option value="EXAM_OFFICER">{t("roles.EXAM_OFFICER")}</option>
+                <option value="PROCTOR">{t("roles.PROCTOR")}</option>
+                <option value="STUDENT">{t("roles.STUDENT")}</option>
               </select>
             </div>
 
             <div className="col-span-12 md:col-span-3">
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
-                Status
+                {t("status")}
               </label>
               <select
                 value={statusFilter === "" ? "" : statusFilter === true ? "true" : "false"}
@@ -193,9 +193,9 @@ export default function AccountsPage() {
                 }}
                 className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700"
               >
-                <option value="">All Status</option>
-                <option value="true">Active</option>
-                <option value="false">Locked</option>
+                <option value="">{t("allStatus")}</option>
+                <option value="true">{t("statuses.active")}</option>
+                <option value="false">{t("statuses.locked")}</option>
               </select>
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function AccountsPage() {
         <div className="p-0">
           {error && (
             <div className="p-4 m-4 bg-red-50 text-red-600 rounded-lg dark:bg-red-900/20 dark:text-red-400">
-              Error loading accounts. Please try again.
+              {t("errorLoading")}
             </div>
           )}
 
@@ -229,13 +229,13 @@ export default function AccountsPage() {
           {data && data.total > 0 && (
             <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing <span className="font-medium text-gray-900 dark:text-gray-100">{((page - 1) * (data.limit || 10)) + 1}</span> to{" "}
-                <span className="font-medium text-gray-900 dark:text-gray-100">{Math.min(page * (data.limit || 10), data.total)}</span> of <span className="font-medium text-gray-900 dark:text-gray-100">{data.total}</span> accounts
+                {t("pagination.showing")} <span className="font-medium text-gray-900 dark:text-gray-100">{((page - 1) * (data.limit || 10)) + 1}</span> {t("pagination.to")}{" "}
+                <span className="font-medium text-gray-900 dark:text-gray-100">{Math.min(page * (data.limit || 10), data.total)}</span> {t("pagination.of")} <span className="font-medium text-gray-900 dark:text-gray-100">{data.total}</span> {t("pagination.accounts")}
               </div>
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t("pagination.show")}:</span>
                   <div className="relative">
                     <input
                       type="number"
@@ -254,7 +254,7 @@ export default function AccountsPage() {
                     disabled={page === 1}
                     className="h-9 px-3 text-gray-600 border-gray-300 hover:bg-gray-50"
                   >
-                    Previous
+                    {t("pagination.previous")}
                   </Button>
                   {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
                     let pageNum;
@@ -289,7 +289,7 @@ export default function AccountsPage() {
                     disabled={page === data.totalPages}
                     className="h-9 px-3 text-gray-600 border-gray-300 hover:bg-gray-50"
                   >
-                    Next
+                    {t("pagination.next")}
                   </Button>
                 </div>
               </div>
@@ -318,3 +318,4 @@ export default function AccountsPage() {
     </div>
   );
 }
+
