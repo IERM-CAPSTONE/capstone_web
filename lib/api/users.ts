@@ -173,6 +173,12 @@ export const usersApi = {
     return response.data.success ? response.data.data : { message: "Failed to start import" };
   },
 
+  // Search users by codes
+  searchByCodes: async (codes: string[]): Promise<User[]> => {
+    const response = await apiClient.post<ApiResponse<User[]>>("/users/search-by-codes", { codes });
+    return response.data.success ? response.data.data : [];
+  },
+
   // Get hall invigilators (accessible by Admin, Exam Officer)
   getProctors: async (params?: Omit<ListUsersParams, 'role'>): Promise<PaginatedUserResponse> => {
     try {
