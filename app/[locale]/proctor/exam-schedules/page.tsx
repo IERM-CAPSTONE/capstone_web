@@ -32,6 +32,7 @@ import { parseLocalDate } from "@/app/[locale]/exam-officer/exam-schedules/utils
 import { CAMPUSES } from "@/lib/constants/exam";
 import { useTranslations } from "next-intl";
 import { getCurrentLocale } from "@/hooks/use-check-auth";
+import { usersApi } from "@/lib/api/users";
 
 const FIXED_SLOTS = [
   { id: 1, start: "07:30", timeRange: "07:30 - 09:00" },
@@ -73,7 +74,7 @@ function getFormattedTimeRange(open: string | null, close: string | null) {
 }
 
 function getHallInvigilatorDisplay(schedule: { hallInvigilatorUsername?: string | null; hallInvigilatorName?: string | null }) {
-  return schedule.hallInvigilatorUsername || schedule.hallInvigilatorName || "CHƯA GÁN";
+  return schedule.hallInvigilatorName || schedule.hallInvigilatorUsername || "CHƯA GÁN";
 }
 
 export default function ProctorExamSchedulesPage() {
@@ -166,6 +167,47 @@ export default function ProctorExamSchedulesPage() {
       }, {} as Record<string, Record<string, Record<string, typeof schedules>>>),
     [schedules]
   );
+
+  const [proctorNamesById, setProctorNamesById] = useState<Record<string, string>>({});
+
+  // If backend returns username instead of full name, try to fetch fullName by proctorId
+  useEffect(() => {
+    const idsToFetch = Array.from(
+      new Set(
+        schedules
+          .filter((s) => s.proctorId && s.proctorId !== "" )
+          .filter((s) => {
+            const name = s.proctorName || "";
+            // if name contains a space, assume it's already full name
+            return !name || !name.includes(" ");
+          })
+          .map((s) => s.proctorId as string)
+      )
+    ).filter(Boolean) as string[];
+
+    if (idsToFetch.length === 0) return;
+
+    let mounted = true;
+
+    (async () => {
+      const map: Record<string, string> = {};
+      await Promise.all(
+        idsToFetch.map(async (id) => {
+          try {
+            const u = await usersApi.getById(id);
+            if (u && u.fullName) map[id] = u.fullName;
+          } catch (err) {
+            // ignore
+          }
+        })
+      );
+      if (mounted) setProctorNamesById((prev) => ({ ...prev, ...map }));
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [schedules]);
 
   const gridDates = eachDayOfInterval({
     start: currentWeekStart,
@@ -607,7 +649,7 @@ export default function ProctorExamSchedulesPage() {
                                                 </div>
                                                 <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-black text-slate-800 shadow-sm">
                                                   <Users className="h-3.5 w-3.5" />
-                                                  <span className="truncate font-black uppercase">{s.proctorName || "CHƯA GÁN"}</span>
+                                                  <span title={proctorNamesById[s.proctorId || ""] || s.proctorName || "CHƯA GÁN"} className="font-black uppercase whitespace-normal break-words">{proctorNamesById[s.proctorId || ""] || s.proctorName || "CHƯA GÁN"}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2.5 rounded-lg border border-emerald-100/60 bg-emerald-50/50 px-2 py-1 text-[11px] font-black text-emerald-800 shadow-sm">
                                                   <ShieldCheck className="h-3.5 w-3.5" />

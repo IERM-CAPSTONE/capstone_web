@@ -5,20 +5,45 @@ import { useLocale } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Clock3, Filter, Search, ShieldCheck, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  Filter,
+  Search,
+  ShieldCheck,
+  ArrowLeft,
+  ArrowRight,
+  XCircle,
+} from "lucide-react";
 import { ProctorApplicationManagementTable } from "@/components/proctor-applications/proctor-application-management-table";
 import { useProctorApplications } from "@/hooks/use-proctor-applications";
 import { ProctorApplicationStatus } from "@/lib/api/proctor-applications";
 
+function toLocalDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function shiftDate(dateText: string, days: number) {
+  const [year, month, day] = dateText.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return toLocalDateInputValue(date);
+}
+
 export default function ProctorApplicationsManagementPage() {
   const locale = useLocale();
   const isVi = locale === "vi";
+  const today = toLocalDateInputValue(new Date());
+
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     status: "" as ProctorApplicationStatus | "",
     teacherId: "",
-    preferredDateStart: "",
-    preferredDateEnd: "",
+    preferredDateStart: today,
+    preferredDateEnd: today,
   });
 
   const { data, isLoading } = useProctorApplications({
@@ -32,26 +57,53 @@ export default function ProctorApplicationsManagementPage() {
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({
       status: "",
       teacherId: "",
-      preferredDateStart: "",
-      preferredDateEnd: "",
+      preferredDateStart: today,
+      preferredDateEnd: today,
     });
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const selectedDay = filters.preferredDateStart || today;
+
+  const moveSelectedDay = (days: number) => {
+    const nextDay = shiftDate(selectedDay, days);
+    setFilters((prev) => ({
+      ...prev,
+      preferredDateStart: nextDay,
+      preferredDateEnd: nextDay,
+    }));
+    setCurrentPage(1);
+  };
+
+  const resetToToday = () => {
+    setFilters((prev) => ({
+      ...prev,
+      preferredDateStart: today,
+      preferredDateEnd: today,
+    }));
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    filters.status !== "" ||
+    filters.teacherId !== "" ||
+    filters.preferredDateStart !== today ||
+    filters.preferredDateEnd !== today;
+
   const applications = data?.data || [];
   const visibleApplications = applications.filter((a) => a.status !== "CANCELED");
   const pendingCount = applications.filter((a) => a.status === "PENDING").length;
   const approvedCount = applications.filter((a) => a.status === "APPROVED").length;
   const rejectedCount = applications.filter((a) => a.status === "REJECTED").length;
   const totalCount = visibleApplications.length;
+
   const text = {
     badge: isVi ? "Theo dõi khảo thí" : "Exam Officer Review",
     title: isVi ? "Đơn đổi lịch giám thị" : "Invigilator Swap Requests",
@@ -62,8 +114,15 @@ export default function ProctorApplicationsManagementPage() {
     openRequests: isVi ? "yêu cầu đang mở" : "open requests",
     filterTitle: isVi ? "Bộ lọc yêu cầu" : "Filter Requests",
     filterDescription: isVi
-      ? "Lọc yêu cầu đổi lịch theo trạng thái, mã giám thị và ngày thi yêu cầu."
-      : "Narrow down swap requests by status, invigilator, and requested exam date.",
+      ? "Lọc yêu cầu đổi lịch theo trạng thái, mã giám thị và ngày tạo đơn."
+      : "Narrow down swap requests by status, invigilator, and request creation date.",
+    dayViewTitle: isVi ? "Xem theo ngày" : "Daily View",
+    dayViewDescription: isVi
+      ? "Mặc định hiển thị các đơn được tạo trong ngày đang chọn để khảo thí dễ theo dõi."
+      : "Default the list to requests created on the selected day for easier review.",
+    previousDay: isVi ? "Ngày trước" : "Previous day",
+    today: isVi ? "Hôm nay" : "Today",
+    nextDay: isVi ? "Ngày sau" : "Next day",
     clearFilters: isVi ? "Xóa bộ lọc" : "Clear Filters",
     status: isVi ? "Trạng thái" : "Status",
     allStatuses: isVi ? "Tất cả trạng thái" : "All Statuses",
@@ -72,8 +131,9 @@ export default function ProctorApplicationsManagementPage() {
     rejected: isVi ? "Đã từ chối" : "Declined",
     teacherId: isVi ? "Mã giám thị" : "Invigilator ID",
     searchTeacher: isVi ? "Tìm theo mã giám thị..." : "Search by invigilator code...",
-    dateFrom: isVi ? "Từ ngày" : "Date From",
-    dateTo: isVi ? "Đến ngày" : "Date To",
+    dateFrom: isVi ? "Từ ngày tạo" : "Created Date From",
+    dateTo: isVi ? "Đến ngày tạo" : "Created Date To",
+    selectedDate: isVi ? "Ngày đang xem" : "Viewing Date",
     total: isVi ? "Tổng" : "Total",
   };
 
@@ -88,9 +148,7 @@ export default function ProctorApplicationsManagementPage() {
           <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-900">
             {text.title}
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            {text.description}
-          </p>
+          <p className="mt-2 text-sm text-slate-600">{text.description}</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
@@ -108,6 +166,51 @@ export default function ProctorApplicationsManagementPage() {
 
       <Card className="mb-6 overflow-hidden rounded-[1.75rem] border-slate-200 shadow-sm">
         <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-5">
+          <div className="mb-5 rounded-3xl border border-orange-100 bg-orange-50/60 p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+                  {text.dayViewTitle}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">{text.dayViewDescription}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={() => moveSelectedDay(-1)}
+                >
+                  <ArrowLeft className="mr-1.5 h-4 w-4" />
+                  {text.previousDay}
+                </Button>
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-2 text-sm font-bold text-slate-800">
+                  <span className="mr-2 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                    {text.selectedDate}
+                  </span>
+                  {selectedDay}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={resetToToday}
+                >
+                  {text.today}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={() => moveSelectedDay(1)}
+                >
+                  {text.nextDay}
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white">
@@ -115,9 +218,7 @@ export default function ProctorApplicationsManagementPage() {
               </div>
               <div>
                 <CardTitle className="text-lg font-black text-slate-900">{text.filterTitle}</CardTitle>
-                <p className="text-sm text-slate-500">
-                  {text.filterDescription}
-                </p>
+                <p className="text-sm text-slate-500">{text.filterDescription}</p>
               </div>
             </div>
             {hasActiveFilters && (
@@ -127,6 +228,7 @@ export default function ProctorApplicationsManagementPage() {
             )}
           </div>
         </CardHeader>
+
         <CardContent className="pt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
@@ -167,7 +269,15 @@ export default function ProctorApplicationsManagementPage() {
               <Input
                 type="date"
                 value={filters.preferredDateStart}
-                onChange={(e) => handleFilterChange("preferredDateStart", e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFilters((prev) => ({
+                    ...prev,
+                    preferredDateStart: value,
+                    preferredDateEnd: prev.preferredDateEnd && prev.preferredDateEnd < value ? value : prev.preferredDateEnd,
+                  }));
+                  setCurrentPage(1);
+                }}
                 className="h-12 rounded-2xl border-slate-200 text-sm font-semibold"
               />
             </div>
@@ -179,7 +289,15 @@ export default function ProctorApplicationsManagementPage() {
               <Input
                 type="date"
                 value={filters.preferredDateEnd}
-                onChange={(e) => handleFilterChange("preferredDateEnd", e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFilters((prev) => ({
+                    ...prev,
+                    preferredDateEnd: value,
+                    preferredDateStart: prev.preferredDateStart && prev.preferredDateStart > value ? value : prev.preferredDateStart,
+                  }));
+                  setCurrentPage(1);
+                }}
                 className="h-12 rounded-2xl border-slate-200 text-sm font-semibold"
               />
             </div>

@@ -6,6 +6,7 @@ import { format as dateFnsFormat, parseISO } from "date-fns";
 import { enUS, vi } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
+import { useExamSchedules } from "@/hooks/use-exam-schedules";
 import {
   useCancelProctorApplication,
   useMyProctorApplications,
@@ -15,6 +16,79 @@ import { ProctorApplicationFormModal } from "@/components/proctor-applications/p
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProctorApplication } from "@/lib/api/proctor-applications";
+import { ExamSchedule } from "@/lib/api/exam-schedules";
+
+const parseLocalDate = (dateStr: string | null): Date | null => {
+  if (!dateStr) return null;
+
+  let cleaned = dateStr.replace(/Z$/i, "").replace(/[+-]\d{2}:?\d{2}$/, "");
+  cleaned = cleaned.replace("T", " ").trim();
+
+  const match = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):?(\d{2})?/);
+  if (!match) return null;
+
+  const [, y, mo, d, h, mi, s] = match;
+  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s || 0));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+interface HallSessionCluster {
+  key: string;
+  hallInvigilatorId: string;
+  hallInvigilatorName: string | null;
+  examOpenTime: string | null;
+  examCloseTime: string | null;
+  rooms: string[];
+  sessions: ExamSchedule[];
+}
+
+const formatSessionDate = (openTime: string | null, locale: string) => {
+  const openDate = parseLocalDate(openTime);
+  return openDate ? dateFnsFormat(openDate, locale === "vi" ? "dd/MM/yyyy" : "MM/dd/yyyy") : "-";
+};
+
+const formatSessionTimeRange = (openTime: string | null, closeTime: string | null) => {
+  const openDate = parseLocalDate(openTime);
+  const closeDate = parseLocalDate(closeTime);
+  if (!openDate) return "-";
+  return `${dateFnsFormat(openDate, "HH:mm")} - ${closeDate ? dateFnsFormat(closeDate, "HH:mm") : "-"}`;
+};
+
+const compareRooms = (left: string, right: string) =>
+  left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+
+const buildHallClusterKey = (hallInvigilatorId: string, examOpenTime: string | null, examCloseTime: string | null) =>
+  [hallInvigilatorId, examOpenTime || "", examCloseTime || ""].join("|");
+
+const buildHallClusterMap = (sessions: ExamSchedule[]) => {
+  const clusters = new Map<string, HallSessionCluster>();
+
+  sessions.forEach((session) => {
+    if (!session.hallInvigilatorId || !session.roomNumber || !session.examOpenTime) return;
+
+    const key = buildHallClusterKey(session.hallInvigilatorId, session.examOpenTime, session.examCloseTime);
+    const current = clusters.get(key);
+
+    if (current) {
+      current.sessions.push(session);
+      current.rooms.push(session.roomNumber);
+      current.rooms.sort(compareRooms);
+      return;
+    }
+
+    clusters.set(key, {
+      key,
+      hallInvigilatorId: session.hallInvigilatorId,
+      hallInvigilatorName: session.hallInvigilatorName || null,
+      examOpenTime: session.examOpenTime,
+      examCloseTime: session.examCloseTime,
+      rooms: [session.roomNumber],
+      sessions: [session],
+    });
+  });
+
+  return clusters;
+};
 
 export default function ProctorApplicationsPage() {
   const t = useTranslations("ProctorSwap");
@@ -30,6 +104,14 @@ export default function ProctorApplicationsPage() {
         ? "another hall invigilator"
         : "another proctor";
   const { data: applications = [], isLoading } = useMyProctorApplications();
+  const { data: examSchedulesResponse } = useExamSchedules(
+    {
+      page: 1,
+      limit: 5000,
+      campus: user?.campus || undefined,
+    } as any,
+    { enabled: Boolean(isHallInvigilator && user?.campus) }
+  );
   const cancelApplication = useCancelProctorApplication();
   const respondToApplication = useUpdateProctorApplicationStatus();
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +119,10 @@ export default function ProctorApplicationsPage() {
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
   const visibleApplications = applications.filter((application) => application.status !== "CANCELED");
+  const hallClusterMap = useMemo(
+    () => buildHallClusterMap(examSchedulesResponse?.data || []),
+    [examSchedulesResponse?.data]
+  );
 
   const { outgoingRequests, incomingRequests } = useMemo(() => {
     return {
@@ -75,13 +161,46 @@ export default function ProctorApplicationsPage() {
 
   const formatSession = (room: string | null, openTime: string | null, closeTime: string | null) => {
     if (!openTime) return t("sessionNotAvailable");
-    const open = parseISO(openTime);
-    const close = closeTime ? parseISO(closeTime) : null;
+    const open = parseLocalDate(openTime);
+    const close = parseLocalDate(closeTime);
+    if (!open) return t("sessionNotAvailable");
     return t("sessionFormat", {
       room: room || t("roomTba"),
       date: dateFnsFormat(open, locale === "vi" ? "dd/MM/yyyy" : "MM/dd/yyyy"),
       time: `${dateFnsFormat(open, "HH:mm")} - ${close ? dateFnsFormat(close, "HH:mm") : "-"}`,
     });
+  };
+
+  const formatHallClusterSession = (
+    application: ProctorApplication,
+    direction: "source" | "target"
+  ) => {
+    const ownerId = direction === "source" ? application.teacherId : application.targetTeacherId;
+    const ownerName = direction === "source" ? application.teacherName : application.targetTeacherName;
+    const openTime = direction === "source" ? application.examOpenTime : application.targetExamOpenTime;
+    const closeTime = direction === "source" ? application.examCloseTime : application.targetExamCloseTime;
+
+    if (!ownerId || !openTime) return t("sessionNotAvailable");
+
+    const cluster = hallClusterMap.get(buildHallClusterKey(ownerId, openTime, closeTime));
+
+    if (!cluster) {
+      return formatSession(
+        direction === "source" ? application.roomNumber : application.targetRoomNumber,
+        openTime,
+        closeTime
+      );
+    }
+
+    const roomsLabel = cluster.rooms.join(", ");
+    const dateLabel = formatSessionDate(cluster.examOpenTime, locale);
+    const timeLabel = formatSessionTimeRange(cluster.examOpenTime, cluster.examCloseTime);
+    const countLabel =
+      locale === "vi"
+        ? `${cluster.rooms.length} phòng`
+        : `${cluster.rooms.length} rooms`;
+
+    return `${roomsLabel} | ${dateLabel} | ${timeLabel} | ${countLabel}${ownerName ? ` | ${ownerName}` : ""}`;
   };
 
   const handleEdit = (application: ProctorApplication) => {
@@ -140,7 +259,9 @@ export default function ProctorApplicationsPage() {
                 {direction === "incoming" ? t("theirCurrentSession") : t("yourCurrentSession")}
               </div>
               <div className="mt-2 text-sm font-semibold text-slate-800">
-                {formatSession(application.roomNumber, application.examOpenTime, application.examCloseTime)}
+                {isHallInvigilator
+                  ? formatHallClusterSession(application, "source")
+                  : formatSession(application.roomNumber, application.examOpenTime, application.examCloseTime)}
               </div>
             </div>
 
@@ -153,7 +274,9 @@ export default function ProctorApplicationsPage() {
                 {direction === "incoming" ? t("yourTargetSession") : t("requestedTargetSession")}
               </div>
               <div className="mt-2 text-sm font-semibold text-slate-800">
-                {formatSession(application.targetRoomNumber, application.targetExamOpenTime, application.targetExamCloseTime)}
+                {isHallInvigilator
+                  ? formatHallClusterSession(application, "target")
+                  : formatSession(application.targetRoomNumber, application.targetExamOpenTime, application.targetExamCloseTime)}
               </div>
             </div>
           </div>

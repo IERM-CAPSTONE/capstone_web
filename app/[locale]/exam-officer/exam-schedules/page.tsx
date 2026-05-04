@@ -203,7 +203,7 @@ export default function ExamOfficerDashboardPage() {
   };
 
   const getHallInvigilatorDisplay = (schedule: any) =>
-    schedule?.hallInvigilatorUsername || schedule?.hallInvigilatorName || "CHƯA GÁN";
+    schedule?.hallInvigilatorName || schedule?.hallInvigilatorUsername || "CHƯA GÁN";
 
   const matrix = useMemo(() => schedules.reduce((acc, s) => {
     const dateStr = s.examOpenTime ? format(parseLocalDate(s.examOpenTime) || new Date(), "yyyy-MM-dd") : "Unknown";
