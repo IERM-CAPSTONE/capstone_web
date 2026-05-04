@@ -75,7 +75,6 @@ export const usersApi = {
   // Get all users with pagination and filters
   getAll: async (params?: ListUsersParams): Promise<PaginatedUserResponse> => {
     try {
-      // Build query params, converting boolean to string for URL query params
       const queryParams: any = {};
       if (params?.page) queryParams.page = String(params.page);
       if (params?.limit) queryParams.limit = String(params.limit);
@@ -85,6 +84,10 @@ export const usersApi = {
 
       const response = await apiClient.get<ApiResponse<User[]>>("/users", {
         params: queryParams,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
 
       // Handle response structure from TransformInterceptor
@@ -161,16 +164,34 @@ export const usersApi = {
     return response.data.success ? response.data.data : (response.data as any);
   },
 
-  // Import students from Excel
-  importStudents: async (file: File): Promise<{ message: string }> => {
+  // Import accounts from Excel/CSV
+  importAccounts: async (file: File): Promise<{ message: string }> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await apiClient.post<ApiResponse<{ message: string }>>("/users/import-students", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data.success ? response.data.data : { message: "Failed to start import" };
+    try {
+      const response = await apiClient.post<ApiResponse<{ message: string }>>("/users/import-accounts", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data.success ? response.data.data : { message: "Failed to start import" };
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        await apiClient.post("/auth/refresh");
+
+        const retryFormData = new FormData();
+        retryFormData.append("file", file);
+
+        const retryResponse = await apiClient.post<ApiResponse<{ message: string }>>("/users/import-accounts", retryFormData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        return retryResponse.data.success ? retryResponse.data.data : { message: "Failed to start import" };
+      }
+
+      throw error;
+    }
   },
 
   // Search users by codes
@@ -190,6 +211,10 @@ export const usersApi = {
 
       const response = await apiClient.get<ApiResponse<User[]>>("/users/proctors", {
         params: queryParams,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
 
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {

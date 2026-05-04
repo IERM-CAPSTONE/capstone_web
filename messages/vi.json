@@ -1886,6 +1886,8 @@
             "ADMIN": "Quản trị viên",
             "EXAM_OFFICER": "Cán bộ khảo thí",
             "PROCTOR": "Giám thị",
+            "HALL_INVIGILATOR": "Giám thị hành lang",
+            "IT_SUPPORT": "Hỗ trợ kỹ thuật",
             "STUDENT": "Sinh viên"
         },
         "statuses": {

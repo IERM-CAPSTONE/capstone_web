@@ -99,10 +99,12 @@ export default function ProctorExamSchedulesPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   useEffect(() => {
-    if (!user?.campus) return;
+    const campus = user?.campus;
+    if (!campus) return;
+
     setSearchParams((prev) => {
-      if (prev.campus === user.campus) return prev;
-      return { ...prev, campus: user.campus };
+      if (prev.campus === campus) return prev;
+      return { ...prev, campus };
     });
   }, [user?.campus]);
 
@@ -175,7 +177,7 @@ export default function ProctorExamSchedulesPage() {
     const idsToFetch = Array.from(
       new Set(
         schedules
-          .filter((s) => s.proctorId && s.proctorId !== "" )
+          .filter((s) => s.proctorId && s.proctorId !== "")
           .filter((s) => {
             const name = s.proctorName || "";
             // if name contains a space, assume it's already full name
@@ -251,11 +253,10 @@ export default function ProctorExamSchedulesPage() {
             <Button
               size="sm"
               variant={viewMode === "grid" ? "outline" : "ghost"}
-              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${
-                viewMode === "grid"
+              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${viewMode === "grid"
                   ? "border-orange-200 bg-orange-50/50 text-orange-600 shadow-md"
                   : "border-transparent text-slate-400"
-              }`}
+                }`}
               onClick={() => setViewMode("grid")}
             >
               {t("examOfficer.schedulesPage.board.boardView")}
@@ -263,11 +264,10 @@ export default function ProctorExamSchedulesPage() {
             <Button
               size="sm"
               variant={viewMode === "list" ? "outline" : "ghost"}
-              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${
-                viewMode === "list"
+              className={`h-9 rounded-xl px-6 text-xs font-black uppercase tracking-wider transition-all ${viewMode === "list"
                   ? "border-orange-200 bg-orange-50/50 text-orange-600 shadow-md"
                   : "border-transparent text-slate-400"
-              }`}
+                }`}
               onClick={() => setViewMode("list")}
             >
               {t("examOfficer.schedulesPage.board.listView")}
@@ -353,7 +353,7 @@ export default function ProctorExamSchedulesPage() {
               <label className="ml-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{t("examOfficer.schedulesPage.filters.campus")}</label>
               <SearchableSelect
                 value={user?.campus ?? searchParams.campus}
-                onChange={() => {}}
+                onChange={() => { }}
                 placeholder={t("examOfficer.schedulesPage.allOptions.allCampuses")}
                 options={user?.campus ? [{ value: user.campus, label: user.campus }] : CAMPUSES.map((c) => ({ value: c, label: c }))}
                 disabled
@@ -534,7 +534,7 @@ export default function ProctorExamSchedulesPage() {
               <select
                 className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-4 text-xs font-black uppercase outline-none focus:ring-2 focus:ring-orange-500/20"
                 value={user?.campus ?? searchParams.campus}
-                onChange={() => {}}
+                onChange={() => { }}
                 disabled
               >
                 {user?.campus ? (
@@ -728,9 +728,8 @@ export default function ProctorExamSchedulesPage() {
                       <td className="p-5 font-black text-slate-700">{s.roomNumber}</td>
                       <td className="p-5 font-black text-orange-600">{s.studentCount || 0}</td>
                       <td className="p-5">
-                        <span className={`rounded-full border px-4 py-1.5 text-[10px] font-black shadow-sm ${
-                          s.status === "Draft" ? "border-orange-100 bg-orange-50 text-orange-600" : "border-green-100 bg-green-50 text-green-600"
-                        }`}>
+                        <span className={`rounded-full border px-4 py-1.5 text-[10px] font-black shadow-sm ${s.status === "Draft" ? "border-orange-100 bg-orange-50 text-orange-600" : "border-green-100 bg-green-50 text-green-600"
+                          }`}>
                           {tCommon(`statuses.${s.status}` as any)}
                         </span>
                       </td>

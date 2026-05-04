@@ -84,10 +84,10 @@ export function useToggleUserStatus() {
   });
 }
 
-export function useImportStudents() {
+export function useImportAccounts() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => usersApi.importStudents(file),
+    mutationFn: (file: File) => usersApi.importAccounts(file),
     onSuccess: () => {
       // We don't necessarily invalidate users here because the import is asynchronous (background job)
       // The notification system will handle the real-time update when it finishes.
