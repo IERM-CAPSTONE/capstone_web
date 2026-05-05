@@ -15,8 +15,9 @@ import {
 import { ProctorApplicationFormModal } from "@/components/proctor-applications/proctor-application-form-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProctorApplication } from "@/lib/api/proctor-applications";
+import { ProctorApplication, UpdateProctorApplicationStatusData } from "@/lib/api/proctor-applications";
 import { ExamSchedule } from "@/lib/api/exam-schedules";
+import { AxiosError } from "axios";
 
 const parseLocalDate = (dateStr: string | null): Date | null => {
   if (!dateStr) return null;
@@ -109,7 +110,7 @@ export default function ProctorApplicationsPage() {
       page: 1,
       limit: 5000,
       campus: user?.campus || undefined,
-    } as any,
+    },
     { enabled: Boolean(isHallInvigilator && user?.campus) }
   );
   const cancelApplication = useCancelProctorApplication();
@@ -117,6 +118,9 @@ export default function ProctorApplicationsPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<ProctorApplication | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [declineApplication, setDeclineApplication] = useState<ProctorApplication | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
+  const [declineError, setDeclineError] = useState("");
 
   const visibleApplications = applications.filter((application) => application.status !== "CANCELED");
   const hallClusterMap = useMemo(
@@ -230,6 +234,41 @@ export default function ProctorApplicationsPage() {
     }
   };
 
+  const handleOpenDeclineDialog = (application: ProctorApplication) => {
+    setDeclineApplication(application);
+    setDeclineReason("");
+    setDeclineError("");
+  };
+
+  const handleDeclineSubmit = async () => {
+    const trimmedReason = declineReason.trim();
+    if (!declineApplication) return;
+
+    if (!trimmedReason) {
+      setDeclineError(t("declineDialog.reasonRequired"));
+      return;
+    }
+
+    try {
+      const data: UpdateProctorApplicationStatusData = {
+        status: "REJECTED",
+        responseNote: trimmedReason,
+      };
+      await respondToApplication.mutateAsync({ id: declineApplication.id, data });
+      setDeclineApplication(null);
+      setDeclineReason("");
+      setDeclineError("");
+    } catch (error) {
+      const message =
+        error instanceof AxiosError
+          ? ((error.response?.data as { message?: string })?.message || error.message)
+          : error instanceof Error
+            ? error.message
+            : t("declineDialog.submitError");
+      setDeclineError(message);
+    }
+  };
+
   const renderRequestCard = (application: ProctorApplication, direction: "incoming" | "outgoing") => {
     const isPending = application.status === "PENDING";
 
@@ -316,7 +355,7 @@ export default function ProctorApplicationsPage() {
                   <Check className="mr-1 h-3.5 w-3.5" />
                   {t("actions.acceptSwap")}
                 </Button>
-                <Button size="sm" className="flex-1 bg-rose-600 hover:bg-rose-700 text-white" onClick={() => handleRespond(application.id, "REJECTED")}>
+                <Button size="sm" className="flex-1 bg-rose-600 hover:bg-rose-700 text-white" onClick={() => handleOpenDeclineDialog(application)}>
                   <XIcon className="mr-1 h-3.5 w-3.5" />
                   {t("actions.decline")}
                 </Button>
@@ -418,6 +457,56 @@ export default function ProctorApplicationsPage() {
                 </Button>
                 <Button onClick={() => handleCancel(confirmCancel)} className="bg-red-600 hover:bg-red-700">
                   {t("cancelDialog.confirm")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {declineApplication && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-lg mx-4">
+            <CardHeader>
+              <CardTitle>{t("declineDialog.title")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-gray-600">
+                {t("declineDialog.description")}
+              </p>
+              <textarea
+                value={declineReason}
+                onChange={(e) => {
+                  setDeclineReason(e.target.value);
+                  if (declineError) setDeclineError("");
+                }}
+                placeholder={t("declineDialog.reasonPlaceholder")}
+                className="min-h-[140px] w-full rounded-md border px-3 py-2 text-sm"
+                disabled={respondToApplication.isPending}
+              />
+              {declineError && (
+                <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {declineError}
+                </div>
+              )}
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeclineApplication(null);
+                    setDeclineReason("");
+                    setDeclineError("");
+                  }}
+                  disabled={respondToApplication.isPending}
+                >
+                  {t("declineDialog.cancel")}
+                </Button>
+                <Button
+                  onClick={handleDeclineSubmit}
+                  className="bg-rose-600 hover:bg-rose-700"
+                  disabled={respondToApplication.isPending}
+                >
+                  {respondToApplication.isPending ? t("declineDialog.submitting") : t("declineDialog.confirm")}
                 </Button>
               </div>
             </CardContent>

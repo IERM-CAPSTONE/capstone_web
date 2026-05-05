@@ -105,10 +105,20 @@
             "keep": "Keep Request",
             "confirm": "Cancel Request"
         },
+        "declineDialog": {
+            "title": "Decline Swap Request",
+            "description": "Please enter a reason so the requester knows why this swap request was declined.",
+            "reasonPlaceholder": "Enter the reason for declining...",
+            "reasonRequired": "Please enter a reason for declining this swap request.",
+            "submitError": "Unable to decline the swap request.",
+            "cancel": "Cancel",
+            "confirm": "Confirm Decline",
+            "submitting": "Submitting..."
+        },
         "modal": {
             "titleCreate": "Create Swap Request",
             "titleEdit": "Edit Swap Request",
-            "description": "Choose your assigned session first, then choose another proctor session on the same exam day.",
+            "description": "Choose your assigned session first, then choose another assigned invigilator session that you want to swap with.",
             "yourCurrentSession": "Your Current Session",
             "selectAssignedSession": "Select your assigned session",
             "emptyAssignedSessions": "No published session currently assigned to this proctor was found for swap.",
@@ -120,7 +130,8 @@
             "searchPlaceholder": "Search by room or proctor name...",
             "assignedProctor": "Assigned proctor",
             "duplicateHint": "A pending swap request already exists for this pair.",
-            "emptyTargetSessions": "No other proctor sessions found on this exam day.",
+            "emptyTargetSessions": "No other eligible invigilator sessions were found.",
+            "contactExamOfficeNote": "If you cannot find a suitable invigilator to swap with, please contact the Exam Office for manual reassignment support.",
             "swapTargetSummary": "Swap target: Room {room} with {proctor}",
             "cancel": "Cancel",
             "saving": "Saving...",
@@ -137,6 +148,7 @@
                 "chooseCurrentSession": "Please choose your current assigned session.",
                 "chooseTargetSession": "Please choose the proctor session you want to swap with.",
                 "duplicatePair": "A pending swap request already exists for this pair of sessions.",
+                "overlappingSwapSession": "One of the invigilators would have another overlapping session after this swap.",
                 "saveFailed": "Unable to save swap request"
             }
         }
@@ -183,10 +195,20 @@
             "keep": "Keep Request",
             "confirm": "Cancel Request"
         },
+        "declineDialog": {
+            "title": "Decline Swap Request",
+            "description": "Please enter a reason so the requester knows why this swap request was declined.",
+            "reasonPlaceholder": "Enter the reason for declining...",
+            "reasonRequired": "Please enter a reason for declining this swap request.",
+            "submitError": "Unable to decline the swap request.",
+            "cancel": "Cancel",
+            "confirm": "Confirm Decline",
+            "submitting": "Submitting..."
+        },
         "modal": {
             "titleCreate": "Create Swap Request",
             "titleEdit": "Edit Swap Request",
-            "description": "Choose your assigned session first, then choose another proctor session on the same exam day.",
+            "description": "Choose your assigned session first, then choose another assigned invigilator session that you want to swap with.",
             "yourCurrentSession": "Your Current Session",
             "selectAssignedSession": "Select your assigned session",
             "emptyAssignedSessions": "No published session currently assigned to this proctor was found for swap.",
@@ -198,7 +220,8 @@
             "searchPlaceholder": "Search by room or proctor name...",
             "assignedProctor": "Assigned proctor",
             "duplicateHint": "A pending swap request already exists for this pair.",
-            "emptyTargetSessions": "No other proctor sessions found on this exam day.",
+            "emptyTargetSessions": "No other eligible invigilator sessions were found.",
+            "contactExamOfficeNote": "If you cannot find a suitable invigilator to swap with, please contact the Exam Office for manual reassignment support.",
             "swapTargetSummary": "Swap target: Room {room} with {proctor}",
             "cancel": "Cancel",
             "saving": "Saving...",
@@ -215,6 +238,7 @@
                 "chooseCurrentSession": "Please choose your current assigned session.",
                 "chooseTargetSession": "Please choose the proctor session you want to swap with.",
                 "duplicatePair": "A pending swap request already exists for this pair of sessions.",
+                "overlappingSwapSession": "One of the invigilators would have another overlapping session after this swap.",
                 "saveFailed": "Unable to save swap request"
             }
         }
@@ -686,7 +710,7 @@
         "modal": {
             "titleCreate": "Create Swap Request",
             "titleEdit": "Edit Swap Request",
-            "description": "Choose your assigned session first, then choose another proctor session on the same exam day.",
+            "description": "Choose your assigned session first, then choose another assigned invigilator session that you want to swap with.",
             "yourCurrentSession": "Your Current Session",
             "selectAssignedSession": "Select your assigned session",
             "emptyAssignedSessions": "No published session currently assigned to this proctor was found for swap.",
@@ -698,7 +722,7 @@
             "searchPlaceholder": "Search by room or proctor name...",
             "assignedProctor": "Assigned proctor",
             "duplicateHint": "A pending swap request already exists for this pair.",
-            "emptyTargetSessions": "No other proctor sessions found on this exam day.",
+            "emptyTargetSessions": "No other eligible invigilator sessions were found.",
             "swapTargetSummary": "Swap target: Room {room} with {proctor}",
             "cancel": "Cancel",
             "saving": "Saving...",

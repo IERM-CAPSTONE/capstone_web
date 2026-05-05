@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,6 +45,10 @@ export default function AccountsPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const summaryFilters = {
+    search: searchTerm || undefined,
+    role: roleFilter || undefined,
+  };
 
   const { data, isLoading, error } = useUsers({
     page,
@@ -52,6 +56,18 @@ export default function AccountsPage() {
     search: searchTerm || undefined,
     role: roleFilter || undefined,
     isActive: statusFilter !== "" ? (statusFilter as boolean) : undefined,
+  });
+  const { data: activeUsersSummary } = useUsers({
+    page: 1,
+    limit: 1,
+    ...summaryFilters,
+    isActive: true,
+  });
+  const { data: lockedUsersSummary } = useUsers({
+    page: 1,
+    limit: 1,
+    ...summaryFilters,
+    isActive: false,
   });
 
   const deleteUser = useDeleteUser();
@@ -87,8 +103,9 @@ export default function AccountsPage() {
   }, [on, queryClient]);
 
   const users = data?.data || [];
-  const activeCount = useMemo(() => users.filter((user) => user.isActive).length, [users]);
-  const lockedCount = useMemo(() => users.filter((user) => !user.isActive).length, [users]);
+  const activeCount = activeUsersSummary?.total ?? 0;
+  const lockedCount = lockedUsersSummary?.total ?? 0;
+  const totalCount = activeCount + lockedCount;
   const hasActiveFilters = searchTerm !== "" || roleFilter !== "" || statusFilter !== "";
 
   const handleCreate = () => {
@@ -183,7 +200,7 @@ export default function AccountsPage() {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">{t("pagination.accounts")}</p>
-              <div className="mt-1 text-3xl font-black text-gray-900">{data?.total || 0}</div>
+              <div className="mt-1 text-3xl font-black text-gray-900">{totalCount}</div>
             </div>
           </div>
         </Card>

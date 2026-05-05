@@ -50,6 +50,7 @@ export interface UpdateProctorApplicationData {
 
 export interface UpdateProctorApplicationStatusData {
   status: "APPROVED" | "REJECTED";
+  responseNote?: string | null;
 }
 
 export interface ListAllProctorApplicationsParams extends PaginationParams {

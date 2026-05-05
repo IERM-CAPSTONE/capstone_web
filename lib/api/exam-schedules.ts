@@ -48,6 +48,7 @@ export interface PaginatedExamScheduleResponse {
 export interface ListExamSchedulesParams {
   page?: number;
   limit?: number;
+  semester?: string;
   subjectCode?: string;
   examCode?: string;
   date?: string;

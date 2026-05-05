@@ -105,10 +105,20 @@
             "keep": "Giữ lại",
             "confirm": "Xác nhận hủy"
         },
+        "declineDialog": {
+            "title": "Từ chối yêu cầu đổi lịch",
+            "description": "Vui lòng nhập lý do từ chối để người gửi biết vì sao yêu cầu này không được chấp nhận.",
+            "reasonPlaceholder": "Nhập lý do từ chối...",
+            "reasonRequired": "Vui lòng nhập lý do từ chối.",
+            "submitError": "Không thể từ chối yêu cầu đổi lịch.",
+            "cancel": "Hủy",
+            "confirm": "Xác nhận từ chối",
+            "submitting": "Đang gửi..."
+        },
         "modal": {
             "titleCreate": "Tạo đơn đổi lịch",
             "titleEdit": "Chỉnh sửa đơn đổi lịch",
-            "description": "Hãy chọn ca thi hiện tại của bạn trước, sau đó chọn ca của giám thị khác trong cùng ngày thi.",
+            "description": "Hãy chọn ca thi hiện tại của bạn trước, sau đó chọn bất kỳ ca được phân công của giám thị khác mà bạn muốn đổi.",
             "yourCurrentSession": "Ca hiện tại của bạn",
             "selectAssignedSession": "Chọn ca thi được phân công",
             "emptyAssignedSessions": "Không tìm thấy ca thi đã công bố nào đang được phân công cho giám thị này để đổi.",
@@ -120,7 +130,8 @@
             "searchPlaceholder": "Tìm theo phòng hoặc tên giám thị...",
             "assignedProctor": "Giám thị hiện tại",
             "duplicateHint": "Đã có một yêu cầu đổi lịch đang chờ cho cặp ca thi này.",
-            "emptyTargetSessions": "Không tìm thấy ca thi nào khác của giám thị trong cùng ngày thi.",
+            "emptyTargetSessions": "Không tìm thấy ca thi phù hợp nào của giám thị khác.",
+            "contactExamOfficeNote": "Nếu bạn không tìm được giám thị phù hợp để đổi ca, vui lòng liên hệ Khảo thí để được hỗ trợ phân công thủ công.",
             "swapTargetSummary": "Ca muốn đổi: Phòng {room} với {proctor}",
             "cancel": "Hủy",
             "saving": "Đang lưu...",
@@ -137,6 +148,7 @@
                 "chooseCurrentSession": "Vui lòng chọn ca thi hiện tại của bạn.",
                 "chooseTargetSession": "Vui lòng chọn ca thi của giám thị mà bạn muốn đổi.",
                 "duplicatePair": "Đã có một yêu cầu đổi lịch đang chờ cho cặp ca thi này.",
+                "overlappingSwapSession": "Sau khi đổi lịch, một trong hai giám thị sẽ bị trùng với một ca thi khác.",
                 "saveFailed": "Không thể lưu yêu cầu đổi lịch"
             }
         }
@@ -183,10 +195,20 @@
             "keep": "Giữ lại",
             "confirm": "Xác nhận hủy"
         },
+        "declineDialog": {
+            "title": "Từ chối yêu cầu đổi lịch",
+            "description": "Vui lòng nhập lý do từ chối để người gửi biết vì sao yêu cầu này không được chấp nhận.",
+            "reasonPlaceholder": "Nhập lý do từ chối...",
+            "reasonRequired": "Vui lòng nhập lý do từ chối.",
+            "submitError": "Không thể từ chối yêu cầu đổi lịch.",
+            "cancel": "Hủy",
+            "confirm": "Xác nhận từ chối",
+            "submitting": "Đang gửi..."
+        },
         "modal": {
             "titleCreate": "Tạo đơn đổi lịch",
             "titleEdit": "Chỉnh sửa đơn đổi lịch",
-            "description": "Hãy chọn ca thi hiện tại của bạn trước, sau đó chọn ca của giám thị khác trong cùng ngày thi.",
+            "description": "Hãy chọn ca thi hiện tại của bạn trước, sau đó chọn bất kỳ ca được phân công của giám thị khác mà bạn muốn đổi.",
             "yourCurrentSession": "Ca hiện tại của bạn",
             "selectAssignedSession": "Chọn ca thi được phân công",
             "emptyAssignedSessions": "Không tìm thấy ca thi đã công bố nào đang được phân công cho giám thị này để đổi.",
@@ -198,7 +220,8 @@
             "searchPlaceholder": "Tìm theo phòng hoặc tên giám thị...",
             "assignedProctor": "Giám thị hiện tại",
             "duplicateHint": "Đã có một yêu cầu đổi lịch đang chờ cho cặp ca thi này.",
-            "emptyTargetSessions": "Không tìm thấy ca thi nào khác của giám thị trong cùng ngày thi.",
+            "emptyTargetSessions": "Không tìm thấy ca thi phù hợp nào của giám thị khác.",
+            "contactExamOfficeNote": "Nếu bạn không tìm được giám thị phù hợp để đổi ca, vui lòng liên hệ Khảo thí để được hỗ trợ phân công thủ công.",
             "swapTargetSummary": "Ca muốn đổi: Phòng {room} với {proctor}",
             "cancel": "Hủy",
             "saving": "Đang lưu...",
@@ -215,6 +238,7 @@
                 "chooseCurrentSession": "Vui lòng chọn ca thi hiện tại của bạn.",
                 "chooseTargetSession": "Vui lòng chọn ca thi của giám thị mà bạn muốn đổi.",
                 "duplicatePair": "Đã có một yêu cầu đổi lịch đang chờ cho cặp ca thi này.",
+                "overlappingSwapSession": "Sau khi đổi lịch, một trong hai giám thị sẽ bị trùng với một ca thi khác.",
                 "saveFailed": "Không thể lưu yêu cầu đổi lịch"
             }
         }

@@ -11,6 +11,7 @@ import { useSocket } from "@/hooks/use-socket";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { ROUTES } from "@/lib/constants/routes";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ALLOWED_ROLES = ["admin", "hall_invigilator", "exam_officer"];
 
@@ -73,6 +74,7 @@ function playAssignedSound() {
 function HallInvigilatorContent({ children }: { children: React.ReactNode }) {
     const { socket, isConnected, joinRoom } = useSocket();
     const user = useAuthStore((s) => s.user);
+    const queryClient = useQueryClient();
 
     // Join room whenever socket connects (or reconnects) and user is available
     useEffect(() => {
@@ -122,11 +124,67 @@ function HallInvigilatorContent({ children }: { children: React.ReactNode }) {
         // Also dispatch a plain window event so the tickets page can refresh without extra socket listeners
         const forwardRefresh = () => window.dispatchEvent(new CustomEvent("tickets:refresh"));
         socket.on("ticket:assigned", forwardRefresh);
+
+        const handleIncomingSwapRequest = (payload: {
+            id?: string;
+            roomNumber?: string | null;
+            preferredDate?: string | null;
+            notes?: string | null;
+            status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELED";
+        }) => {
+            playAssignedSound();
+            toast.success(
+                <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">Bạn vừa nhận được đơn đổi lịch mới</p>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                            {payload.roomNumber ? `Phòng ${payload.roomNumber}` : "Chưa rõ phòng"} • {payload.preferredDate ? new Date(payload.preferredDate).toLocaleString() : "Chưa rõ thời gian"}
+                        </p>
+                        {payload.notes && <p className="text-xs text-slate-500 mt-1 truncate">{payload.notes}</p>}
+                    </div>
+                </div>,
+                {
+                    duration: 8000,
+                    style: { borderLeft: "4px solid #f97316" },
+                }
+            );
+
+            queryClient.invalidateQueries({ queryKey: ["proctor-applications"] });
+        };
+
+        const handleUpdatedSwapRequest = (payload: {
+            status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELED";
+        }) => {
+            queryClient.invalidateQueries({ queryKey: ["proctor-applications"] });
+
+            if (payload.status === "APPROVED") {
+                playAssignedSound();
+                toast.success("Đơn đổi lịch đã được chấp nhận.");
+                return;
+            }
+
+            if (payload.status === "REJECTED") {
+                toast.error("Đơn đổi lịch đã bị từ chối.");
+                return;
+            }
+
+            if (payload.status === "CANCELED") {
+                toast.info("Đơn đổi lịch đã bị hủy.");
+            }
+        };
+
+        socket.on("proctor:swap-request:created", handleIncomingSwapRequest);
+        socket.on("proctor:application:updated", handleUpdatedSwapRequest);
         return () => {
             socket.off("ticket:assigned", handleAssigned);
             socket.off("ticket:assigned", forwardRefresh);
+            socket.off("proctor:swap-request:created", handleIncomingSwapRequest);
+            socket.off("proctor:application:updated", handleUpdatedSwapRequest);
         };
-    }, [socket, user?.id]);
+    }, [queryClient, socket, user?.id]);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
