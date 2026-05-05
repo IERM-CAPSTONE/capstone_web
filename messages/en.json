@@ -321,7 +321,15 @@
                 "backToSchedules": "Back to schedules",
                 "needHelp": "Need help?",
                 "downloadTemplate": "Download Template",
-                "importStudents": "Import Students"
+                "importStudents": "Import Students",
+                "successMessage": "Exam schedule created successfully",
+                "templateDownloadSuccess": "Template downloaded successfully",
+                "templateDownloadError": "Failed to download template",
+                "importNoCodes": "No student codes found in file",
+                "importNoMatch": "No matching students found in system",
+                "importAllAdded": "All students in file are already added",
+                "importSuccess": "Successfully imported {count} students",
+                "importParseError": "Failed to parse file. Please use the provided template."
             },
             "updateSchedule": {
                 "title": "Update exam schedule",

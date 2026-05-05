@@ -321,7 +321,15 @@
                 "backToSchedules": "Quay lại lịch thi",
                 "needHelp": "Cần trợ giúp?",
                 "downloadTemplate": "Tải mẫu",
-                "importStudents": "Nhập sinh viên"
+                "importStudents": "Nhập sinh viên",
+                "successMessage": "Tạo lịch thi thành công",
+                "templateDownloadSuccess": "Tải mẫu thành công",
+                "templateDownloadError": "Tải mẫu thất bại",
+                "importNoCodes": "Không tìm thấy mã sinh viên trong tệp",
+                "importNoMatch": "Không tìm thấy sinh viên khớp trong hệ thống",
+                "importAllAdded": "Tất cả sinh viên trong tệp đã được thêm",
+                "importSuccess": "Đã nhập thành công {count} sinh viên",
+                "importParseError": "Phân tích tệp thất bại. Vui lòng sử dụng mẫu được cung cấp."
             },
             "updateSchedule": {
                 "title": "Cập nhật lịch thi",

@@ -30,6 +30,7 @@ import { getCurrentLocale } from "@/hooks/use-check-auth";
 import { ROUTES } from "@/lib/constants/routes";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
 import {
   examSchedulesApi,
   CreateExamScheduleData
@@ -173,10 +174,10 @@ export default function CreateExamSchedulePage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Template downloaded successfully");
+      toast.success(t("examOfficer.createSchedule.templateDownloadSuccess"));
     } catch (error) {
       console.error("Download error:", error);
-      toast.error("Failed to download template");
+      toast.error(t("examOfficer.createSchedule.templateDownloadError"));
     }
   };
 
@@ -198,7 +199,7 @@ export default function CreateExamSchedulePage() {
           .filter(Boolean);
 
         if (codes.length === 0) {
-          toast.error("No student codes found in file");
+          toast.error(t("examOfficer.createSchedule.importNoCodes"));
           return;
         }
 
@@ -206,7 +207,7 @@ export default function CreateExamSchedulePage() {
         const users = await searchByCodesMutation.mutateAsync(uniqueCodes);
 
         if (users.length === 0) {
-          toast.error("No matching students found in system");
+          toast.error(t("examOfficer.createSchedule.importNoMatch"));
           return;
         }
 
@@ -219,14 +220,14 @@ export default function CreateExamSchedulePage() {
           }));
 
         if (newStudents.length === 0) {
-          toast.info("All students in file are already added");
+          toast.info(t("examOfficer.createSchedule.importAllAdded"));
         } else {
           setSelectedStudents(prev => [...prev, ...newStudents]);
-          toast.success(`Successfully imported ${newStudents.length} students`);
+          toast.success(t("examOfficer.createSchedule.importSuccess", { count: newStudents.length }));
         }
       } catch (error) {
         console.error("Import error:", error);
-        toast.error("Failed to parse file. Please use the provided template.");
+        toast.error(t("examOfficer.createSchedule.importParseError"));
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -429,15 +430,13 @@ export default function CreateExamSchedulePage() {
         campus: formData.campus,
         examOpenTime: (() => {
           if (!formData.examDate || !formData.startTime) return undefined;
-          const [year, month, day] = formData.examDate.split('-').map(Number);
-          const [hour, minute] = formData.startTime.split(':').map(Number);
-          return new Date(year, month - 1, day, hour, minute).toISOString();
+          const date = new Date(`${formData.examDate}T${formData.startTime}`);
+          return format(date, "yyyy-MM-dd'T'HH:mm:ssxxx");
         })(),
         examCloseTime: (() => {
           if (!formData.examDate || !formData.endTime) return undefined;
-          const [year, month, day] = formData.examDate.split('-').map(Number);
-          const [hour, minute] = formData.endTime.split(':').map(Number);
-          return new Date(year, month - 1, day, hour, minute).toISOString();
+          const date = new Date(`${formData.examDate}T${formData.endTime}`);
+          return format(date, "yyyy-MM-dd'T'HH:mm:ssxxx");
         })(),
         examRoomId: formData.examRoomId || undefined,
         proctorId: formData.proctorId || undefined,
@@ -446,7 +445,7 @@ export default function CreateExamSchedulePage() {
       };
 
       await createMutation.mutateAsync(apiData);
-      toast.success(t("examOfficer.createSchedule.successMessage") || "Exam schedule created successfully");
+      toast.success(t("examOfficer.createSchedule.successMessage"));
       router.push(`/${locale}${ROUTES.EXAMS_SCHEDULE}`);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || "Failed to create exam schedule";

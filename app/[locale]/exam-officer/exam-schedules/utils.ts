@@ -5,7 +5,14 @@
 // info and interpret the raw digits as Vietnam local time.
 export const parseLocalDate = (dateStr: string | null): Date | null => {
     if (!dateStr) return null;
-    // Remove trailing Z or timezone offset (e.g. +07:00, +0700)
+
+    // If it's a standard ISO string with timezone info, let the Date constructor handle it
+    if (dateStr.includes("Z") || /[+-]\d{2}:?\d{2}$/.test(dateStr)) {
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) return date;
+    }
+
+    // Fallback for strings without timezone info or non-standard formats
     let cleaned = dateStr.replace(/Z$/i, "").replace(/[+-]\d{2}:?\d{2}$/, "");
     // Normalize separator
     cleaned = cleaned.replace("T", " ").trim();
