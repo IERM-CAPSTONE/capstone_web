@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
@@ -11,6 +11,14 @@ import { useSocket } from "@/hooks/use-socket";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+
+interface ProctorApplicationSocketPayload {
+    id?: string;
+    roomNumber?: string | null;
+    preferredDate?: string | null;
+    notes?: string | null;
+    status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELED";
+}
 
 export default function ProctorLayout({
     children,
@@ -85,6 +93,7 @@ function playProcessingSound() {
 }
 
 // ─── Proctor content with global ticket:resolved listener ─────────────────────
+/* eslint-disable react-hooks/exhaustive-deps */
 function ProctorContent({ children }: { children: React.ReactNode }) {
     const { socket, isConnected, joinRoom } = useSocket();
     const user = useAuthStore((s) => s.user);
@@ -117,16 +126,16 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
         wrongExamCode:  { vi: "Sai mã thi",                        en: "Wrong Exam Code" },
         notInExamList:  { vi: "Không có trong danh sách thi",      en: "Not In Exam List" },
     };
-    const resolveIssue = (raw: string) => {
-        if (KNOWN_KEYS.includes(raw)) {
-            const m = INCIDENT_MAP[raw];
-            return m ? (isVI ? m.vi : m.en) : raw;
-        }
-        return raw;
-    };
-
     useEffect(() => {
         if (!socket) return;
+
+        const resolveIssue = (raw: string) => {
+            if (KNOWN_KEYS.includes(raw)) {
+                const m = INCIDENT_MAP[raw];
+                return m ? (isVI ? m.vi : m.en) : raw;
+            }
+            return raw;
+        };
 
         const handleResolved = (payload: {
             ticketId: string;
@@ -153,7 +162,7 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
                             <p className="text-xs font-mono font-bold text-orange-600 mt-1"># {payload.studentCode}</p>
                         )}
                         {payload.resolveNote && (
-                            <p className="text-xs text-green-700 mt-1 italic">"{payload.resolveNote}"</p>
+                            <p className="text-xs text-green-700 mt-1 italic">&quot;{payload.resolveNote}&quot;</p>
                         )}
                         <p className="text-[11px] text-slate-400 mt-1">{L.resolvedBy}: {payload.officerName}</p>
                     </div>
@@ -208,7 +217,7 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
 
         socket.on("ticket:updated", handleUpdated);
 
-        const handleNewProctorApplication = (payload: any) => {
+        const handleNewProctorApplication = (payload: ProctorApplicationSocketPayload) => {
             // payload is ProctorApplicationResponse
             playProcessingSound();
             toast.success(
@@ -229,7 +238,54 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
             try { queryClient.invalidateQueries({ queryKey: ["proctor-applications"] }); } catch {}
         };
 
+        const handleIncomingSwapRequest = (payload: ProctorApplicationSocketPayload) => {
+            playProcessingSound();
+            toast.success(
+                <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                        <Megaphone className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">
+                            {isVI ? "Bạn vừa nhận được đơn đổi lịch mới" : "You received a new swap request"}
+                        </p>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                            {payload.roomNumber ? `Room ${payload.roomNumber}` : "Room TBA"} • {payload.preferredDate ? new Date(payload.preferredDate).toLocaleString() : "Date TBA"}
+                        </p>
+                        {payload.notes && <p className="text-xs text-slate-500 mt-1 truncate">{payload.notes}</p>}
+                    </div>
+                </div>,
+                { duration: 8000, style: { borderLeft: "4px solid #fb923c" } }
+            );
+
+            try { queryClient.invalidateQueries({ queryKey: ["proctor-applications"] }); } catch {}
+        };
+
+        const handleApplicationUpdated = (payload: ProctorApplicationSocketPayload) => {
+            try { queryClient.invalidateQueries({ queryKey: ["proctor-applications"] }); } catch {}
+
+            if (!payload.status) return;
+
+            if (payload.status === "APPROVED") {
+                playResolvedSound();
+                toast.success(isVI ? "Đơn đổi lịch đã được chấp nhận." : "The swap request was approved.");
+                return;
+            }
+
+            if (payload.status === "REJECTED") {
+                playProcessingSound();
+                toast.error(isVI ? "Đơn đổi lịch đã bị từ chối." : "The swap request was declined.");
+                return;
+            }
+
+            if (payload.status === "CANCELED") {
+                toast.info(isVI ? "Đơn đổi lịch đã bị hủy." : "The swap request was canceled.");
+            }
+        };
+
         socket.on('proctor:application:created', handleNewProctorApplication);
+        socket.on("proctor:swap-request:created", handleIncomingSwapRequest);
+        socket.on("proctor:application:updated", handleApplicationUpdated);
 
         const handleBroadcastAnnouncement = (payload: {
             title?: string;
@@ -262,9 +318,11 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
             socket.off("ticket:resolved", handleResolved);
             socket.off("ticket:updated", handleUpdated);
             socket.off('proctor:application:created', handleNewProctorApplication);
+            socket.off("proctor:swap-request:created", handleIncomingSwapRequest);
+            socket.off("proctor:application:updated", handleApplicationUpdated);
             socket.off("broadcast_announcement", handleBroadcastAnnouncement);
         };
-    }, [socket, user?.id]);
+    }, [INCIDENT_MAP, KNOWN_KEYS, L.resolvedBy, L.ticketResolved, isVI, queryClient, socket, user?.id]);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
@@ -285,3 +343,4 @@ function ProctorContent({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+/* eslint-enable react-hooks/exhaustive-deps */

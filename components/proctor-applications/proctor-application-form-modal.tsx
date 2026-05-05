@@ -49,14 +49,6 @@ const formatSessionTimeRange = (openTime: string | null, closeTime: string | nul
 const normalizeSearchValue = (value: string) =>
   value.toLowerCase().replace(/\s+/g, "").replace(/[:/|-]/g, "");
 
-const isSameExamDay = (left: string | null, right: string | null) => {
-  const leftDate = parseLocalDate(left);
-  const rightDate = parseLocalDate(right);
-
-  if (!leftDate || !rightDate) return false;
-  return format(leftDate, "yyyy-MM-dd") === format(rightDate, "yyyy-MM-dd");
-};
-
 interface ProctorApplicationFormModalProps {
   application?: ProctorApplication | null;
   existingApplications?: ProctorApplication[];
@@ -74,6 +66,8 @@ interface HallSessionCluster {
   rooms: string[];
   sessions: ExamSchedule[];
 }
+
+const SWAP_CONFLICT_ERROR_MESSAGE = "One of the invigilators would have another overlapping session after this swap";
 
 const compareRooms = (left: string, right: string) =>
   left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
@@ -172,7 +166,7 @@ export function ProctorApplicationFormModal({
       limit: 5000,
       semester: semester || undefined,
       campus: user?.campus || undefined,
-    } as any
+    }
   );
   const sessionsLoading = mySessionsLoading || allSessionsLoading;
 
@@ -194,6 +188,14 @@ export function ProctorApplicationFormModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState("");
   const [targetSearch, setTargetSearch] = useState("");
+
+  const getLocalizedSubmitError = (message: string) => {
+    if (message === SWAP_CONFLICT_ERROR_MESSAGE) {
+      return t("errors.overlappingSwapSession");
+    }
+
+    return message;
+  };
 
   useEffect(() => {
     if (application) {
@@ -264,7 +266,6 @@ export function ProctorApplicationFormModal({
 
       if (!targetAssigneeId || targetAssigneeId === user?.id) return false;
       if (session.id === selectedSourceSession.id) return false;
-      if (!isSameExamDay(session.examOpenTime, selectedSourceSession.examOpenTime)) return false;
 
       if (isHallInvigilator) return true;
 
@@ -286,7 +287,7 @@ export function ProctorApplicationFormModal({
         searchCandidates.some((candidate) => normalizeSearchValue(candidate).includes(compactSearchValue))
       );
     });
-  }, [examSessions, isHallInvigilator, selectedSourceSession, targetSearch, user?.id]);
+  }, [examSessions, isHallInvigilator, locale, selectedSourceSession, targetSearch, user?.id]);
 
   const candidateTargetClusters = useMemo(() => {
     if (!isHallInvigilator || !selectedSourceSession) return [];
@@ -431,7 +432,7 @@ export function ProctorApplicationFormModal({
           : error instanceof Error
             ? error.message
             : t("errors.saveFailed");
-      setSubmitError(message);
+      setSubmitError(getLocalizedSubmitError(message));
     }
   };
 
@@ -631,6 +632,9 @@ export function ProctorApplicationFormModal({
                 )}
               </div>
               {errors.targetExamSessionId && <p className="text-sm text-red-500">{errors.targetExamSessionId}</p>}
+              <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                {t("contactExamOfficeNote")}
+              </div>
             </div>
 
             {selectedTargetSession && (
